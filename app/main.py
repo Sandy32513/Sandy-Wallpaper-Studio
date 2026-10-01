@@ -99,17 +99,32 @@ def main() -> int:
     # Save config (creates settings.json if first run)
     config.save()
 
+    # -------------------------------------------------------
+    # Database Initialization (Phase 1)
+    # -------------------------------------------------------
+    from app.database import Database, CategoryRepository
+
+    db = Database(config.database_path)
+    db.connect()
+
+    # Seed default categories on first run
+    cat_repo = CategoryRepository(db)
+    cat_repo.seed_defaults()
+
     logger.info("%s initialized successfully.", APP_NAME)
 
     # -------------------------------------------------------
     # GUI Launch (Phase 6 — currently placeholder)
     # -------------------------------------------------------
+    cat_count = cat_repo.count()
     print(f"\n  {APP_NAME} v{APP_VERSION}")
     print(f"  Library: {config.config_dir}")
     print(f"  Database: {config.database_path}")
-    print("\n  [Phase 0 Complete] Core architecture initialized.")
+    print(f"  Categories: {cat_count}")
+    print("\n  [Phase 1 Complete] Database initialized.")
     print("  GUI will be available after Phase 6.\n")
 
+    db.close()
     logger.info("%s — shutdown.", APP_NAME)
     return 0
 
