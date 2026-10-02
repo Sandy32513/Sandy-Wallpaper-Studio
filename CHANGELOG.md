@@ -21,3 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created `.gitignore` for Python, IDE, OS, and app data files
 - Created project documentation: README, CHANGELOG, LICENSE, PRIVACY
 - Initialized Git repository
+
+### Phase 1 — Database Layer
+- Created SQLite database with WAL mode and foreign keys
+- Implemented `Wallpaper` model (22 fields), `Category`, `DownloadRecord`, `WallpaperHistory` models
+- Built migration system with version tracking (Migration 001: initial schema)
+- Created indexes on sha256, phash, category, resolution_class, favorite, download_date
+- Implemented `WallpaperRepository` — full CRUD, smart search, pagination, statistics
+- Implemented `CategoryRepository` — default seeding (44 categories), custom categories
+- Database auto-initializes and seeds on first launch
+- 73 tests passing (19 Phase 0 + 54 Phase 1)
+
