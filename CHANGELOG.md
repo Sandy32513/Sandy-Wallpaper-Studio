@@ -1,34 +1,81 @@
 # Changelog
 
-All notable changes to Sandy Wallpaper Studio will be documented in this file.
+All notable changes to Sandy Wallpaper Studio are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## Unreleased
+Future work is tracked in docs/ROADMAP.md.
 
----
+## Phase 3 — Image Validation, Hashing & Duplicate Detection
+**Commit:** 6434e8c6b71a9fdcca4612a107e1c605a429345c
 
-## [Unreleased]
+### Added
+- SHA-256 hashing
+- pHash perceptual hashing
+- dHash and aHash utilities
+- Hamming distance and similarity percentage
+- exact duplicate detection
+- near-duplicate detection
+- configurable pHash threshold
+- image integrity and format validation
+- full pixel decode validation
+- resolution and aspect-ratio classification
+- thumbnail generation
+- download-time SHA-256
+- download size protection
 
-### Phase 0 — Project Foundation
-- Initialized project architecture and directory structure
-- Created `pyproject.toml` with all dependency declarations
-- Created `requirements.txt` for reproducible installs
-- Implemented `Config` — JSON-based configuration manager with defaults
-- Implemented `constants.py` — centralized application constants
-- Implemented rotating file + console logging (`logging_config.py`)
-- Created main entry point (`main.py`) with CLI argument parsing
-- Added `python -m app` support
-- Created `.gitignore` for Python, IDE, OS, and app data files
-- Created project documentation: README, CHANGELOG, LICENSE, PRIVACY
-- Initialized Git repository
+### Design rule
+Duplicate detection is non-destructive. Detection does not automatically delete files.
 
-### Phase 1 — Database Layer
-- Created SQLite database with WAL mode and foreign keys
-- Implemented `Wallpaper` model (22 fields), `Category`, `DownloadRecord`, `WallpaperHistory` models
-- Built migration system with version tracking (Migration 001: initial schema)
-- Created indexes on sha256, phash, category, resolution_class, favorite, download_date
-- Implemented `WallpaperRepository` — full CRUD, smart search, pagination, statistics
-- Implemented `CategoryRepository` — default seeding (44 categories), custom categories
-- Database auto-initializes and seeds on first launch
-- 73 tests passing (19 Phase 0 + 54 Phase 1)
+## Phase 2 — Wikimedia Source & Download Service
+**Commit:** 4beef3af37136cf09d9d10f9c394bdf2631bc576
 
+### Added
+- Wikimedia Commons provider
+- official MediaWiki API integration
+- wallpaper search
+- minimum-resolution filtering
+- source metadata and license capture
+- source URLs and image URLs
+- streaming downloads
+- retries and exponential backoff
+- cancellation callback
+- temporary-file download flow
+- HTTP and content-type validation
+- filename sanitization
+
+## Phase 1 — SQLite Database Layer
+**Commit:** c56b7f0f60f5f3434024d475cf3ea72378755f0f
+
+### Added
+- SQLite database with WAL mode
+- foreign-key enforcement
+- migration tracking
+- Wallpaper, Category, DownloadRecord and WallpaperHistory models
+- repository layer
+- CRUD, smart search, pagination and statistics
+- 44 default categories
+- custom category support
+- database/index tests
+
+## Phase 0 — Project Foundation
+**Commit:** 9702d2ddd358888f8a922cd1885d0b5c502dea06
+
+### Added
+- initial architecture
+- Python package structure
+- pyproject.toml
+- requirements.txt
+- configuration manager
+- constants
+- logging
+- main entry point
+- python -m app support
+- CLI argument parsing
+- Git ignore rules
+- README, CHANGELOG, LICENSE and PRIVACY
+- Phase 0 tests
+
+## Versioning Policy
+The package metadata currently reports version 1.0.0. Development phase milestones are tracked separately so implementation progress is not confused with a production release.
+
+Future production releases use semantic versioning: MAJOR.MINOR.PATCH.
