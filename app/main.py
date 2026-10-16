@@ -116,12 +116,16 @@ def main() -> int:
     # -------------------------------------------------------
     # GUI Launch (Phase 6 — currently placeholder)
     # -------------------------------------------------------
+    from app.database.wallpaper_repository import WallpaperRepository
     cat_count = cat_repo.count()
+    wp_repo = WallpaperRepository(db)
+    wp_count = wp_repo.count()
     print(f"\n  {APP_NAME} v{APP_VERSION}")
-    print(f"  Library: {config.config_dir}")
-    print(f"  Database: {config.database_path}")
-    print(f"  Categories: {cat_count}")
-    print("\n  [Phase 1 Complete] Database initialized.")
+    print(f"  Library:     {config.config_dir}")
+    print(f"  Database:    {config.database_path}")
+    print(f"  Categories:  {cat_count}")
+    print(f"  Wallpapers:  {wp_count}")
+    print("\n  [Phase 4 Complete] Library engine ready.")
     print("  GUI will be available after Phase 6.\n")
 
     db.close()
