@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, chore/repository-cleanup]
   pull_request:
     branches: [main]
 
