@@ -6,8 +6,8 @@ import math
 from datetime import datetime
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QImageReader, QPixmap
+from PySide6.QtCore import QSize, Qt, QThread, QThreadPool, Signal
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
@@ -30,6 +30,10 @@ from PySide6.QtWidgets import (
 
 from app.config import Config
 from app.constants import DEFAULT_PHASH_THRESHOLD
+from app.services.duplicate_cleanup_service import (
+    CleanupOperationReport,
+    windows_recycle_bin_available,
+)
 from app.services.duplicate_scan_service import (
     CleanupPreview,
     DuplicateCandidate,
@@ -37,29 +41,24 @@ from app.services.duplicate_scan_service import (
     DuplicateScanReport,
     validate_threshold,
 )
-from app.services.duplicate_scan_worker import CleanupPreviewWorker, DuplicateScanWorker
+from app.services.duplicate_scan_worker import (
+    CleanupPreviewWorker,
+    DuplicateCleanupWorker,
+    DuplicateScanWorker,
+)
 from app.ui import design_system as ds
+from app.ui.components.cleanup_confirmation_dialog import CleanupConfirmationDialog
 from app.ui.components.comparison_dialog import ComparisonDialog
+from app.ui.components.image_preview_task import ImagePreviewSignals, ImagePreviewTask
 
 GROUPS_PER_PAGE = 8
+MEMBERS_PER_GROUP_PAGE = 12
 
 
 def _format_size(size_bytes: int) -> str:
     if size_bytes < 1024 * 1024:
         return f"{size_bytes / 1024:.1f} KB"
     return f"{size_bytes / (1024 * 1024):.2f} MB"
-
-
-def _small_preview(path: Path) -> QPixmap:
-    reader = QImageReader(str(path))
-    reader.setAutoTransform(True)
-    source_size = reader.size()
-    if source_size.isValid():
-        from PySide6.QtCore import QSize
-
-        reader.setScaledSize(source_size.scaled(QSize(112, 74), Qt.AspectRatioMode.KeepAspectRatio))
-    image = reader.read()
-    return QPixmap.fromImage(image) if not image.isNull() else QPixmap()
 
 
 class MemberChoice(QWidget):
@@ -76,12 +75,14 @@ class MemberChoice(QWidget):
         keep_checked: bool,
         compare_checked: bool,
         button_group: QButtonGroup,
+        preview_pool: QThreadPool,
         similarity_text: str = "",
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._group_id = group_id
         self._candidate = candidate
+        focus = f"QRadioButton:focus, QCheckBox:focus {{ border: 1px solid {ds.ACCENT_LIGHT}; border-radius: 3px; }}"
         self.setStyleSheet(
             f"background-color: {ds.BG_DEEP}; border: 1px solid {ds.BG_BORDER}; border-radius: 6px;"
         )
@@ -93,12 +94,19 @@ class MemberChoice(QWidget):
         thumbnail.setFixedSize(84, 60)
         thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
         thumbnail.setStyleSheet("background: transparent; border: none;")
-        pixmap = _small_preview(candidate.canonical_path)
-        if not pixmap.isNull():
-            thumbnail.setPixmap(
-                pixmap.scaled(84, 60, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            )
+        thumbnail.setText("Loading…")
         row.addWidget(thumbnail)
+        self._thumbnail = thumbnail
+        self._preview_signals = ImagePreviewSignals()
+        self._preview_signals.loaded.connect(self._on_preview_loaded)
+        preview_pool.start(
+            ImagePreviewTask(
+                candidate.wallpaper_id,
+                str(candidate.canonical_path),
+                QSize(224, 160),
+                self._preview_signals,
+            )
+        )
 
         details = QVBoxLayout()
         details.setSpacing(2)
@@ -138,14 +146,14 @@ class MemberChoice(QWidget):
         choices_layout.setSpacing(2)
         self.keep_radio = QRadioButton("Keep")
         self.keep_radio.setToolTip("Explicitly mark this file as the retained copy for this group.")
-        self.keep_radio.setStyleSheet(f"color: {ds.TEXT_PRIMARY}; border: none;")
+        self.keep_radio.setStyleSheet(f"QRadioButton {{ color: {ds.TEXT_PRIMARY}; border: none; }} {focus}")
         button_group.addButton(self.keep_radio, candidate.wallpaper_id)
         self.keep_radio.setChecked(keep_checked)
         choices_layout.addWidget(self.keep_radio)
 
-        self.remove_check = QCheckBox("Preview")
-        self.remove_check.setToolTip("Select this file for the read-only cleanup preview.")
-        self.remove_check.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; border: none;")
+        self.remove_check = QCheckBox("Remove")
+        self.remove_check.setToolTip("Select this individual file as a cleanup target.")
+        self.remove_check.setStyleSheet(f"QCheckBox {{ color: {ds.TEXT_SECONDARY}; border: none; }} {focus}")
         self.remove_check.setChecked(remove_checked)
         choices_layout.addWidget(self.remove_check)
 
@@ -154,13 +162,27 @@ class MemberChoice(QWidget):
 
         self.compare_check = QCheckBox("Compare")
         self.compare_check.setToolTip("Add this file to the side-by-side comparison selection.")
-        self.compare_check.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; border: none;")
+        self.compare_check.setStyleSheet(f"QCheckBox {{ color: {ds.TEXT_SECONDARY}; border: none; }} {focus}")
         self.compare_check.setChecked(compare_checked)
         choices_layout.addWidget(self.compare_check)
         row.addWidget(choices)
         self.compare_check.toggled.connect(
             lambda checked: self.compare_changed.emit(candidate.wallpaper_id, checked)
         )
+
+    def _on_preview_loaded(self, item_id: int, image: QImage) -> None:
+        if item_id != self._candidate.wallpaper_id:
+            return
+        if image.isNull():
+            self._thumbnail.setText("Preview unavailable")
+            return
+        pixmap = QPixmap.fromImage(image).scaled(
+            self._thumbnail.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        self._thumbnail.setText("")
+        self._thumbnail.setPixmap(pixmap)
 
     def _emit_choice(self, _checked: bool = False) -> None:
         if self.keep_radio.isChecked() and self.remove_check.isChecked():
@@ -186,13 +208,19 @@ class DuplicateGroupCard(QFrame):
         self,
         group: DuplicateGroup,
         index: int,
-        removals: set[int],
-        keep_id: int | None,
+        removals_by_group: dict[str, set[int]],
+        keeps_by_group: dict[str, int],
         compare_ids: set[int],
+        preview_pool: QThreadPool,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.group = group
+        self._removals_by_group = removals_by_group
+        self._keeps_by_group = keeps_by_group
+        self._compare_ids = compare_ids
+        self._preview_pool = preview_pool
+        self._member_page = 0
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(
             f"QFrame {{ background-color: {ds.BG_SURFACE}; border: 1px solid {ds.BG_BORDER}; border-radius: 8px; }}"
@@ -209,7 +237,7 @@ class DuplicateGroupCard(QFrame):
             summary = f"Byte-identical · {_format_size(group.exact_redundant_bytes)} redundant bytes"
         else:
             summary = (
-                f"Near matches · strongest direct similarity {group.highest_similarity:.2f}% · "
+                f"Near matches · strongest listed direct similarity {group.highest_similarity:.2f}% · "
                 f"{len(group.edges)} direct links"
             )
         summary_label = QLabel(summary)
@@ -233,7 +261,8 @@ class DuplicateGroupCard(QFrame):
                 "clear",
             )
         )
-        action_row.addWidget(select_all)
+        if group.kind == "exact":
+            action_row.addWidget(select_all)
         action_row.addWidget(clear)
         layout.addLayout(action_row)
 
@@ -246,25 +275,74 @@ class DuplicateGroupCard(QFrame):
                     if prior is None or edge.hamming_distance < prior[0]:
                         best[candidate_id] = (edge.hamming_distance, edge.similarity_percent)
             similarity_by_id = {
-                candidate_id: f"nearest direct pHash {distance}/64 · {score:.2f}%"
+                candidate_id: f"direct pHash link {distance}/64 · {score:.2f}%"
                 for candidate_id, (distance, score) in best.items()
             }
 
+        self._similarity_by_id = similarity_by_id
+        member_nav = QHBoxLayout()
+        self.member_page_label = QLabel()
+        self.member_page_label.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_XS}px;")
+        member_nav.addWidget(self.member_page_label)
+        member_nav.addStretch()
+        self.member_previous = QPushButton("Previous files")
+        self.member_previous.clicked.connect(self._previous_members)
+        member_nav.addWidget(self.member_previous)
+        self.member_next = QPushButton("Next files")
+        self.member_next.clicked.connect(self._next_members)
+        member_nav.addWidget(self.member_next)
+        layout.addLayout(member_nav)
+
+        self.member_container = QWidget()
+        self.member_layout = QVBoxLayout(self.member_container)
+        self.member_layout.setContentsMargins(0, 0, 0, 0)
+        self.member_layout.setSpacing(ds.SPACE_SM)
+        layout.addWidget(self.member_container)
+        self._render_members()
+
+    def _render_members(self) -> None:
+        while self.member_layout.count():
+            item = self.member_layout.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+        total_pages = max(1, math.ceil(len(self.group.members) / MEMBERS_PER_GROUP_PAGE))
+        self._member_page = min(self._member_page, total_pages - 1)
+        start = self._member_page * MEMBERS_PER_GROUP_PAGE
+        visible = self.group.members[start : start + MEMBERS_PER_GROUP_PAGE]
+        removals = self._removals_by_group.get(self.group.group_id, set())
+        keep_id = self._keeps_by_group.get(self.group.group_id)
         button_group = QButtonGroup(self)
         button_group.setExclusive(True)
-        for candidate in group.members:
+        for candidate in visible:
             member = MemberChoice(
-                group.group_id,
+                self.group.group_id,
                 candidate,
                 candidate.wallpaper_id in removals,
                 candidate.wallpaper_id == keep_id,
-                candidate.wallpaper_id in compare_ids,
+                candidate.wallpaper_id in self._compare_ids,
                 button_group,
-                similarity_by_id.get(candidate.wallpaper_id, ""),
+                self._preview_pool,
+                self._similarity_by_id.get(candidate.wallpaper_id, ""),
             )
             member.choice_changed.connect(self.choice_changed)
             member.compare_changed.connect(self.compare_changed)
-            layout.addWidget(member)
+            self.member_layout.addWidget(member)
+        final_index = min(start + len(visible), len(self.group.members))
+        self.member_page_label.setText(
+            f"Files {start + 1}–{final_index} of {len(self.group.members)} · page {self._member_page + 1}/{total_pages}"
+        )
+        self.member_previous.setEnabled(self._member_page > 0)
+        self.member_next.setEnabled(self._member_page + 1 < total_pages)
+
+    def _previous_members(self) -> None:
+        self._member_page = max(0, self._member_page - 1)
+        self._render_members()
+
+    def _next_members(self) -> None:
+        self._member_page += 1
+        self._render_members()
 
 
 class GroupResultsTab(QWidget):
@@ -280,12 +358,15 @@ class GroupResultsTab(QWidget):
         removals: dict[str, set[int]],
         keeps: dict[str, int],
         compare_ids: set[int],
+        preview_pool: QThreadPool | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._removals = removals
         self._keeps = keeps
         self._compare_ids = compare_ids
+        self._preview_pool = preview_pool or QThreadPool(self)
+        self._preview_pool.setMaxThreadCount(4)
         self._groups: tuple[DuplicateGroup, ...] = ()
         self._page = 0
 
@@ -379,6 +460,7 @@ class GroupResultsTab(QWidget):
             item = self.cards_layout.takeAt(0)
             widget = item.widget() if item is not None else None
             if widget is not None:
+                widget.hide()
                 widget.deleteLater()
 
     def _render(self) -> None:
@@ -392,9 +474,10 @@ class GroupResultsTab(QWidget):
             card = DuplicateGroupCard(
                 group,
                 offset,
-                self._removals.get(group.group_id, set()),
-                self._keeps.get(group.group_id),
+                self._removals,
+                self._keeps,
                 self._compare_ids,
+                self._preview_pool,
             )
             card.choice_changed.connect(self.choice_changed)
             card.compare_changed.connect(self.compare_changed)
@@ -437,15 +520,23 @@ class DuplicateManagerView(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self.setStyleSheet(
+            f"QPushButton:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus, "
+            f"QTabBar::tab:focus {{ border: 2px solid {ds.ACCENT_LIGHT}; }}"
+        )
         self._database_path = database_path
         self._config = config
         self._scan_worker: DuplicateScanWorker | None = None
         self._preview_worker: CleanupPreviewWorker | None = None
+        self._cleanup_worker: DuplicateCleanupWorker | None = None
+        self._thumbnail_pool = QThreadPool(self)
+        self._thumbnail_pool.setMaxThreadCount(4)
         self._report: DuplicateScanReport | None = None
         self._removals: dict[str, set[int]] = {}
         self._keeps: dict[str, int] = {}
         self._compare_ids: set[int] = set()
         self._candidate_by_id: dict[int, DuplicateCandidate] = {}
+        self._pending_cleanup_confirmation = False
         self._build_ui()
         self._refresh_selection_summary()
 
@@ -512,15 +603,19 @@ class DuplicateManagerView(QWidget):
         self.preview_button = QPushButton("Preview selected plan")
         self.preview_button.clicked.connect(self.preview_selected)
         actions.addWidget(self.preview_button)
-        self.delete_button = QPushButton("Clean up files")
+        self.delete_button = QPushButton("Move selected to Recycle Bin")
+        self.delete_button.setObjectName("danger")
         self.delete_button.setEnabled(False)
-        self.delete_button.setToolTip("Disabled because this app does not yet have a verified recoverable Recycle Bin or quarantine workflow.")
+        self.delete_button.setToolTip(
+            "Move individually selected files under the configured library folder to the Windows Recycle Bin after review."
+        )
+        self.delete_button.clicked.connect(self.cleanup_selected)
         actions.addWidget(self.delete_button)
         controls.addLayout(actions)
         layout.addLayout(controls)
 
         self.threshold_note = QLabel(
-            "pHash similarity = (64 − Hamming distance) ÷ 64 × 100. Near groups may form chains; each displayed score is a direct pair comparison. File removal is disabled until a verified recoverable Recycle Bin or quarantine workflow is available."
+            "pHash similarity = (64 − Hamming distance) ÷ 64 × 100. Near groups may form chains; each displayed score is a direct pair comparison. Cleanup revalidates targets and uses the Windows Recycle Bin only; paths outside the configured library and linked files are rejected."
         )
         self.threshold_note.setWordWrap(True)
         self.threshold_note.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_XS}px;")
@@ -532,14 +627,18 @@ class DuplicateManagerView(QWidget):
         self.progress.setFormat("Ready")
         layout.addWidget(self.progress)
 
-        self.selection_summary = QLabel("No files selected for preview.")
+        self.selection_summary = QLabel("No cleanup targets selected.")
         self.selection_summary.setWordWrap(True)
         self.selection_summary.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_XS}px;")
         layout.addWidget(self.selection_summary)
 
         self.tabs = QTabWidget()
-        self.exact_tab = GroupResultsTab("exact", self._removals, self._keeps, self._compare_ids)
-        self.near_tab = GroupResultsTab("near", self._removals, self._keeps, self._compare_ids)
+        self.exact_tab = GroupResultsTab(
+            "exact", self._removals, self._keeps, self._compare_ids, self._thumbnail_pool
+        )
+        self.near_tab = GroupResultsTab(
+            "near", self._removals, self._keeps, self._compare_ids, self._thumbnail_pool
+        )
         for tab in (self.exact_tab, self.near_tab):
             tab.choice_changed.connect(self._on_choice_changed)
             tab.compare_changed.connect(self._on_compare_choice_changed)
@@ -593,11 +692,12 @@ class DuplicateManagerView(QWidget):
         self.scan_summary.setText("Scanning current library files. Cancel discards any incomplete result.")
         self.scan_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
+        self.cancel_button.setText("Cancel scan")
         worker = DuplicateScanWorker(self._database_path, threshold, self)
         worker.progress.connect(self._on_scan_progress)
         worker.report_ready.connect(self._on_scan_report)
         worker.failed.connect(self._on_task_failed)
-        worker.finished.connect(self._on_worker_finished)
+        worker.finished.connect(lambda worker=worker: self._on_worker_finished(worker))
         self._scan_worker = worker
         worker.start()
         self.status_message.emit("Duplicate scan started.")
@@ -610,6 +710,10 @@ class DuplicateManagerView(QWidget):
         if self._preview_worker is not None and self._preview_worker.isRunning():
             self._preview_worker.cancel()
             self.progress.setFormat("Cancelling preview…")
+            return
+        if self._cleanup_worker is not None and self._cleanup_worker.isRunning():
+            self._cleanup_worker.cancel()
+            self.progress.setFormat("Cancelling after the current file…")
 
     def _on_scan_progress(self, done: int, total: int, status: str) -> None:
         self.progress.setRange(0, max(total, 1))
@@ -647,6 +751,7 @@ class DuplicateManagerView(QWidget):
         self.scan_summary.setText(
             f"Completed {finished} · checked {report.scanned_records}/{report.total_records} records · "
             f"{issue_count} file/record issues. Near similarity scores use Hamming distance, not probability."
+            + (" Near-match analysis is incomplete; lower the threshold to review near groups." if not report.near_complete else "")
         )
         self.progress.setRange(0, max(report.total_records, 1))
         self.progress.setValue(report.scanned_records)
@@ -673,9 +778,7 @@ class DuplicateManagerView(QWidget):
             f"Candidate files: {report.candidate_count}   ·   Exact-only redundant bytes: "
             f"{_format_size(report.exact_redundant_bytes_estimate)}"
         )
-        self.preview_button.setEnabled(True)
-        self.compare_button.setEnabled(2 <= len(self._compare_ids) <= 4)
-        self.delete_button.setEnabled(False)
+        self._update_action_buttons()
         self._refresh_selection_summary()
 
     def _on_choice_changed(self, group_id: str, item_id: int, remove: bool, keep: bool) -> None:
@@ -688,6 +791,7 @@ class DuplicateManagerView(QWidget):
             self._removals.setdefault(group_id, set()).add(item_id)
         else:
             self._removals.setdefault(group_id, set()).discard(item_id)
+        self._update_action_buttons()
         self._refresh_selection_summary()
         self.status_message.emit("Duplicate review choices updated.")
 
@@ -705,6 +809,7 @@ class DuplicateManagerView(QWidget):
             self._removals[group_id] = ids - {keep_id}
         self.exact_tab.refresh_choices()
         self.near_tab.refresh_choices()
+        self._update_action_buttons()
         self._refresh_selection_summary()
 
     def _on_compare_choice_changed(self, item_id: int, checked: bool) -> None:
@@ -722,7 +827,7 @@ class DuplicateManagerView(QWidget):
             if item_id in self._candidate_by_id
         )
         if not 2 <= len(selected) <= 4:
-            QMessageBox.information(self, "Choose files to compare", "Select between two and four files with the Remove checkboxes, then compare them.")
+            QMessageBox.information(self, "Choose files to compare", "Select between two and four files with the Compare checkboxes, then compare them.")
             return
         preview_ids = {
             item_id
@@ -738,6 +843,40 @@ class DuplicateManagerView(QWidget):
         dialog.exec()
 
     def preview_selected(self) -> None:
+        self._start_preview(cleanup=False)
+
+    def cleanup_selected(self) -> None:
+        if not windows_recycle_bin_available():
+            QMessageBox.warning(
+                self,
+                "Recycle Bin unavailable",
+                "Duplicate cleanup is available on Windows only. No files were changed.",
+            )
+            return
+        self._start_preview(cleanup=True)
+
+    def _selection_is_valid(self) -> bool:
+        if self._report is None or not self._report.completed or self._report.cancelled:
+            return False
+        removals = {group_id: ids for group_id, ids in self._removals.items() if ids}
+        if not removals or not all(group_id in self._keeps for group_id in removals):
+            return False
+        if not self._report.near_complete:
+            groups = {group.group_id: group for group in self._report.groups}
+            if any(groups.get(group_id) and groups[group_id].kind == "near" for group_id in removals):
+                return False
+        return True
+
+    def _update_action_buttons(self) -> None:
+        busy = self._task_running()
+        selected = self._selection_is_valid()
+        self.preview_button.setEnabled(selected and not busy)
+        self.delete_button.setEnabled(
+            selected and not busy and windows_recycle_bin_available()
+        )
+        self.compare_button.setEnabled(2 <= len(self._compare_ids) <= 4 and not busy)
+
+    def _start_preview(self, cleanup: bool) -> None:
         if self._report is None:
             return
         removals = {group_id: set(ids) for group_id, ids in self._removals.items() if ids}
@@ -749,20 +888,33 @@ class DuplicateManagerView(QWidget):
             QMessageBox.warning(self, "Choose a retained file", "Choose one explicit Keep file in every group that has removal selections.")
             return
         self.preview_button.setEnabled(False)
+        self.delete_button.setEnabled(False)
         self.scan_button.setEnabled(False)
         self.cancel_button.setEnabled(True)
+        self.cancel_button.setText("Cancel preview")
         self.progress.setRange(0, 0)
         self.progress.setFormat("Rechecking selected files…")
-        worker = CleanupPreviewWorker(self._report, removals, self._keeps, self)
+        self._pending_cleanup_confirmation = cleanup
+        worker = CleanupPreviewWorker(
+            self._report,
+            removals,
+            self._keeps,
+            parent=self,
+            allowed_root=self._config.library_path,
+        )
         worker.preview_ready.connect(self._show_preview)
         worker.failed.connect(self._on_preview_failed)
-        worker.finished.connect(self._on_worker_finished)
+        worker.finished.connect(lambda worker=worker: self._on_worker_finished(worker))
         self._preview_worker = worker
         worker.start()
 
     def _show_preview(self, preview: object) -> None:
         if not isinstance(preview, CleanupPreview):
             self._on_preview_failed("Preview returned an invalid result.")
+            return
+        if self._pending_cleanup_confirmation:
+            self._pending_cleanup_confirmation = False
+            self._confirm_cleanup(preview)
             return
         details = ["Selected files would be paired with these retained files:"]
         for entry in preview.entries:
@@ -771,7 +923,7 @@ class DuplicateManagerView(QWidget):
             )
             for candidate in entry.selected_for_removal:
                 details.append(
-                    f"Preview only: {candidate.display_name} — {candidate.canonical_path.as_posix()} "
+                    f"Selected target: {candidate.display_name} — {candidate.canonical_path.as_posix()} "
                     f"({_format_size(candidate.size_bytes)})"
                 )
         message = QMessageBox(self)
@@ -780,9 +932,8 @@ class DuplicateManagerView(QWidget):
         message.setText("Cleanup plan revalidated")
         message.setInformativeText(
             f"Selected files: {preview.files_selected}\n"
-            f"Potential bytes selected: {_format_size(preview.estimated_bytes)}\n\n"
-            "This preview changed no files and no database rows. File removal is disabled until a "
-            "verified recoverable Recycle Bin or quarantine workflow is available."
+            f"Selected file sizes (estimate): {_format_size(preview.estimated_bytes)}\n\n"
+            "This preview changed no files and no database rows. The Recycle Bin may continue using disk space until emptied."
         )
         message.setDetailedText("\n".join(details))
         message.setStandardButtons(QMessageBox.StandardButton.Ok)
@@ -791,7 +942,97 @@ class DuplicateManagerView(QWidget):
         self.progress.setValue(100)
         self.progress.setFormat("Preview complete · no changes made")
 
+    def _confirm_cleanup(self, preview: CleanupPreview) -> None:
+        if self._report is None:
+            return
+        dialog = CleanupConfirmationDialog(preview, self)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            self.progress.setRange(0, 100)
+            self.progress.setValue(0)
+            self.progress.setFormat("Cleanup cancelled · no files changed")
+            self.status_message.emit("Cleanup cancelled; no files were changed.")
+            return
+
+        worker = DuplicateCleanupWorker(
+            self._report,
+            preview,
+            self._config.library_path,
+            self,
+        )
+        worker.progress.connect(self._on_scan_progress)
+        worker.cleanup_ready.connect(self._show_cleanup_results)
+        worker.failed.connect(self._on_cleanup_failed)
+        worker.finished.connect(lambda worker=worker: self._on_worker_finished(worker))
+        self._cleanup_worker = worker
+        self.scan_button.setEnabled(False)
+        self.preview_button.setEnabled(False)
+        self.delete_button.setEnabled(False)
+        self.cancel_button.setEnabled(True)
+        self.cancel_button.setText("Cancel cleanup")
+        self.progress.setRange(0, preview.files_selected)
+        self.progress.setValue(0)
+        self.progress.setFormat("Moving reviewed files to Recycle Bin")
+        worker.start()
+
+    def _show_cleanup_results(self, result: object) -> None:
+        if not isinstance(result, CleanupOperationReport):
+            self._on_cleanup_failed("Cleanup returned an invalid result.")
+            return
+        lines = [
+            f"{item.status.upper()}: {item.path} — {item.message}"
+            for item in result.results
+        ]
+        summary = (
+            f"Moved to Recycle Bin: {result.recycled_count}\n"
+            f"Failed: {result.failed_count}\n"
+            f"Estimated target bytes moved: {_format_size(result.recycled_bytes)}\n\n"
+            "Library rows were retained so favorites, history, and view records remain intact."
+        )
+        if result.cancelled:
+            summary += "\nThe operation was cancelled before all targets were attempted."
+        message = QMessageBox(self)
+        message.setWindowTitle("Duplicate cleanup results")
+        message.setIcon(
+            QMessageBox.Icon.Warning if result.failed_count else QMessageBox.Icon.Information
+        )
+        message.setText("Cleanup operation finished")
+        message.setInformativeText(summary)
+        message.setDetailedText("\n".join(lines))
+        message.setStandardButtons(QMessageBox.StandardButton.Ok)
+        message.exec()
+        self.progress.setRange(0, 100)
+        self.progress.setValue(100 if result.failed_count == 0 else 0)
+        self.progress.setFormat(
+            f"Cleanup finished · {result.recycled_count} recycled, {result.failed_count} failed"
+        )
+        self.status_message.emit(
+            f"Duplicate cleanup finished: {result.recycled_count} moved to Recycle Bin, "
+            f"{result.failed_count} failed."
+        )
+        # The report describes pre-cleanup paths; require a fresh scan afterward.
+        self._report = None
+        self._candidate_by_id.clear()
+        self._removals.clear()
+        self._keeps.clear()
+        self._compare_ids.clear()
+        self.scan_summary.setText("Cleanup is complete. Run a new scan to review current library files.")
+        self._render_report()
+
+    def _on_cleanup_failed(self, message: str) -> None:
+        QMessageBox.warning(
+            self,
+            "Cleanup could not run",
+            f"{message}\n\nNo permanent-delete fallback was used. Verify the Recycle Bin and file locations before retrying.",
+        )
+        self._report = None
+        self._render_report()
+        self.scan_summary.setText("Cleanup failed or was interrupted. Run a new scan before retrying.")
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.progress.setFormat("Cleanup failed; rescan before retrying")
+
     def _on_preview_failed(self, message: str) -> None:
+        self._pending_cleanup_confirmation = False
         QMessageBox.warning(self, "Preview could not be created", message)
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
@@ -820,35 +1061,49 @@ class DuplicateManagerView(QWidget):
         self.progress.setFormat("Task failed")
         self.status_message.emit(message)
 
-    def _on_worker_finished(self) -> None:
-        self.scan_button.setEnabled(True)
-        self.cancel_button.setEnabled(False)
-        self.preview_button.setEnabled(self._report is not None)
-        self.compare_button.setEnabled(2 <= len(self._compare_ids) <= 4)
-        self._scan_worker = None
-        self._preview_worker = None
+    def _on_worker_finished(self, worker: QThread) -> None:
+        if self._scan_worker is worker:
+            self._scan_worker = None
+        if self._preview_worker is worker:
+            self._preview_worker = None
+        if self._cleanup_worker is worker:
+            self._cleanup_worker = None
+        busy = self._task_running()
+        self.scan_button.setEnabled(not busy)
+        self.cancel_button.setEnabled(busy)
+        self.cancel_button.setText(
+            "Cancel cleanup"
+            if self._cleanup_worker is not None
+            else "Cancel preview"
+            if self._preview_worker is not None
+            else "Cancel scan"
+        )
+        self._update_action_buttons()
 
     def _task_running(self) -> bool:
         return bool(
             (self._scan_worker is not None and self._scan_worker.isRunning())
             or (self._preview_worker is not None and self._preview_worker.isRunning())
+            or (self._cleanup_worker is not None and self._cleanup_worker.isRunning())
         )
 
     def _refresh_selection_summary(self) -> None:
         files = sum(len(ids) for ids in self._removals.values())
         groups = sum(bool(ids) for ids in self._removals.values())
         if files == 0:
-            self.selection_summary.setText("No files selected for preview. Choose a Keep file before using “Select all except retained”.")
+            self.selection_summary.setText("No cleanup targets selected. Choose a Keep file before selecting a target.")
         else:
             missing = sum(group_id not in self._keeps for group_id, ids in self._removals.items() if ids)
             self.selection_summary.setText(
-                f"Preview selection: {files} file(s) across {groups} group(s) · "
+                f"Cleanup selection: {files} file(s) across {groups} group(s) · "
                 f"explicit retained choice missing in {missing} group(s)."
             )
 
     def shutdown(self) -> None:
         """Cancel and join workers before the main window closes its database."""
-        for worker in (self._scan_worker, self._preview_worker):
+        for worker in (self._scan_worker, self._preview_worker, self._cleanup_worker):
             if worker is not None and worker.isRunning():
                 worker.cancel()
                 worker.wait()
+        self._thumbnail_pool.clear()
+        self._thumbnail_pool.waitForDone()

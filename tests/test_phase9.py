@@ -423,7 +423,9 @@ class TestDuplicateManagerUI:
         shutil.copyfile(first, duplicate)
         report = DuplicateScanService([_wallpaper(first, 1), _wallpaper(duplicate, 2)]).scan()
         group = _group_for(report, "exact")
-        view = DuplicateManagerView(tmp_path / "readonly.db", Config(tmp_path / "choice-config"))
+        config = Config(tmp_path / "choice-config")
+        config.set("library_path", str(tmp_path))
+        view = DuplicateManagerView(tmp_path / "readonly.db", config)
         view._report = report
         view._candidate_by_id = {candidate.wallpaper_id: candidate for candidate in report.candidates}
         view._render_report()

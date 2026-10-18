@@ -209,6 +209,11 @@ QPushButton#danger:hover {{
     background-color: {DANGER};
     color: #ffffff;
 }}
+QPushButton#danger:disabled {{
+    background-color: transparent;
+    border-color: {BG_BORDER};
+    color: {TEXT_DISABLED};
+}}
 QPushButton#ghost {{
     background-color: transparent;
     border-color: transparent;

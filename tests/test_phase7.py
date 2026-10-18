@@ -497,6 +497,28 @@ class TestHistoryView:
         assert view._active_tab == 2
         assert view._stack.currentIndex() == 2
 
+    def test_refresh_hides_previous_applied_empty_state_before_replacement(
+        self, qapp, test_db, test_config
+    ):
+        wp_repo = WallpaperRepository(test_db)
+        wp_svc = WindowsWallpaperService(db=test_db, wallpaper_repo=wp_repo, simulate=True)
+        view = HistoryView(
+            db=test_db,
+            wallpaper_service=wp_svc,
+            cache_dir=test_config.cache_dir,
+        )
+        view.show()
+        qapp.processEvents()
+        old_state = view._applied_layout.itemAt(0).widget()
+
+        view.refresh()
+
+        new_state = view._applied_layout.itemAt(0).widget()
+        assert view._applied_layout.count() == 1
+        assert old_state is not new_state
+        assert old_state.isHidden()
+        view.close()
+
     def test_applied_tab_reapply_and_restore(self, qapp, test_db, test_config, tmp_path):
         wallpapers = _create_sample_wallpapers(test_db, tmp_path=tmp_path, count=3)
         wp_repo = WallpaperRepository(test_db)

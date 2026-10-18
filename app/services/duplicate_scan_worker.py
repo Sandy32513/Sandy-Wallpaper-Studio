@@ -10,6 +10,11 @@ from PySide6.QtCore import QThread, Signal
 
 from app.database.database import Database
 from app.database.wallpaper_repository import WallpaperRepository
+from app.services.duplicate_cleanup_service import (
+    CleanupOperationReport,
+    CleanupSafetyError,
+    execute_cleanup,
+)
 from app.services.duplicate_scan_service import (
     CleanupPreview,
     DuplicateScanReport,
@@ -82,11 +87,13 @@ class CleanupPreviewWorker(QThread):
         removals_by_group: Mapping[str, set[int]],
         keep_by_group: Mapping[str, int],
         parent=None,
+        allowed_root: Path | None = None,
     ) -> None:
         super().__init__(parent)
         self._report = report
         self._removals = {key: set(value) for key, value in removals_by_group.items()}
         self._keeps = dict(keep_by_group)
+        self._allowed_root = allowed_root
         self._cancel_event = threading.Event()
 
     def cancel(self) -> None:
@@ -99,12 +106,65 @@ class CleanupPreviewWorker(QThread):
                 self._removals,
                 self._keeps,
                 self._cancel_event,
+                allowed_root=self._allowed_root,
             )
         except Exception as exc:
-            message = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+            message = (
+                str(exc)
+                if isinstance(exc, (ValueError, CleanupSafetyError))
+                else type(exc).__name__
+            )
             self.failed.emit(message)
         else:
             self.preview_ready.emit(preview)
 
 
-__all__ = ["CleanupPreview", "CleanupPreviewWorker", "DuplicateScanWorker"]
+class DuplicateCleanupWorker(QThread):
+    """Perform confirmed per-file cleanup off the UI thread."""
+
+    progress = Signal(int, int, str)
+    cleanup_ready = Signal(object)
+    failed = Signal(str)
+
+    def __init__(
+        self,
+        report: DuplicateScanReport,
+        preview: CleanupPreview,
+        allowed_root: Path,
+        parent=None,
+    ) -> None:
+        super().__init__(parent)
+        self._report = report
+        self._preview = preview
+        self._allowed_root = allowed_root
+        self._cancel_event = threading.Event()
+
+    def cancel(self) -> None:
+        """Stop before the next file; a Recycle Bin request already in progress completes first."""
+        self._cancel_event.set()
+
+    def run(self) -> None:
+        try:
+            result: CleanupOperationReport = execute_cleanup(
+                self._report,
+                self._preview,
+                self._allowed_root,
+                cancel_event=self._cancel_event,
+                progress=lambda done, total, name: self.progress.emit(done, total, name),
+            )
+        except Exception as exc:
+            self.failed.emit(
+                str(exc)
+                if isinstance(exc, (ValueError, CleanupSafetyError))
+                else type(exc).__name__
+            )
+        else:
+            self.cleanup_ready.emit(result)
+
+
+__all__ = [
+    "CleanupPreview",
+    "CleanupPreviewWorker",
+    "DuplicateCleanupWorker",
+    "DuplicateScanWorker",
+]

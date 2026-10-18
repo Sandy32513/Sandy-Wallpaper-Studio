@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Collection
 from itertools import combinations
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QImageReader, QPixmap
+from PySide6.QtCore import QSize, Qt, QThreadPool
+from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from app.services.duplicate_scan_service import DuplicateCandidate
 from app.ui import design_system as ds
+from app.ui.components.image_preview_task import ImagePreviewSignals, ImagePreviewTask
 
 
 def _format_size(size_bytes: int) -> str:
@@ -43,6 +44,11 @@ class ComparisonDialog(QDialog):
         self._candidates = candidates
         self._keep_ids = set(keep_ids)
         self._preview_ids = set(preview_ids)
+        self._preview_pool = QThreadPool(self)
+        self._preview_pool.setMaxThreadCount(4)
+        self._preview_labels: dict[int, QLabel] = {}
+        self._preview_signals = ImagePreviewSignals()
+        self._preview_signals.loaded.connect(self._on_preview_loaded)
         self.setWindowTitle("Compare wallpapers")
         self.resize(1080, 660)
         self.setMinimumSize(720, 480)
@@ -102,14 +108,23 @@ class ComparisonDialog(QDialog):
         image.setAlignment(Qt.AlignmentFlag.AlignCenter)
         image.setFixedSize(300, 190)
         image.setStyleSheet(f"background-color: {ds.BG_DEEP}; border-radius: 4px;")
-        image.setPixmap(self._load_preview(candidate.canonical_path.as_posix()))
+        image.setText("Loading preview…")
+        self._preview_labels[candidate.wallpaper_id] = image
+        self._preview_pool.start(
+            ImagePreviewTask(
+                candidate.wallpaper_id,
+                str(candidate.canonical_path),
+                QSize(600, 380),
+                self._preview_signals,
+            )
+        )
         layout.addWidget(image, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         roles = []
         if candidate.wallpaper_id in self._keep_ids:
             roles.append("Keep candidate")
         if candidate.wallpaper_id in self._preview_ids:
-            roles.append("Selected for cleanup preview")
+            roles.append("Selected for Recycle Bin")
         role = QLabel(" · ".join(roles) if roles else "Comparison only")
         role.setWordWrap(True)
         role.setStyleSheet(f"color: {ds.ACCENT_PRIMARY}; font-weight: 600; border: none;")
@@ -140,21 +155,24 @@ class ComparisonDialog(QDialog):
         layout.addWidget(path)
         return card
 
-    @staticmethod
-    def _load_preview(path: str) -> QPixmap:
-        reader = QImageReader(path)
-        reader.setAutoTransform(True)
-        source_size = reader.size()
-        if source_size.isValid():
-            reader.setScaledSize(source_size.scaled(QSize(600, 380), Qt.AspectRatioMode.KeepAspectRatio))
-        image = reader.read()
+    def _on_preview_loaded(self, item_id: int, image: QImage) -> None:
+        label = self._preview_labels.get(item_id)
+        if label is None:
+            return
         if image.isNull():
-            return QPixmap()
-        return QPixmap.fromImage(image).scaled(
-            QSize(300, 190),
+            label.setText("Preview unavailable")
+            return
+        label.setText("")
+        label.setPixmap(QPixmap.fromImage(image).scaled(
+            label.size(),
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
-        )
+        ))
+
+    def closeEvent(self, event) -> None:  # noqa: N802
+        self._preview_pool.clear()
+        self._preview_pool.waitForDone()
+        super().closeEvent(event)
 
     def _make_pairwise_summary(self) -> QLabel:
         lines = ["Pairwise match details:"]

@@ -5,43 +5,29 @@ All notable changes to Sandy Wallpaper Studio are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-10-19
+## [Unreleased] - 2026-10-19
 
-### Phase 9 — Duplicate Manager (partial)
+### Phase 9 - Duplicate Manager (complete)
 
 #### Added
-- Read-only full-library duplicate scanning on a background Qt worker, with current-file SHA-256 and pHash recomputation, exact byte verification, and BK-tree near-match grouping.
-- Searchable, sortable, paginated exact and near-match review with explicit retained-file choice, independent comparison selection, path/metadata display, and scan issue details.
-- Side-by-side image and metadata comparison for two to four selected files.
-- Revalidated cleanup-plan preview with no file or database changes; database opening in read-only/query-only mode.
-- Nineteen focused Phase 9 service, database, cleanup-preview, and UI tests.
+- Read-only full-library duplicate scans on a background Qt worker. Exact matches use current-file SHA-256 plus byte comparison; near matches use 64-bit pHash Hamming distance, a BK-tree, and direct pair scores.
+- Search, sort, pagination, explicit retained-file and cleanup-target choices, scan issue details, and asynchronous side-by-side comparison.
+- Windows cleanup confirmation with current path and size review, per-target revalidation, exclusive-open checks, and the Windows Recycle Bin through IFileOperation with FOFX_RECYCLEONDELETE. There is no permanent-delete fallback.
+- Per-file cleanup results, cancellation, stop-on-failure behavior, and a forced rescan after cleanup. Library and history database records are retained.
+- A near-match edge cap with an explicit incomplete scan result rather than presenting partial groups as complete.
+- Windows CI type checking with python -m mypy app.
 
 #### Safety boundary
-- The cleanup action remains disabled because a recoverable Recycle Bin/quarantine workflow has not been implemented or verified. Phase 9 is partial.
+- Cleanup is available only on Windows and only within the configured library. Linked/reparse-point files, hard links, files outside the library, changed files, locked files, and targets without an explicit retained peer are rejected.
+- Cleanup does not alter SQLite rows. A subsequent scan reports a recycled file as missing until it is restored or reimported.
 
 #### Verified
-- The full regression suite passed 336 / 336; Ruff and configured mypy passed.
-- Windows Qt captures were inspected at 1440×820, 1280×800, 1024×768, and the 1024×680 minimum for an 800×600 request. Native Recycle Bin/quarantine behavior remains untested because cleanup is disabled.
-
-### Phase 8 — Automatic Rotation (finalized)
-
-#### Added
-- `RotationService` for metadata-filtered category and minimum-dimension selection, local image validation, random or deterministic cycling, repeat avoidance, cancellation, and existing wallpaper-engine application.
-- `RotationScheduler` with one Qt timer, pause/resume/stop controls, a worker-owned SQLite connection, and shutdown cleanup.
-- Automatic Rotation settings under the existing Settings sidebar destination, including interval, random selection, categories, and minimum width/height controls.
-- Additive database migration for rotation source, success status, and safe error details in the existing wallpaper history table.
-- A Rotation Events tab that distinguishes successful automatic changes and failed application attempts.
-- 31 Phase 8 tests; the full suite passed 317 / 317 on October 19, 2026.
-- Zero repository mypy errors after correcting 14 pre-existing type issues across eight files.
-- Typed category and control focus order, visible keyboard focus styles, and QTest coverage for navigation, rotation controls, history, and card thumbnail activation.
-
-#### Verified
-- Windows rotation worker applied a temporary library image, recorded the rotation event, and restored the prior desktop wallpaper path and style.
-- Windows Qt GUI interaction and visually inspected captures at 1280×800, 1024×768, the 1024×680 application minimum for the 800×600 request, and 1440×844 under the 1440×900 request's screen work-area limit. The QA run used temporary app data and a simulated wallpaper service.
-- `python -m ruff check .`, `python -m mypy app`, the targeted Phase 8 suite, and the full test suite passed.
-
-#### QA limitation
-- The Computer Use native-pipe helper was unavailable. Visible Windows Qt widgets were driven with QTest and captured with `QWidget.grab()`; physical keyboard/mouse spot-check steps are recorded in `docs/PROJECT_STATUS.md`.
+- Phase 9 focused suite: 34 passed, 2 skipped (python -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py -q).
+- Full regression suite: 352 passed, 2 skipped (python -m pytest -q). The optional real Windows Recycle Bin round trip was also run separately and passed; its synthetic fixture was restored and verified.
+- Ruff and mypy passed (python -m ruff check .; python -m mypy app). Both CLI version entry points report 0.7.0-dev.
+- An isolated synthetic-library scan found one exact group, one near group, and one corrupt-file issue; schema version 2 and SQLite foreign-key integrity were confirmed.
+- Qt captures were reviewed at multiple window sizes, including Duplicate Manager exact/near results, empty and issue states, comparison and cleanup confirmation dialogs, Settings, and History. No production library or desktop wallpaper was used.
+- The Computer Use native pipe was unavailable after its prescribed retry and reset. The fallback used a real Windows Qt window, QTest event delivery, and inspected QWidget.grab() captures; physical-input testing was not performed. See docs/PROJECT_STATUS.md.
 
 ## [0.7.0-dev] - 2026-10-18
 

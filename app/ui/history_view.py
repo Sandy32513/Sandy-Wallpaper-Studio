@@ -556,6 +556,7 @@ class HistoryView(QWidget):
                 continue
             widget = item.widget()
             if widget:
+                widget.hide()
                 widget.deleteLater()
 
         items = self._history_service.get_recently_applied(limit=100)
@@ -588,6 +589,7 @@ class HistoryView(QWidget):
                 continue
             widget = item.widget()
             if widget:
+                widget.hide()
                 widget.deleteLater()
         if not events:
             self._show_empty_state(
@@ -620,6 +622,7 @@ class HistoryView(QWidget):
                 continue
             widget = item.widget()
             if widget:
+                widget.hide()
                 widget.deleteLater()
 
         wallpapers = self._history_service.get_recently_viewed(limit=100)
@@ -655,6 +658,7 @@ class HistoryView(QWidget):
                 continue
             widget = item.widget()
             if widget:
+                widget.hide()
                 widget.deleteLater()
 
         if wallpapers is None:

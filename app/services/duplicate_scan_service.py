@@ -5,9 +5,10 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import stat
 import threading
 from collections import defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,6 +24,11 @@ logger = logging.getLogger(__name__)
 MAX_PHASH_DISTANCE = 64
 _HASH_CHUNK_SIZE = 1024 * 1024
 _SCAN_PAGE_SIZE = 250
+_MAX_NEAR_EDGES = 50_000
+
+
+class NearSearchLimitError(RuntimeError):
+    """Near matching exceeded its bounded edge budget."""
 
 
 @dataclass(frozen=True)
@@ -118,6 +124,7 @@ class DuplicateScanReport:
     finished_at: str
     completed: bool
     cancelled: bool
+    near_complete: bool = True
 
     @property
     def exact_groups(self) -> tuple[DuplicateGroup, ...]:
@@ -294,22 +301,21 @@ class _BKTree:
                 return
             node = child
 
-    def query(self, value: int, radius: int) -> list[tuple[int, int]]:
-        matches: list[tuple[int, int]] = []
+    def query(self, value: int, radius: int) -> Iterator[tuple[int, int]]:
         if self._root is None:
-            return matches
+            return
         pending = [self._root]
         while pending:
             node = pending.pop()
             distance = (value ^ node.value).bit_count()
-            if distance <= radius:
-                matches.extend((index, distance) for index in node.indices)
+            # One representative connects all candidates with an identical pHash.
+            if distance <= radius and node.indices:
+                yield node.indices[0], distance
             lower = max(0, distance - radius)
             upper = distance + radius
             pending.extend(
                 child for edge, child in node.children.items() if lower <= edge <= upper
             )
-        return matches
 
 
 class DuplicateScanService:
@@ -393,7 +399,20 @@ class DuplicateScanService:
                 return self._report(
                     candidates, (), issues, scanned, started_at, completed=False, cancelled=True
                 )
-            near_groups = self._build_near_groups(collision_candidates, cancel)
+            try:
+                near_groups = self._build_near_groups(collision_candidates, cancel)
+                near_complete = True
+            except NearSearchLimitError:
+                near_groups = []
+                near_complete = False
+                issues.append(
+                    ScanIssue(
+                        None,
+                        "Library",
+                        "near_search_limit",
+                        "Near-match candidates exceeded the bounded comparison budget; lower the pHash threshold and scan again. Exact groups are complete.",
+                    )
+                )
         except ScanCancelledError:
             return self._report(
                 candidates, (), issues, scanned, started_at, completed=False, cancelled=True
@@ -407,6 +426,7 @@ class DuplicateScanService:
             started_at,
             completed=True,
             cancelled=False,
+            near_complete=near_complete,
         )
 
     def _scan_one(
@@ -536,14 +556,38 @@ class DuplicateScanService:
         candidates: Sequence[DuplicateCandidate],
         cancel_event: threading.Event,
     ) -> list[DuplicateGroup]:
+        if self._threshold == MAX_PHASH_DISTANCE:
+            if len(candidates) < 2:
+                return []
+            ordered = tuple(sorted(candidates, key=self._candidate_key))
+            anchor = ordered[0]
+            edges = []
+            anchor_value = int(anchor.phash, 16)
+            for candidate in ordered[1:]:
+                _check_cancelled(cancel_event)
+                distance = (anchor_value ^ int(candidate.phash, 16)).bit_count()
+                edges.append(
+                    SimilarityEdge(
+                        anchor.wallpaper_id,
+                        candidate.wallpaper_id,
+                        distance,
+                        _similarity(distance),
+                    )
+                )
+            member_ids = ",".join(str(item.wallpaper_id) for item in ordered)
+            group_digest = hashlib.sha256(member_ids.encode()).hexdigest()[:12]
+            return [DuplicateGroup(f"near:{group_digest}", "near", ordered, tuple(edges))]
+
         tree = _BKTree()
-        edges: list[SimilarityEdge] = []
+        near_edges: list[SimilarityEdge] = []
         for index, candidate in enumerate(candidates):
             _check_cancelled(cancel_event)
             value = int(candidate.phash, 16)
             for other_index, distance in tree.query(value, self._threshold):
+                if len(near_edges) >= _MAX_NEAR_EDGES:
+                    raise NearSearchLimitError
                 other = candidates[other_index]
-                edges.append(
+                near_edges.append(
                     SimilarityEdge(
                         first_id=other.wallpaper_id,
                         second_id=candidate.wallpaper_id,
@@ -553,7 +597,7 @@ class DuplicateScanService:
                 )
             tree.add(value, index)
 
-        if not edges:
+        if not near_edges:
             return []
 
         parent = {candidate.wallpaper_id: candidate.wallpaper_id for candidate in candidates}
@@ -564,7 +608,7 @@ class DuplicateScanService:
                 item_id = parent[item_id]
             return item_id
 
-        for edge in edges:
+        for edge in near_edges:
             first = find(edge.first_id)
             second = find(edge.second_id)
             if first != second:
@@ -576,7 +620,7 @@ class DuplicateScanService:
             grouped_members[root].append(candidate)
 
         grouped_edges: dict[int, list[SimilarityEdge]] = defaultdict(list)
-        for edge in edges:
+        for edge in near_edges:
             grouped_edges[find(edge.first_id)].append(edge)
 
         groups: list[DuplicateGroup] = []
@@ -618,6 +662,7 @@ class DuplicateScanService:
         *,
         completed: bool,
         cancelled: bool,
+        near_complete: bool = True,
     ) -> DuplicateScanReport:
         return DuplicateScanReport(
             threshold=self._threshold,
@@ -630,6 +675,7 @@ class DuplicateScanService:
             finished_at=datetime.now(UTC).isoformat(),
             completed=completed,
             cancelled=cancelled,
+            near_complete=near_complete,
         )
 
 
@@ -638,6 +684,8 @@ def build_cleanup_preview(
     removals_by_group: Mapping[str, set[int]],
     keep_by_group: Mapping[str, int],
     cancel_event: threading.Event | None = None,
+    *,
+    allowed_root: Path | None = None,
 ) -> CleanupPreview:
     """Validate and summarize a proposed plan without changing files or rows."""
     if not report.completed or report.cancelled:
@@ -718,18 +766,25 @@ def build_cleanup_preview(
                 f"{candidate.display_name} no longer matches the scan; rescan before previewing."
             )
 
+    if allowed_root is not None:
+        for entry in selected_entries:
+            for candidate in entry.selected_for_removal:
+                _validate_cleanup_target_scope(candidate, allowed_root)
+
     for entry in selected_entries:
         group = groups_by_id[entry.group_id]
         if not any(item.wallpaper_id == entry.retained.wallpaper_id for item in group.members):
             raise CleanupPreviewError("Each plan group must retain a valid scanned member.")
         if group.kind == "near":
-            direct_pairs = {
-                frozenset((edge.first_id, edge.second_id))
-                for edge in group.edges
-                if edge.hamming_distance <= report.threshold
-            }
+            if not report.near_complete:
+                raise CleanupPreviewError(
+                    "Near-match results were incomplete; rescan with a lower threshold before cleanup."
+                )
             for candidate in entry.selected_for_removal:
-                if frozenset((entry.retained.wallpaper_id, candidate.wallpaper_id)) not in direct_pairs:
+                distance = (
+                    int(entry.retained.phash, 16) ^ int(candidate.phash, 16)
+                ).bit_count()
+                if distance > report.threshold:
                     raise CleanupPreviewError(
                         f"{candidate.display_name} is not a direct near match to the retained file; choose a different retained item."
                     )
@@ -737,11 +792,7 @@ def build_cleanup_preview(
             for candidate in entry.selected_for_removal:
                 try:
                     _check_cancelled(cancel)
-                    identical = _byte_paths_equal(
-                        entry.retained.canonical_path,
-                        candidate.canonical_path,
-                        cancel,
-                    )
+                    identical = _same_bytes(entry.retained, candidate, cancel)
                 except ScanCancelledError:
                     raise CleanupPreviewError("Preview was cancelled.") from None
                 except OSError:
@@ -760,6 +811,86 @@ def build_cleanup_preview(
             for candidate in entry.selected_for_removal
         ),
     )
+
+
+def _path_is_within(path: Path, root: Path) -> bool:
+    try:
+        common = os.path.commonpath(
+            (os.path.normcase(str(path)), os.path.normcase(str(root)))
+        )
+    except ValueError:
+        return False
+    return os.path.normcase(common) == os.path.normcase(str(root))
+
+
+def _validate_cleanup_target_scope(candidate: DuplicateCandidate, allowed_root: Path) -> None:
+    """Reject target paths that escape the configured library or traverse links."""
+    source = Path(candidate.wallpaper.path)
+    if not source.is_absolute():
+        raise CleanupPreviewError(
+            f"{candidate.display_name} does not have a fully qualified library path."
+        )
+    try:
+        root = Path(os.path.abspath(allowed_root))
+        source = Path(os.path.abspath(source))
+    except OSError:
+        raise CleanupPreviewError("The configured cleanup scope is not available.") from None
+    try:
+        root_info = os.lstat(root)
+    except OSError:
+        raise CleanupPreviewError("The configured cleanup folder is missing or unreadable.") from None
+    root_attributes = getattr(root_info, "st_file_attributes", 0) or 0
+    if stat.S_ISLNK(root_info.st_mode) or root_attributes & 0x400:
+        raise CleanupPreviewError("The configured cleanup folder is a link or reparse point.")
+    if not stat.S_ISDIR(root_info.st_mode):
+        raise CleanupPreviewError("The configured cleanup scope is not a folder.")
+    if not _path_is_within(source, root):
+        raise CleanupPreviewError(
+            f"{candidate.display_name} is outside the configured library folder."
+        )
+
+    current = source
+    while current != root:
+        try:
+            info = os.lstat(current)
+        except OSError:
+            raise CleanupPreviewError(
+                f"{candidate.display_name} is missing or unreadable; rescan before cleanup."
+            ) from None
+        attributes = getattr(info, "st_file_attributes", 0) or 0
+        is_reparse_point = bool(attributes & 0x400)
+        if stat.S_ISLNK(info.st_mode) or is_reparse_point:
+            raise CleanupPreviewError(
+                f"{candidate.display_name} is a symbolic link or reparse point and cannot be cleaned up."
+            )
+        if current == current.parent:
+            raise CleanupPreviewError("The cleanup target path escaped the configured library folder.")
+        current = current.parent
+
+    try:
+        resolved_root = root.resolve(strict=False)
+        resolved_source = source.resolve(strict=True)
+        info = resolved_source.stat()
+    except OSError:
+        raise CleanupPreviewError(
+            f"{candidate.display_name} is missing or unreadable; rescan before cleanup."
+        ) from None
+    if not _path_is_within(resolved_source, resolved_root):
+        raise CleanupPreviewError(
+            f"{candidate.display_name} resolves outside the configured library folder."
+        )
+    if os.path.normcase(str(resolved_source)) != os.path.normcase(
+        str(candidate.canonical_path)
+    ):
+        raise CleanupPreviewError(
+            f"{candidate.display_name} no longer resolves to the scanned file; rescan."
+        )
+    if not stat.S_ISREG(info.st_mode):
+        raise CleanupPreviewError(f"{candidate.display_name} is not a regular file.")
+    if info.st_nlink > 1:
+        raise CleanupPreviewError(
+            f"{candidate.display_name} has multiple hard links and cannot be cleaned up safely."
+        )
 
 
 def _sha256_readonly(path: Path, cancel_event: threading.Event) -> str:

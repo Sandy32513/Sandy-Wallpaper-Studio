@@ -1,14 +1,14 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 9 — PARTIALLY COMPLETE**
+**Current development phase: Phase 9 - COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 336 passing / 0 failing**
-**Branch: `chore/repository-cleanup`**
-**Phase 9 starting baseline: `625611c` (`origin/main`)**
+**Latest full test run: 352 passed / 2 skipped / 0 failed (354 collected)**
+**Branch: chore/repository-cleanup**
+**Phase 9 starting baseline: 69dea77 (origin/main)**
 
 This document is the implementation-status reference for the repository.
 
-The Phase 8 finalization is included in the `origin/main` baseline at `625611c`. Phase 9 development is being completed on `chore/repository-cleanup`; this work is local and has not been pushed.
+The Phase 8 finalization is included in the origin/main baseline at 69dea77. Phase 9 is complete on chore/repository-cleanup; the completion commit is published to origin/chore/repository-cleanup.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -154,47 +154,46 @@ The first pytest attempt, before dependency installation, could not collect six 
 - Failed attempts share the existing `wallpaper_history` table via additive `source`, `success`, and `error_message` columns. Applied-history queries filter to successes.
 - No files are moved or deleted. No external network calls are made by rotation.
 
-## Phase 9 — Duplicate Manager
-**Status: PARTIALLY COMPLETE**
+## Phase 9 - Duplicate Manager
+**Status: COMPLETE**
 
-The Duplicate Manager is available from the sidebar on the project's supported Windows 10/11 desktop target. It scans a read-only SQLite snapshot on a background thread, recomputes SHA-256 and 64-bit pHash from current `.jpg`, `.jpeg`, `.png`, and `.webp` files, verifies byte identity for exact groups, and indexes near matches with a BK-tree and connected components. The user-configurable pHash Hamming-distance threshold is inclusive and limited to 0–64. The UI includes exact/near tabs, search, sort, pagination, image metadata, independent compare and preview selections, issue details, and side-by-side comparison.
+The Duplicate Manager scans a read-only SQLite snapshot on a background thread, recomputes SHA-256 and 64-bit pHash from the current supported image files, byte-compares exact matches, and reports near-match groups using the inclusive 0-64 Hamming-distance threshold. The UI provides exact and near tabs, search and sorting, group/member pagination, explicit Keep and Remove choices, comparison selection, scan issue details, and asynchronous image previews. A completed scan is required before cleanup. Near-match discovery is bounded at 50,000 direct edges; if the cap is reached, the result is marked incomplete and partial near groups are not presented as complete.
 
-Cleanup plans require a complete scan, an explicit retained file per selected group, and current file identity, content hash, image decode, and exact-byte checks. Preview runs off the UI thread and reports a plan without changing files or database rows. The actual cleanup button is intentionally disabled: the application has no verified recoverable Recycle Bin or quarantine implementation. Phase 9 remains partial until recoverable cleanup and its failure/recovery behavior are implemented and validated.
+Cleanup is Windows-only. The user reviews the exact targets, retained files, full paths, sizes, count, and method before confirming. Each target and retained file is revalidated immediately before use. The service rejects paths outside the configured library, links/reparse points, hard-linked files, changed content or identity, unreadable images, and files that cannot be opened exclusively. It requests the Windows Recycle Bin through IFileOperation and FOFX_RECYCLEONDELETE; it has no permanent-delete fallback. A failed operation stops the remaining targets, cancellation is reported per file, and the UI refreshes the scan after the operation. SQLite wallpaper, favorites, history, and view rows are deliberately retained; a subsequent scan reports the missing path.
 
-No Phase 9 database migration or persistent scan result was added. The scan database connection opens with SQLite `mode=ro` and `query_only`; the database is read in a short snapshot transaction, then closed before image files are processed. Scans make no network requests and report filenames without logging absolute paths.
+No Phase 9 database migration or persistent scan result was added. The scan opens the database with SQLite mode=ro and query_only, reads a snapshot, and closes it before processing image files. Scan and cleanup tests use isolated temporary data and make no network requests.
+
+### Phase 9 Completion Matrix
+
+| Requirement | Implementation | Evidence | Gap or limitation | Test coverage |
+|---|---|---|---|---|
+| Exact duplicate detection | Recompute SHA-256, then compare file bytes before reporting exact identity; redundant-byte estimate counts exact copies only. | Synthetic scan produced one exact group and the expected byte estimate. | The estimate is informational; database rows are not reconciled during cleanup. | Exact scan, changed-file and byte-comparison tests. |
+| Near-match detection | 64-bit pHash, inclusive threshold 0-64, BK-tree candidates, direct pair scores and connected groups. | Synthetic re-encoded fixture appeared in the near results; score help text explains Hamming distance. | Perceptual hashes do not prove visual interchangeability; groups can contain chains. A 50,000-edge cap yields an explicit incomplete result. | Threshold boundary, representative, dense-edge cap, and 64-member star-shape tests. |
+| Review and comparison UI | Search, sorting, group/member pagination, explicit Keep/Remove choice, independent comparison selection, issue dialog, asynchronous previews. | Exact, near, empty, issue, comparison, and compact-window captures were inspected. | Main window minimum is 1024x680 logical pixels. | Qt workflow, pagination, comparison, issue, keyboard focus, and navigation tests. |
+| Cleanup confirmation | Modal confirmation lists every target and retained file, full path, estimated size, total count, and Recycle Bin method; Cancel is the default action. | Isolated confirmation capture inspected; approval and cancellation paths exercised. | Recycle Bin storage is reclaimed only when the user empties it. | Confirmation content, cancel, and approved injected-recycler tests. |
+| File safety | Scope and link checks, hard-link rejection, exclusive-open lock probe, and immediate identity/hash/decode/byte revalidation. | Temporary locked, changed, linked, out-of-scope, and valid targets exercised. | Cleanup is unavailable off Windows; only configured-library targets qualify. | Path-scope, symbolic-link, hard-link, lock, changed-file, and stop-on-failure tests. |
+| Database integrity | Cleanup moves files only; wallpaper, favorites, history, and view relationships remain untouched. No Phase 9 migration. | Isolated database reported schema version 2 and zero foreign-key violations after cleanup workflow. | Recycled paths are surfaced as missing by a later scan; restoration/reimport is user-driven. | Row preservation and foreign-key integrity tests. |
+| Cancellation and partial failure | Per-file result reporting, cancellation between files, stop remaining operations after a failed item, then rescan. | Worker and workflow paths exercised with temporary fixtures. | The Windows shell owns Recycle Bin presentation and later restore behavior. | Cancel, worker result, partial failure, and stop-on-failure tests. |
+| Windows integration and delivery | Native IFileOperation Recycle Bin integration; Ruff/mypy in local validation and CI. | Opt-in Windows round trip passed; its unique temporary item was restored and bytes verified. Ruff, mypy, all tests, and both CLI version checks passed. | No GitHub Actions run for this completion commit is claimed here. | Full regression and focused Phase 9 results below. |
 
 ### Phase 9 Validation Record
-- [x] Exact groups are SHA-256 matched and byte-compared; estimated redundant bytes include exact copies only
-- [x] Near matches use pHash Hamming distance, an inclusive threshold, a BK-tree, and direct edge scores; scores are not probabilities
-- [x] Scan cancellation and file-change checks discard incomplete groups and stale records
-- [x] Invalid, missing, unsupported, duplicate-path and unreadable library records are surfaced as issues
-- [x] Cleanup preview requires an explicit retained item and revalidates selected files; no file or row is modified
-- [x] Read-only database mode rejects writes, performs no migrations, and does not create a missing database
-- [x] Sidebar navigation, disabled cleanup state, and compact-window UI are covered by Qt tests
-- [x] Targeted Phase 9 tests pass (19 / 19; `python -m pytest tests/test_phase9.py`)
-- [x] Ruff passes (`python -m ruff check .`)
-- [x] Configured mypy passes with zero errors (`python -m mypy app`, 50 source files)
-- [x] Full regression suite passes (336 / 336; `python -m pytest`)
-- [x] Windows Qt window was exercised with QTest and inspected captures from a temporary database and image set; no user's library or wallpaper files were used
-- [x] Exact and near tabs, comparison dialog roles, scan completion, and the compact scrolled view were captured and inspected at multiple client sizes; see the record below
-- [ ] Recoverable Recycle Bin/quarantine cleanup, deletion failure recovery, and their tests remain outstanding
-- [ ] Native Recycle Bin or quarantine behavior was not exercised because no cleanup mechanism is implemented and the file action remains disabled
 
-The Computer Use native pipe was unavailable after its retry and reset workflow. The available fallback used the real Windows Qt platform, QTest event delivery, and `QWidget.grab()` captures; this covered the in-app controls and layout but not physical mouse/keyboard use.
+- [x] Focused Phase 9 suite: 34 passed, 2 skipped (python -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py -q). The skips cover optional Windows link/integration conditions; the real Recycle Bin integration was enabled and run separately.
+- [x] Full suite: 352 passed, 2 skipped, 0 failed (354 collected; python -m pytest -q).
+- [x] Real Windows Recycle Bin round trip: 1 passed (SWS_RUN_WINDOWS_RECYCLE_INTEGRATION=1 python -m pytest tests/test_phase9_cleanup.py::test_windows_recycle_bin_round_trip -q); the synthetic fixture was restored and its bytes verified.
+- [x] Ruff: python -m ruff check . passed.
+- [x] Mypy: python -m mypy app passed with no issues in 53 source files.
+- [x] python -m app --version and sandy-wallpaper-studio --version both report 0.7.0-dev.
+- [x] Fresh isolated app startup reported database schema version 2; PRAGMA foreign_key_check returned no rows.
+- [x] A synthetic-library scan found one exact group, one near group, and one corrupt-image issue; scan and near-match results completed.
+- [x] A fresh main-window workflow navigated all nine sidebar destinations. A Phase 7 regression found during visual review was fixed: stale History empty-state widgets are hidden before removal, with a regression test.
+- [x] No user's library, database, wallpaper files, or desktop wallpaper were used or changed. GUI and filesystem integration fixtures were synthetic and temporary.
 
-### Phase 9 GUI viewport record
+### Phase 9 GUI review
 
-Captures are in `%TEMP%\\sws_phase9_gui_qa_1d3a518af9654edc8a04933d50a78347\\screenshots`. The isolated QA library contained three synthetic images (two byte-identical and one re-encoded visual variant) and a temporary SQLite database. The main window minimum is 1024×680.
+Captures are in C:\Users\Public\Documents\SandyWallpaperStudio_Phase9_QA_20261019_042122\screenshots. The isolated library held synthetic duplicate/re-encoded images and one corrupt image. The physical screen work area was 1536x864 at 125% scaling. Requested/actual logical main-window sizes were 1440x900/1440x844 (screen work-area limit), 1280x800/1280x800, 1024x768/1024x768, and 800x600/1024x680 (application minimum). The 1280x800 captures include exact and near results, the empty state, and History; other captures include the comparison dialog, cleanup confirmation, issue details, keyboard focus, and Rotation Settings. The result scan reported one exact group, one near group, and one issue. The QA harness removed the temporary database and image library after capture; the screenshots remain outside the repository.
 
-| Requested client size | Actual client size | Capture | Result |
-|---|---:|---|---|
-| 1440×820 | 1440×820 | `duplicate_manager_1440x820.png` | Exact group, selection controls, toolbar, and disabled cleanup state fit. |
-| 1280×800 | 1280×800 | `duplicate_manager_1280x800.png` | Group browser and actions fit without horizontal clipping. |
-| 1024×768 | 1024×768 | `duplicate_manager_1024x768.png` | Compact layout remains readable; duplicate results scroll vertically. |
-| 800×600 | 1024×680 | `duplicate_manager_800x600_minimum.png`, `duplicate_manager_minimum_scrolled.png` | Request is constrained by app minimum; the group member choices are reachable by scrolling. |
-| Near tab and compare dialog | 1440×820 | `duplicate_manager_near_1440x820.png`, `comparison_dialog_1440x820.png` | Direct pHash score and selected Keep/preview roles are visible. |
-
-The small viewport review found horizontal clipping in the first layout. The toolbar now wraps into separate rows, member choices stack vertically, and the compact result pane scrolls; the revised captures show these controls reachable. No deletion, file movement, database reconciliation, physical-input spot check, or large-library performance benchmark was run. No speed claim is made.
+The Computer Use native pipe was unavailable after the documented wait, retry, and runtime reset/retry. The fallback used the visible Windows Qt application, QTest event delivery, and QWidget.grab() captures, which were visually inspected. Physical keyboard/mouse spot checks were not performed. The QA harness used an isolated database and a simulated wallpaper service; it did not change the desktop wallpaper.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

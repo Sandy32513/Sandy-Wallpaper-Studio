@@ -61,12 +61,12 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 9 — Duplicate Manager (partial; deletion remains disabled) |
-| Latest test result | Phase 9 targeted suite: 19 passed; full suite: 336 passed, 0 failed on October 19, 2026 |
+| Latest implemented milestone | Phase 9 — Duplicate Manager (complete) |
+| Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0–8 are complete. Phase 9 adds a read-only Duplicate Manager for exact and near matches, side-by-side comparison, user selection, and revalidated cleanup previews. It does not remove files: actual cleanup remains disabled until a recoverable Recycle Bin or quarantine workflow is verified. The Phase 9 status and validation record is in [Project Status](docs/PROJECT_STATUS.md). Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0–9 are complete. Phase 9 adds a Duplicate Manager for exact and near matches, side-by-side comparison, explicit retention and target selection, and confirmed Windows Recycle Bin cleanup. See [Project Status](docs/PROJECT_STATUS.md) for the implementation, test, and GUI evidence. Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -79,7 +79,7 @@ Phases 0–8 are complete. Phase 9 adds a read-only Duplicate Manager for exact 
 | Desktop GUI | Implemented | Dashboard, Library, Favorites and History views are present |
 | Favorites and history | Implemented | Includes applied, viewed, and recently added/imported history workflows |
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
-| Duplicate Manager | Partial | Exact/near review, compare, and revalidated plan preview are available; file removal is disabled |
+| Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
 | Full settings and attribution export | Planned | Phase 10 |
 | Release hardening and packaging | Planned | Phases 11–13; no installer is claimed to be available |
 
@@ -105,7 +105,16 @@ For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATU
 - Generate and cache thumbnails.
 - Run non-destructive library integrity checks for missing files and stale thumbnails.
 
-Duplicate detection is for identification: it does not silently delete files. A dedicated side-by-side Duplicate Manager and cleanup workflow are planned, not part of the current UI.
+### Duplicate Manager
+
+- Scan the indexed library in the background. The scan reads the database in read-only mode and recomputes hashes from current files.
+- Exact groups require matching SHA-256 and a byte-for-byte comparison. Their redundant-byte estimate counts exact copies only.
+- Near groups use a configurable inclusive 64-bit pHash Hamming-distance threshold. The displayed percentage is `(64 - distance) / 64 × 100`; it is a direct image-hash comparison, not a probability or proof that two images are interchangeable. Connected groups can contain chains, and each displayed score describes a direct pair.
+- Search and sort groups, page through large groups, choose a retained file, and compare two to four candidates side by side.
+- On Windows, select individual cleanup targets and review their full paths, sizes, retained files, count, estimate, and method in a confirmation dialog. Each target and retained file is revalidated immediately before the operation.
+- Cleanup requests the Windows Recycle Bin through `IFileOperation` with `FOFX_RECYCLEONDELETE`. There is no permanent-delete fallback. A failure stops the remaining targets and reports each file outcome.
+- Cleanup is unavailable on non-Windows systems. Files outside the configured library, symbolic links/reparse points, hard-linked files, changed files, and files that cannot be opened exclusively are rejected.
+- The SQLite wallpaper, favorites, history, and view rows remain in place after a file is recycled. A later scan reports a missing path until the item is restored or reimported.
 
 ### Discover and download
 
@@ -295,14 +304,13 @@ The History view has separate workflows for desktop-applied entries, recently vi
 - Searching/browsing Wikimedia Commons from the Discover screen.
 - Triggering downloads from the Downloads screen.
 - Dedicated Categories management screen.
-- Recoverable duplicate cleanup that moves or deletes files.
 - General application settings beyond the Phase 8 rotation controls.
 
 Backend capabilities do not imply that each workflow is wired into a finished GUI.
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers and shared image utilities. Phase 8 adds `RotationService`, `RotationScheduler`, and `RotationSettingsView`. Phase 9 adds `DuplicateScanService` for ephemeral read-only analysis, `DuplicateScanWorker` for off-UI-thread scanning and previews, and `DuplicateManagerView` for group review and comparison.
+The project separates presentation, application services, data access, providers and shared image utilities. Phase 8 adds `RotationService`, `RotationScheduler`, and `RotationSettingsView`. Phase 9 adds `DuplicateScanService` for ephemeral read-only analysis, `DuplicateScanWorker` for off-UI-thread scanning and previews, `DuplicateCleanupWorker` for per-file Recycle Bin operations, and `DuplicateManagerView` for group review and comparison.
 
 ```text
 app/
@@ -432,7 +440,7 @@ Reset the environment variable after use with:
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-The Phase 9 target suite passed **19 tests**, and the full suite passed **336 tests** on October 19, 2026. Phase 8's target suite passed **31 tests**. Ruff (`python -m ruff check .`) and mypy (`python -m mypy app`) pass; see [Project Status](docs/PROJECT_STATUS.md) for the latest captured results and the Phase 9 cleanup limitation. The initial workspace test run could not collect six modules because Pillow and PySide6 were missing; after installing the project's declared development dependencies, the full suite passed.
+The latest full test and static-analysis results are recorded in [Project Status](docs/PROJECT_STATUS.md). Phase 9 validation includes a disposable Windows Recycle Bin round trip that restores its fixture, Qt tests for cleanup approval/cancellation, database-reference integrity checks, and inspected screenshots from synthetic data. No production library or wallpaper was used.
 
 Optional quality tools are configured in `pyproject.toml`:
 
@@ -441,7 +449,7 @@ python -m ruff check app tests
 python -m mypy app
 ```
 
-The checks above were run for the Phase 8 finalization and Phase 9 duplicate review; install the corresponding development extras before rerunning them in a new environment.
+The checks above were run for the Phase 8 finalization and Phase 9 completion; install the corresponding development extras before rerunning them in a new environment.
 
 ## Roadmap
 
@@ -456,7 +464,7 @@ The checks above were run for the Phase 8 finalization and Phase 9 duplicate rev
 | 6 | PySide6 desktop interface | Complete; some destinations remain placeholders |
 | 7 | Favorites and history workflows | Complete |
 | 8 | Automatic wallpaper rotation | Complete |
-| 9 | Dedicated Duplicate Manager UI | Partial; recoverable cleanup is not implemented |
+| 9 | Dedicated Duplicate Manager UI | Complete; confirmed Windows Recycle Bin cleanup |
 | 10 | Settings, attribution export and operational features | Planned |
 | 11 | QA, compatibility and release hardening | Planned |
 | 12 | PyInstaller packaging | Planned |
