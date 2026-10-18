@@ -23,6 +23,9 @@ def _row_to_history(row) -> WallpaperHistory:
         wallpaper_id=row["wallpaper_id"],
         set_at=row["set_at"],
         monitor=row["monitor"] if "monitor" in row.keys() else "",
+        source=row["source"] if "source" in row.keys() else "manual",
+        success=bool(row["success"]) if "success" in row.keys() else True,
+        error_message=row["error_message"] if "error_message" in row.keys() else "",
     )
 
 
@@ -62,12 +65,13 @@ class HistoryRepository:
         """Fetch the most recently set wallpaper history record."""
         if monitor is not None:
             cursor = self._db.execute(
-                "SELECT * FROM wallpaper_history WHERE monitor = ? ORDER BY id DESC LIMIT 1",
+                "SELECT * FROM wallpaper_history WHERE success = 1 AND monitor = ? "
+                "ORDER BY id DESC LIMIT 1",
                 (monitor,),
             )
         else:
             cursor = self._db.execute(
-                "SELECT * FROM wallpaper_history ORDER BY id DESC LIMIT 1"
+                "SELECT * FROM wallpaper_history WHERE success = 1 ORDER BY id DESC LIMIT 1"
             )
         row = cursor.fetchone()
         return _row_to_history(row) if row else None
@@ -78,7 +82,7 @@ class HistoryRepository:
         exclude_wallpaper_id: Optional[int] = None,
     ) -> Optional[WallpaperHistory]:
         """Fetch the previous wallpaper record prior to the current/excluded one."""
-        conditions: list[str] = []
+        conditions: list[str] = ["success = 1"]
         params: list = []
 
         if monitor is not None:
@@ -91,7 +95,7 @@ class HistoryRepository:
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         sql = f"SELECT * FROM wallpaper_history {where_clause} ORDER BY id DESC LIMIT 1"
-        cursor = self._db.execute(sql, params)
+        cursor = self._db.execute(sql, tuple(params))
         row = cursor.fetchone()
         return _row_to_history(row) if row else None
 
@@ -104,12 +108,14 @@ class HistoryRepository:
         """Fetch recent history entries ordered newest first."""
         if monitor is not None:
             cursor = self._db.execute(
-                "SELECT * FROM wallpaper_history WHERE monitor = ? ORDER BY id DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM wallpaper_history WHERE success = 1 AND monitor = ? "
+                "ORDER BY id DESC LIMIT ? OFFSET ?",
                 (monitor, limit, offset),
             )
         else:
             cursor = self._db.execute(
-                "SELECT * FROM wallpaper_history ORDER BY id DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM wallpaper_history WHERE success = 1 "
+                "ORDER BY id DESC LIMIT ? OFFSET ?",
                 (limit, offset),
             )
         return [_row_to_history(r) for r in cursor.fetchall()]
@@ -121,7 +127,7 @@ class HistoryRepository:
         monitor: Optional[str] = None,
     ) -> list[tuple[WallpaperHistory, Optional[Wallpaper]]]:
         """Fetch recent history entries joined with their Wallpaper models."""
-        conditions: list[str] = []
+        conditions: list[str] = ["h.success = 1"]
         params: list = []
         if monitor is not None:
             conditions.append("h.monitor = ?")
@@ -185,7 +191,7 @@ class HistoryRepository:
         """Fetch unique Wallpaper records ordered by most recently applied."""
         from app.database.wallpaper_repository import _row_to_wallpaper
 
-        conditions: list[str] = []
+        conditions: list[str] = ["h.success = 1"]
         params: list = []
         if monitor is not None:
             conditions.append("h.monitor = ?")
@@ -213,10 +219,11 @@ class HistoryRepository:
         """Count total history records."""
         if monitor is not None:
             cursor = self._db.execute(
-                "SELECT COUNT(*) FROM wallpaper_history WHERE monitor = ?", (monitor,)
+                "SELECT COUNT(*) FROM wallpaper_history WHERE success = 1 AND monitor = ?",
+                (monitor,),
             )
         else:
-            cursor = self._db.execute("SELECT COUNT(*) FROM wallpaper_history")
+            cursor = self._db.execute("SELECT COUNT(*) FROM wallpaper_history WHERE success = 1")
         row = cursor.fetchone()
         return row[0] if row else 0
 
@@ -233,3 +240,61 @@ class HistoryRepository:
         cursor = self._db.execute("DELETE FROM wallpaper_history")
         self._db.commit()
         return cursor.rowcount
+
+    def clear_rotation_events(self) -> int:
+        """Clear rotation attempts while preserving manual application history."""
+        cursor = self._db.execute(
+            "DELETE FROM wallpaper_history WHERE source = 'rotation'"
+        )
+        self._db.commit()
+        return cursor.rowcount
+
+    def get_recent_rotation_events(
+        self, limit: int = 50
+    ) -> list[tuple[WallpaperHistory, Optional[Wallpaper]]]:
+        """Fetch automatic rotation attempts, including unsuccessful attempts."""
+        sql = """
+            SELECT h.*, w.id as wp_id, w.filename, w.path, w.title, w.description,
+                   w.category, w.tags, w.width, w.height, w.aspect_ratio,
+                   w.resolution_class, w.file_size, w.sha256, w.phash,
+                   w.source as wallpaper_source, w.source_url, w.author, w.license,
+                   w.license_url, w.download_date, w.favorite, w.last_used, w.usage_count
+            FROM wallpaper_history h
+            LEFT JOIN wallpapers w ON h.wallpaper_id = w.id
+            WHERE h.source = 'rotation'
+            ORDER BY h.id DESC
+            LIMIT ?
+        """
+        cursor = self._db.execute(sql, (limit,))
+        results: list[tuple[WallpaperHistory, Optional[Wallpaper]]] = []
+        for row in cursor.fetchall():
+            history = _row_to_history(row)
+            wallpaper = None
+            if row["wp_id"] is not None:
+                wallpaper = Wallpaper(
+                    id=row["wp_id"],
+                    filename=row["filename"],
+                    path=row["path"],
+                    title=row["title"],
+                    description=row["description"],
+                    category=row["category"],
+                    tags=row["tags"],
+                    width=row["width"],
+                    height=row["height"],
+                    aspect_ratio=row["aspect_ratio"],
+                    resolution_class=row["resolution_class"],
+                    file_size=row["file_size"],
+                    sha256=row["sha256"],
+                    phash=row["phash"],
+                    source=row["wallpaper_source"],
+                    source_url=row["source_url"],
+                    author=row["author"],
+                    license=row["license"],
+                    license_url=row["license_url"],
+                    download_date=row["download_date"],
+                    favorite=bool(row["favorite"]),
+                    last_used=row["last_used"],
+                    usage_count=row["usage_count"],
+                )
+            results.append((history, wallpaper))
+        return results

@@ -5,6 +5,7 @@ Dedicated view tracking:
 1. Desktop Applied History (with direct reapply and restore workflows)
 2. Recently Viewed / Inspected Wallpapers
 3. Recently Downloaded / Imported Wallpapers
+4. Automatic Rotation Events
 """
 
 from __future__ import annotations
@@ -150,12 +151,17 @@ class HistoryItemRow(QFrame):
                 meta_parts.append(self._wallpaper.category)
             if self._wallpaper.resolution_label and self._wallpaper.width > 0:
                 meta_parts.append(self._wallpaper.resolution_label)
+        meta_parts.append("Automatic rotation" if self._history.source == "rotation" else "Manual")
         monitor_str = self._history.monitor or "Primary Display"
         meta_parts.append(f"Monitor: {monitor_str}")
+        if not self._history.success and self._history.error_message:
+            meta_parts.append(f"Failed: {self._history.error_message[:100]}")
 
         meta_lbl = QLabel(" • ".join(meta_parts))
+        meta_lbl.setToolTip(self._history.error_message)
         meta_lbl.setStyleSheet(
-            f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; background: transparent;"
+            f"color: {ds.DANGER if not self._history.success else ds.TEXT_SECONDARY}; "
+            f"font-size: {ds.FONT_SIZE_SM}px; background: transparent;"
         )
         info_col.addWidget(meta_lbl)
 
@@ -226,6 +232,8 @@ class HistoryItemRow(QFrame):
         """)
         btn_reapply.clicked.connect(lambda: self.reapply_requested.emit(self._history.wallpaper_id))
         h.addWidget(btn_reapply)
+        if not self._history.success:
+            btn_reapply.hide()
 
 
 class HistoryView(QWidget):
@@ -256,7 +264,7 @@ class HistoryView(QWidget):
             cache_dir = Path.home() / "Pictures" / DEFAULT_LIBRARY_DIR_NAME / "Cache"
         self._cache_dir = cache_dir
 
-        self._active_tab = 0  # 0: Applied, 1: Viewed, 2: Downloaded
+        self._active_tab = 0  # Applied, Viewed, Downloaded, Rotation Events
         self._viewed_cards: list[WallpaperCard] = []
         self._downloaded_cards: list[WallpaperCard] = []
 
@@ -294,6 +302,10 @@ class HistoryView(QWidget):
         # Tab 2: Recently Downloaded / Imported (Grid)
         self._downloaded_page = self._make_downloaded_page()
         self._stack.addWidget(self._downloaded_page)
+
+        # Tab 3: Automatic Rotation Events
+        self._rotation_page = self._make_rotation_page()
+        self._stack.addWidget(self._rotation_page)
 
         layout.addWidget(self._stack, stretch=1)
 
@@ -393,11 +405,13 @@ class HistoryView(QWidget):
         self._btn_tab_applied = QPushButton("🖥  Desktop Applied (0)")
         self._btn_tab_viewed = QPushButton("👁  Recently Viewed (0)")
         self._btn_tab_downloaded = QPushButton("⬇  Recently Downloaded (0)")
+        self._btn_tab_rotation = QPushButton("↻  Rotation Events (0)")
 
         tabs = [
             (self._btn_tab_applied, 0),
             (self._btn_tab_viewed, 1),
             (self._btn_tab_downloaded, 2),
+            (self._btn_tab_rotation, 3),
         ]
 
         for btn, idx in tabs:
@@ -415,7 +429,12 @@ class HistoryView(QWidget):
         return bar
 
     def _update_tab_button_styles(self) -> None:
-        tabs = [self._btn_tab_applied, self._btn_tab_viewed, self._btn_tab_downloaded]
+        tabs = [
+            self._btn_tab_applied,
+            self._btn_tab_viewed,
+            self._btn_tab_downloaded,
+            self._btn_tab_rotation,
+        ]
         for idx, btn in enumerate(tabs):
             is_active = idx == self._active_tab
             bg = ds.ACCENT_PRIMARY if is_active else ds.BG_INPUT
@@ -487,6 +506,23 @@ class HistoryView(QWidget):
         scroll.setWidget(self._downloaded_container)
         return scroll
 
+    def _make_rotation_page(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet(f"background-color: {ds.BG_DEEP}; border: none;")
+
+        self._rotation_container = QWidget()
+        self._rotation_container.setStyleSheet(f"background-color: {ds.BG_DEEP};")
+        self._rotation_layout = QVBoxLayout(self._rotation_container)
+        self._rotation_layout.setContentsMargins(
+            ds.SPACE_XL, ds.SPACE_XL, ds.SPACE_XL, ds.SPACE_XL
+        )
+        self._rotation_layout.setSpacing(ds.SPACE_MD)
+        self._rotation_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        scroll.setWidget(self._rotation_container)
+        return scroll
+
     # ------------------------------------------------------------------
     # Data Loading & Rendering
     # ------------------------------------------------------------------
@@ -496,10 +532,12 @@ class HistoryView(QWidget):
         viewed_count = self._history_service.count_distinct_viewed_wallpapers()
         downloaded = self._history_service.get_recently_downloaded(limit=100)
         downloaded_count = len(downloaded)
+        rotation_events = self._history_service.get_recent_rotation_events(limit=100)
 
         self._btn_tab_applied.setText(f"🖥  Desktop Applied ({applied_count})")
         self._btn_tab_viewed.setText(f"👁  Recently Viewed ({viewed_count})")
         self._btn_tab_downloaded.setText(f"⬇  Recently Downloaded ({downloaded_count})")
+        self._btn_tab_rotation.setText(f"↻  Rotation Events ({len(rotation_events)})")
 
         if self._active_tab == 0:
             self._load_applied_tab()
@@ -507,11 +545,15 @@ class HistoryView(QWidget):
             self._load_viewed_tab()
         elif self._active_tab == 2:
             self._load_downloaded_tab(downloaded)
+        elif self._active_tab == 3:
+            self._load_rotation_tab(rotation_events)
 
     def _load_applied_tab(self) -> None:
         # Clear layout
         while self._applied_layout.count():
             item = self._applied_layout.takeAt(0)
+            if item is None:
+                continue
             widget = item.widget()
             if widget:
                 widget.deleteLater()
@@ -537,6 +579,36 @@ class HistoryView(QWidget):
             row.detail_requested.connect(self._on_show_detail)
             self._applied_layout.addWidget(row)
 
+    def _load_rotation_tab(
+        self, events: list[tuple[WallpaperHistory, Wallpaper | None]]
+    ) -> None:
+        while self._rotation_layout.count():
+            item = self._rotation_layout.takeAt(0)
+            if item is None:
+                continue
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        if not events:
+            self._show_empty_state(
+                self._rotation_layout,
+                icon="↻",
+                title="No automatic rotation events yet",
+                message="Successful changes and failed rotation attempts will appear here.",
+                button_text="Open Rotation Settings",
+                button_nav="settings",
+            )
+            return
+        for history, wallpaper in events:
+            row = HistoryItemRow(
+                history=history,
+                wallpaper=wallpaper,
+                parent=self._rotation_container,
+            )
+            row.reapply_requested.connect(self._on_reapply_wallpaper)
+            row.detail_requested.connect(self._on_show_detail)
+            self._rotation_layout.addWidget(row)
+
     def _load_viewed_tab(self) -> None:
         for card in self._viewed_cards:
             card.stop_loader()
@@ -544,6 +616,8 @@ class HistoryView(QWidget):
 
         while self._viewed_layout.count():
             item = self._viewed_layout.takeAt(0)
+            if item is None:
+                continue
             widget = item.widget()
             if widget:
                 widget.deleteLater()
@@ -577,6 +651,8 @@ class HistoryView(QWidget):
 
         while self._downloaded_layout.count():
             item = self._downloaded_layout.takeAt(0)
+            if item is None:
+                continue
             widget = item.widget()
             if widget:
                 widget.deleteLater()
@@ -739,7 +815,12 @@ class HistoryView(QWidget):
             self.status_message.emit(f"✕ Error restoring previous wallpaper: {exc}")
 
     def _on_clear_history(self) -> None:
-        tab_names = ["Desktop Applied History", "View History", "Downloaded History"]
+        tab_names = [
+            "Desktop Applied History",
+            "View History",
+            "Downloaded History",
+            "Rotation Events",
+        ]
         active_name = (
             tab_names[self._active_tab] if self._active_tab < len(tab_names) else "History"
         )
@@ -764,6 +845,8 @@ class HistoryView(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             if self._active_tab == 0:
                 cleared = self._history_service.clear_applied_history()
+            elif self._active_tab == 3:
+                cleared = self._history_service.clear_rotation_events()
             else:
                 cleared = self._history_service.clear_view_history()
             self.status_message.emit(f"Cleared {cleared} entries from {active_name.lower()}.")

@@ -103,6 +103,12 @@ class HistoryService:
             monitor=monitor,
         )
 
+    def get_recent_rotation_events(
+        self, limit: int = 50
+    ) -> list[tuple[WallpaperHistory, Wallpaper | None]]:
+        """Fetch successful and failed automatic rotation attempts."""
+        return self._history_repo.get_recent_rotation_events(limit=limit)
+
     def get_recently_applied_wallpapers(
         self,
         limit: int = 50,
@@ -132,7 +138,7 @@ class HistoryService:
         return self._wp_service.set_selected_wallpaper(
             wallpaper=wallpaper_id,
             monitor=monitor,
-            style=style,
+            style=style or "Fill",
         )
 
     def restore_previous_wallpaper(self, monitor: str | None = None) -> WallpaperApplyResult:
@@ -150,6 +156,10 @@ class HistoryService:
             cleared = self._history_repo.clear()
         logger.info("Cleared applied history (monitor=%r): %d entries removed", monitor, cleared)
         return cleared
+
+    def clear_rotation_events(self) -> int:
+        """Clear automatic rotation events without changing manual history."""
+        return self._history_repo.clear_rotation_events()
 
     def count_applied(self, monitor: str | None = None) -> int:
         """Return count of desktop application history records."""
