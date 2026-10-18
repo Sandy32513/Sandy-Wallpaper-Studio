@@ -21,10 +21,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from app.database.category_repository import CategoryRepository
 from app.database.database import Database
 from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
-from app.database.category_repository import CategoryRepository
 
 logger = logging.getLogger(__name__)
 

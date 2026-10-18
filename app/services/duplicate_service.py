@@ -17,11 +17,11 @@ from typing import Optional
 
 from app.constants import DEFAULT_PHASH_THRESHOLD
 from app.database.database import Database
-from app.database.wallpaper_repository import WallpaperRepository
 from app.database.models import Wallpaper
+from app.database.wallpaper_repository import WallpaperRepository
 from app.utils.hashing import (
-    compute_sha256,
     compute_phash,
+    compute_sha256,
     hamming_distance,
     similarity_percentage,
 )

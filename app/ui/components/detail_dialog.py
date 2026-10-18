@@ -10,23 +10,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt, Signal, QSize
-from PySide6.QtGui import QPixmap, QFont, QDesktopServices
+from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from PySide6.QtGui import QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
-    QDialogButtonBox,
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSplitter,
     QVBoxLayout,
     QWidget,
 )
-from PySide6.QtCore import QUrl
 
 from app.database.models import Wallpaper
 from app.ui import design_system as ds
@@ -229,7 +225,7 @@ class DetailDialog(QDialog):
 
     def _make_row(self, key: str, value: str) -> QWidget:
         row = QWidget()
-        row.setStyleSheet(f"background-color: transparent;")
+        row.setStyleSheet("background-color: transparent;")
         row.setFixedHeight(30)
         layout = QHBoxLayout(row)
         layout.setContentsMargins(0, 2, 0, 2)

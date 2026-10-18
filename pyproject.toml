@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sandy-wallpaper-studio"
-version = "0.5.0-dev"
+version = "0.7.0-dev"
 description = "Professional 4K/5K/8K wallpaper management application for Windows 10/11"
 readme = "README.md"
 license = {text = "MIT"}
@@ -61,8 +61,16 @@ select = [
     "UP",   # pyupgrade
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
-    "TCH",  # flake8-type-checking
 ]
+ignore = [
+    "E501",   # Line too long (managed by layout/readability)
+    "UP045",  # non-pep604-annotation-optional (Optional[T] is standard and readable)
+    "SIM105", # suppressible-exception (try-except-pass is explicit and clear)
+    "SIM118", # in-dict-keys (.keys() is explicit and clear)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["N802", "N803", "N806", "B018"]  # Allow test naming conventions, variables, and expressions
 
 [tool.mypy]
 python_version = "3.12"

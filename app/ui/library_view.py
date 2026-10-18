@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt, Signal, QSize, QTimer
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -27,18 +27,17 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import DEFAULT_LIBRARY_DIR_NAME
+from app.database.category_repository import CategoryRepository
 from app.database.database import Database
 from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
-from app.database.category_repository import CategoryRepository
-from app.services.library_service import LibraryService
 from app.services.import_service import ImportService
+from app.services.library_service import LibraryService
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
-from app.ui.components.wallpaper_card import WallpaperCard
-from app.ui.components.search_bar import SearchFilterBar
 from app.ui.components.import_dialog import ImportProgressDialog
-
+from app.ui.components.search_bar import SearchFilterBar
+from app.ui.components.wallpaper_card import WallpaperCard
 
 _PAGE_SIZE = 40
 _GRID_COLS = 4

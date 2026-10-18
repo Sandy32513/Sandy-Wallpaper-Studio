@@ -14,7 +14,6 @@ Tests for Windows Wallpaper Engine:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import pytest
 from PIL import Image
@@ -26,13 +25,10 @@ from app.database.models import Wallpaper, WallpaperHistory
 from app.database.wallpaper_repository import WallpaperRepository
 from app.services.wallpaper_service import (
     MonitorInfo,
-    WallpaperApplyResult,
     WallpaperNotFoundError,
-    WallpaperServiceError,
     WallpaperValidationError,
     WindowsWallpaperService,
 )
-
 
 # ============================================================
 # Helpers & Fixtures

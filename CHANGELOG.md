@@ -20,8 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Backend `HistoryService` (`history_service.py`) orchestrating all favorites and history business logic with zero direct database coupling in UI layers
 - Enhanced `WallpaperRepository` with `toggle_favorite`, `count_favorites`, `get_recently_downloaded`, and `get_recently_applied`
 - Enhanced `HistoryRepository` with `get_recent_with_wallpapers` (SQL JOIN) and `get_recent_wallpapers`
-- Seamless view updates: `MainWindow` refreshes views upon sidebar navigation
 - Comprehensive Phase 7 test suite (`test_phase7.py`, 24 tests; 286 total suite tests passing)
+
+### Repository Architecture & Tooling Standardization
+- Synchronized canonical application version across `pyproject.toml`, `app/constants.py`, and test assertions (`0.7.0-dev`)
+- Added comprehensive developer tooling: `.editorconfig`, `.gitattributes`, `.python-version` (3.12)
+- Added automated CI test pipeline (`.github/workflows/tests.yml`) with headless Qt execution
+- Added architecture blueprint (`docs/ARCHITECTURE.md`) and developer workflows guide (`docs/DEVELOPMENT.md`)
+- Added open-source contributor guide (`CONTRIBUTING.md`) and package asset documentation (`assets/README.md`, `scripts/README.md`)
+- Centralized pytest fixtures in `tests/conftest.py` with headless `QT_QPA_PLATFORM=offscreen` support
 
 ## [0.6.0-dev] - 2026-10-18
 

@@ -12,12 +12,12 @@ Public API:
     ViewRepository         - Wallpaper view tracking CRUD
 """
 
-from app.database.database import Database
-from app.database.models import Category, Wallpaper, WallpaperHistory, WallpaperView
-from app.database.wallpaper_repository import WallpaperRepository
 from app.database.category_repository import CategoryRepository
+from app.database.database import Database
 from app.database.history_repository import HistoryRepository
+from app.database.models import Category, Wallpaper, WallpaperHistory, WallpaperView
 from app.database.view_repository import ViewRepository
+from app.database.wallpaper_repository import WallpaperRepository
 
 __all__ = [
     "Database",

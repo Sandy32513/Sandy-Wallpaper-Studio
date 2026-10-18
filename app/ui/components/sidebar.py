@@ -6,15 +6,13 @@ and a collapsible/expandable state.
 """
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Optional
 
-from PySide6.QtCore import QPropertyAnimation, QRect, QSize, Qt, Signal, QEasingCurve
-from PySide6.QtGui import QColor, QFont, QPainter, QPixmap
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
     QPushButton,
-    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -48,12 +46,10 @@ class SidebarItem(QPushButton):
             bg = ds.SIDEBAR_ACTIVE
             color = ds.TEXT_PRIMARY
             left_border = f"border-left: 3px solid {ds.ACCENT_PRIMARY};"
-            icon_color = ds.ACCENT_LIGHT
         else:
             bg = "transparent"
             color = ds.TEXT_SECONDARY
             left_border = "border-left: 3px solid transparent;"
-            icon_color = ds.TEXT_SECONDARY
 
         self.setStyleSheet(f"""
             QPushButton {{

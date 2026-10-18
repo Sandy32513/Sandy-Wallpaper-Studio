@@ -6,18 +6,17 @@ Tests for database, models, migrations, and repositories.
 
 from __future__ import annotations
 
-import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from app.constants import DEFAULT_CATEGORIES
-from app.database.database import Database
-from app.database.models import Category, Wallpaper, DownloadRecord, WallpaperHistory
-from app.database.migrations import get_current_version, run_migrations
-from app.database.wallpaper_repository import WallpaperRepository
 from app.database.category_repository import CategoryRepository
+from app.database.database import Database
+from app.database.migrations import get_current_version, run_migrations
+from app.database.models import Category, DownloadRecord, Wallpaper
+from app.database.wallpaper_repository import WallpaperRepository
 
 
 # ============================================================
@@ -64,7 +63,7 @@ def _make_wallpaper(**overrides) -> Wallpaper:
         "author": "Test Author",
         "license": "CC-BY-SA-4.0",
         "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
-        "download_date": datetime.now(timezone.utc).isoformat(),
+        "download_date": datetime.now(UTC).isoformat(),
         "favorite": False,
         "last_used": None,
         "usage_count": 0,
@@ -281,7 +280,7 @@ class TestWallpaperRepository:
 
     def test_record_usage(self, wallpaper_repo: WallpaperRepository) -> None:
         wid = wallpaper_repo.add(_make_wallpaper(sha256="u1", path="/u/1.jpg"))
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = datetime.now(UTC).isoformat()
         wallpaper_repo.record_usage(wid, ts)
         w = wallpaper_repo.get_by_id(wid)
         assert w is not None
@@ -290,7 +289,7 @@ class TestWallpaperRepository:
 
     def test_get_recently_used(self, wallpaper_repo: WallpaperRepository) -> None:
         wid = wallpaper_repo.add(_make_wallpaper(sha256="ru1", path="/ru/1.jpg"))
-        wallpaper_repo.record_usage(wid, datetime.now(timezone.utc).isoformat())
+        wallpaper_repo.record_usage(wid, datetime.now(UTC).isoformat())
         recent = wallpaper_repo.get_recently_used()
         assert len(recent) == 1
 

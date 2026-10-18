@@ -16,22 +16,21 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes
 import logging
-import math
 import platform
 import random
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional
 
 from PIL import Image
 
 from app.constants import (
     ALL_IMAGE_FORMATS,
-    ASPECT_RATIOS,
     ASPECT_RATIO_TOLERANCE,
+    ASPECT_RATIOS,
     RESOLUTION_CLASSES,
-    SUPPORTED_FORMATS,
     WALLPAPER_STYLES,
 )
 from app.database.database import Database
@@ -361,7 +360,7 @@ class WindowsWallpaperService:
 
         # Apply wallpaper
         self.set_wallpaper(image_path, style=style, monitor=monitor)
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
 
         # Update database metadata & history
         wp_id: Optional[int] = None
@@ -612,7 +611,7 @@ class WindowsWallpaperService:
         try:
             user32 = ctypes.windll.user32  # type: ignore[attr-defined]
 
-            def _monitor_callback(hMonitor, hdcMonitor, lprcMonitor, dwData):  # noqa: ANN001, N802
+            def _monitor_callback(hMonitor, hdcMonitor, lprcMonitor, dwData):  # noqa: ANN001, N802, N803
                 rect = lprcMonitor.contents
                 left = rect.left
                 top = rect.top

@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any
 
 from app.constants import (
-    APP_NAME,
     CACHE_MAX_SIZE_MB,
     DEFAULT_LIBRARY_DIR_NAME,
     DEFAULT_MAX_SIMULTANEOUS_DOWNLOADS,
@@ -101,7 +100,7 @@ class Config:
             logger.info("No config file found at %s — using defaults.", self._config_path)
             return
         try:
-            with open(self._config_path, "r", encoding="utf-8") as f:
+            with open(self._config_path, encoding="utf-8") as f:
                 user_settings = json.load(f)
             if not isinstance(user_settings, dict):
                 logger.warning("Config file is not a JSON object — using defaults.")

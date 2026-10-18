@@ -16,9 +16,9 @@ import hashlib
 import logging
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import requests
 

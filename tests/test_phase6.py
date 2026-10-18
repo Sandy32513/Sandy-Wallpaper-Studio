@@ -13,25 +13,22 @@ Tests for Desktop GUI:
 from __future__ import annotations
 
 import os
-from pathlib import Path
-import pytest
 
+import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt
 
 from app.config import Config
-from app.database.database import Database
 from app.database.category_repository import CategoryRepository
-from app.database.wallpaper_repository import WallpaperRepository
+from app.database.database import Database
 from app.database.models import Wallpaper
+from app.database.wallpaper_repository import WallpaperRepository
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
-from app.ui.main_window import MainWindow, PlaceholderView
-from app.ui.dashboard_view import DashboardView
-from app.ui.library_view import LibraryView
 from app.ui.components.search_bar import SearchFilterBar
 from app.ui.components.wallpaper_card import WallpaperCard
-from app.ui.components.sidebar import Sidebar
+from app.ui.dashboard_view import DashboardView
+from app.ui.library_view import LibraryView
+from app.ui.main_window import MainWindow, PlaceholderView
 
 
 @pytest.fixture(scope="session")

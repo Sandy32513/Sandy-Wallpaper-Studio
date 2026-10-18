@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QSizePolicy,
     QWidget,
 )
 
@@ -218,7 +217,6 @@ class SearchFilterBar(QFrame):
 
     @property
     def current_filters(self) -> dict:
-        self._emit_search.__func__  # ensure up-to-date
         return {
             "query":         self._search_input.text().strip(),
             "category":      self._cat_combo.currentData() or "",

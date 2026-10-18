@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from typing import Callable
+from collections.abc import Callable
+from datetime import UTC
 
 logger = logging.getLogger(__name__)
 
@@ -197,10 +198,10 @@ def run_migrations(conn: sqlite3.Connection) -> int:
         if version > current:
             logger.info("Applying migration %d: %s", version, description)
             migrate_fn(cursor)
-            from datetime import datetime, timezone
+            from datetime import datetime
             cursor.execute(
                 "INSERT INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)",
-                (version, datetime.now(timezone.utc).isoformat(), description),
+                (version, datetime.now(UTC).isoformat(), description),
             )
             conn.commit()
             applied += 1

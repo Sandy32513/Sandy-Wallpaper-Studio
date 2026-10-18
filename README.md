@@ -509,7 +509,7 @@ Contributions are welcome, including focused bug reports, reproducible test case
 4. Add or update tests when behavior changes, and run the relevant suite before opening a pull request.
 5. Update documentation when commands, configuration, user workflows or supported behavior change.
 
-Do not attach private wallpaper collections, credentials, access tokens or logs containing personal file paths unless you have reviewed and sanitized them. There is no separate contribution guide or code of conduct referenced here; this section describes practical project expectations rather than claiming a formal policy exists.
+Do not attach private wallpaper collections, credentials, access tokens or logs containing personal file paths unless you have reviewed and sanitized them. See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contributor setup, coding guidelines, and pull request checklist.
 
 ## License and credits
 
@@ -525,6 +525,9 @@ Wallpaper files are third-party content. Their individual licenses may differ; p
 - **Issues and bug reports:** [GitHub Issues](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/issues)
 - **Project status:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)
 - **Roadmap:** [docs/ROADMAP.md](docs/ROADMAP.md)
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Development guide:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 - **Privacy:** [PRIVACY.md](PRIVACY.md)
 - **License:** [LICENSE](LICENSE)

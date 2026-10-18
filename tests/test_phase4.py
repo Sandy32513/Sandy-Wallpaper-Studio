@@ -9,19 +9,17 @@ and isolated temporary databases. No network access required.
 
 from __future__ import annotations
 
-import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from app.constants import DEFAULT_CATEGORIES, SUPPORTED_FORMATS
-from app.database.database import Database
-from app.database.models import Category, Wallpaper
+from app.constants import DEFAULT_CATEGORIES
 from app.database.category_repository import CategoryRepository
+from app.database.database import Database
+from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
-from app.services.duplicate_service import DuplicateService
 from app.services.import_service import (
     FileResult,
     FileStatus,
@@ -29,11 +27,9 @@ from app.services.import_service import (
     ImportService,
 )
 from app.services.library_service import (
-    IntegrityReport,
     LibraryService,
-    LibraryStats,
 )
-from app.utils.hashing import compute_phash, compute_sha256
+from app.utils.hashing import compute_sha256
 
 
 # ============================================================
@@ -456,7 +452,7 @@ class TestImportRecovery:
     def test_missing_file_during_processing(self, import_svc: ImportService, tmp_path: Path) -> None:
         """A file that disappears during processing should be handled gracefully."""
         folder = tmp_path / "vanish"
-        img_path = _create_test_image(folder, "ephemeral.jpg")
+        _create_test_image(folder, "ephemeral.jpg")
 
         # Delete the file before import runs processing
         # We'll test the path-not-found branch by giving a non-existent path
@@ -513,7 +509,7 @@ class TestLibrarySearch:
             width=3840, height=2160, resolution_class="4K",
             aspect_ratio="16:9", sha256="sha_mount", phash="ph1",
             source="local_import", file_size=5000000,
-            download_date=datetime.now(timezone.utc).isoformat(),
+            download_date=datetime.now(UTC).isoformat(),
         ))
         repo.add(Wallpaper(
             filename="galaxy.png", path="/lib/galaxy.png",
@@ -521,7 +517,7 @@ class TestLibrarySearch:
             width=7680, height=4320, resolution_class="8K",
             aspect_ratio="16:9", sha256="sha_galaxy", phash="ph2",
             source="wikimedia", license="CC-BY-SA-4.0", file_size=12000000,
-            download_date=datetime.now(timezone.utc).isoformat(),
+            download_date=datetime.now(UTC).isoformat(),
         ))
         repo.add(Wallpaper(
             filename="city.webp", path="/lib/city.webp",
@@ -529,7 +525,7 @@ class TestLibrarySearch:
             width=2560, height=1440, resolution_class="QHD",
             aspect_ratio="16:9", sha256="sha_city", phash="ph3",
             source="local_import", file_size=3000000,
-            download_date=datetime.now(timezone.utc).isoformat(),
+            download_date=datetime.now(UTC).isoformat(),
         ))
 
     def test_search_by_query(self, library_svc: LibraryService, wallpaper_repo: WallpaperRepository) -> None:
@@ -616,7 +612,7 @@ class TestLibraryPagination:
             wallpaper_repo.add(Wallpaper(
                 filename=f"wp_{i}.jpg", path=f"/p/{i}.jpg",
                 sha256=f"sha_{i}", width=1920, height=1080,
-                download_date=datetime.now(timezone.utc).isoformat(),
+                download_date=datetime.now(UTC).isoformat(),
             ))
         page1, total = library_svc.get_page(page=1, page_size=5)
         assert len(page1) == 5
@@ -697,13 +693,13 @@ class TestLibraryStatistics:
             filename="a.jpg", path="/a.jpg", sha256="s1",
             category="Nature", resolution_class="4K",
             file_size=5000000, source="local_import",
-            download_date=datetime.now(timezone.utc).isoformat(),
+            download_date=datetime.now(UTC).isoformat(),
         ))
         wallpaper_repo.add(Wallpaper(
             filename="b.png", path="/b.png", sha256="s2",
             category="Space", resolution_class="8K",
             file_size=12000000, source="wikimedia", favorite=True,
-            download_date=datetime.now(timezone.utc).isoformat(),
+            download_date=datetime.now(UTC).isoformat(),
         ))
 
         stats = library_svc.get_statistics()

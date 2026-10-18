@@ -224,7 +224,6 @@ class WikimediaSource(WallpaperSource):
         results: list[WallpaperSearchResult] = []
 
         for page in pages.values():
-            page_id = page.get("pageid", 0)
             title = page.get("title", "")
             imageinfo = page.get("imageinfo", [])
 

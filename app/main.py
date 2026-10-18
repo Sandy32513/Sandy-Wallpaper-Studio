@@ -102,7 +102,7 @@ def main() -> int:
     # -------------------------------------------------------
     # Database Initialization (Phase 1)
     # -------------------------------------------------------
-    from app.database import Database, CategoryRepository
+    from app.database import CategoryRepository, Database
 
     db = Database(config.database_path)
     db.connect()
@@ -120,8 +120,9 @@ def main() -> int:
 
     if gui_mode:
         try:
-            from PySide6.QtWidgets import QApplication
             from PySide6.QtCore import Qt
+            from PySide6.QtWidgets import QApplication
+
             from app.ui.main_window import MainWindow
 
             app = QApplication.instance() or QApplication(sys.argv)
@@ -142,8 +143,8 @@ def main() -> int:
             gui_mode = False
 
     if not gui_mode:
-        from app.database.wallpaper_repository import WallpaperRepository
         from app.database.category_repository import CategoryRepository
+        from app.database.wallpaper_repository import WallpaperRepository
         from app.services.wallpaper_service import WindowsWallpaperService
 
         cat_repo2 = CategoryRepository(db)

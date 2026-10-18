@@ -18,14 +18,14 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 from app.constants import (
-    ALL_IMAGE_FORMATS,
     DEFAULT_LIBRARY_DIR_NAME,
     SUPPORTED_FORMATS,
     THUMBNAIL_QUALITY,
@@ -36,7 +36,7 @@ from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
 from app.services.duplicate_service import DuplicateService
 from app.services.metadata_service import ImageValidationError, MetadataService
-from app.utils.hashing import compute_phash, compute_sha256
+from app.utils.hashing import compute_phash
 from app.utils.image_utils import create_thumbnail, validate_image_file
 
 logger = logging.getLogger(__name__)
@@ -170,19 +170,19 @@ class ImportService:
         report = ImportReport(
             source_folder=str(folder_path),
             recursive=recursive,
-            started_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.now(UTC).isoformat(),
         )
 
         # Validate folder
         folder = Path(folder_path)
         if not folder.exists():
             report.errors.append(f"Folder not found: {folder}")
-            report.completed_at = datetime.now(timezone.utc).isoformat()
+            report.completed_at = datetime.now(UTC).isoformat()
             return report
 
         if not folder.is_dir():
             report.errors.append(f"Not a directory: {folder}")
-            report.completed_at = datetime.now(timezone.utc).isoformat()
+            report.completed_at = datetime.now(UTC).isoformat()
             return report
 
         # Discover image files
@@ -192,7 +192,7 @@ class ImportService:
         logger.info("Discovered %d potential image files.", len(image_files))
 
         if not image_files:
-            report.completed_at = datetime.now(timezone.utc).isoformat()
+            report.completed_at = datetime.now(UTC).isoformat()
             return report
 
         # Process each file
@@ -241,7 +241,7 @@ class ImportService:
                 case FileStatus.CANCELLED:
                     report.total_cancelled += 1
 
-        report.completed_at = datetime.now(timezone.utc).isoformat()
+        report.completed_at = datetime.now(UTC).isoformat()
         logger.info(
             "Import complete: %d imported, %d skipped, %d duplicates, %d failed "
             "out of %d discovered.",
@@ -435,7 +435,7 @@ class ImportService:
                 author="",
                 license="",
                 license_url="",
-                download_date=datetime.now(timezone.utc).isoformat(),
+                download_date=datetime.now(UTC).isoformat(),
                 favorite=False,
                 last_used=None,
                 usage_count=0,

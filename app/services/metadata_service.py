@@ -11,7 +11,6 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
-from typing import Optional
 
 from PIL import Image
 
@@ -122,7 +121,6 @@ class MetadataService:
         try:
             with Image.open(path) as img:
                 width, height = img.size
-                img_format = img.format or ""
         except Exception as exc:
             raise ImageValidationError(f"Cannot read image dimensions: {exc}") from exc
 

@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -301,6 +300,5 @@ class DashboardView(QWidget):
             dlg.exec()
 
     def _on_fav_toggle(self, wallpaper_id: int, is_fav: bool) -> None:
-        from app.database.wallpaper_repository import WallpaperRepository
         self._wp_repo.set_favorite(wallpaper_id, is_fav)
         self.status_message.emit(f"{'♥' if is_fav else '♡'} Wallpaper {'favorited' if is_fav else 'unfavorited'}.")

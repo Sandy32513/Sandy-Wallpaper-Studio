@@ -16,7 +16,6 @@ from app.database.database import Database
 from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
 from app.services.duplicate_service import DuplicateMatch, DuplicateService
-from app.services.metadata_service import MetadataService
 from app.utils.filename import sanitize_filename, unique_path
 from app.utils.hashing import (
     compute_ahash,

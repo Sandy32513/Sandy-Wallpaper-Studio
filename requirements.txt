@@ -16,7 +16,8 @@ ImageHash>=4.3.1
 requests>=2.31.0
 
 # ============================================================
-# Development dependencies (install with: pip install -r requirements-dev.txt)
+# Development dependencies (canonical source: pyproject.toml)
+# Install via: pip install -e ".[dev]"
 # ============================================================
 # pytest>=8.0.0
 # pytest-cov>=4.1.0

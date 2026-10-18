@@ -6,19 +6,16 @@ with cancel support and a summary report.
 """
 from __future__ import annotations
 
-import threading
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
-from PySide6.QtCore import Qt, QThread, QObject, Signal, QTimer
+from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QProgressBar,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )

@@ -1,6 +1,7 @@
 """Sandy Wallpaper Studio — ``python -m app`` support."""
 
-from app.main import main
 import sys
+
+from app.main import main
 
 sys.exit(main())

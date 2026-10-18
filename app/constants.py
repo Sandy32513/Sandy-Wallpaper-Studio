@@ -4,13 +4,12 @@ Sandy Wallpaper Studio - Application Constants
 Central location for all application-wide constants.
 """
 
-from pathlib import Path
 
 # ============================================================
 # Application Identity
 # ============================================================
 APP_NAME = "Sandy Wallpaper Studio"
-APP_VERSION = "0.5.0-dev"
+APP_VERSION = "0.7.0-dev"
 APP_AUTHOR = "Sandy"
 APP_DESCRIPTION = "Professional 4K/5K/8K Wallpaper Management for Windows"
 

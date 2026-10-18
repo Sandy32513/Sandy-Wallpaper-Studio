@@ -7,18 +7,14 @@ and source service. All network calls are mocked (Rule: no Internet for tests).
 
 from __future__ import annotations
 
-import hashlib
-import json
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import patch
 
 import pytest
 from PIL import Image
 
 from app.services.download_service import DownloadResult, DownloadService
 from app.services.metadata_service import (
-    ImageMetadata,
     ImageValidationError,
     MetadataService,
 )

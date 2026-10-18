@@ -8,27 +8,24 @@ The top-level QMainWindow that hosts:
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt, QSize, QThread, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
-    QApplication,
     QHBoxLayout,
     QMainWindow,
-    QSizePolicy,
     QStackedWidget,
     QStatusBar,
     QWidget,
 )
 
 from app.config import Config
-from app.constants import APP_NAME, APP_VERSION, MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT
-from app.database.database import Database
-from app.database.wallpaper_repository import WallpaperRepository
+from app.constants import APP_NAME, APP_VERSION, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH
 from app.database.category_repository import CategoryRepository
+from app.database.database import Database
 from app.database.history_repository import HistoryRepository
+from app.database.wallpaper_repository import WallpaperRepository
 from app.services.history_service import HistoryService
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
@@ -44,7 +41,7 @@ class PlaceholderView(QWidget):
 
     def __init__(self, label: str, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        from PySide6.QtWidgets import QVBoxLayout, QLabel
+        from PySide6.QtWidgets import QLabel, QVBoxLayout
         self.setStyleSheet(f"background-color: {ds.BG_DEEP};")
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
