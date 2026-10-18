@@ -24,9 +24,10 @@ class Database:
     or use the connection carefully with check_same_thread=False.
     """
 
-    def __init__(self, db_path: Path) -> None:
+    def __init__(self, db_path: Path, *, read_only: bool = False) -> None:
         self._db_path = db_path
         self._conn: Optional[sqlite3.Connection] = None
+        self._read_only = read_only
 
     @property
     def path(self) -> Path:
@@ -44,17 +45,34 @@ class Database:
             logger.warning("Database already connected.")
             return
 
-        # Ensure parent directory exists
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        logger.info("Connecting to database: %s", self._db_path)
-        self._conn = sqlite3.connect(
-            str(self._db_path),
-            check_same_thread=False,
-            timeout=10.0,
-        )
+        if self._read_only:
+            logger.info("Connecting to database in read-only mode.")
+        else:
+            logger.info("Connecting to database: %s", self._db_path)
+        if self._read_only:
+            if not self._db_path.is_file():
+                raise FileNotFoundError("Read-only database file does not exist.")
+            database_uri = f"{self._db_path.resolve().as_uri()}?mode=ro"
+            self._conn = sqlite3.connect(
+                database_uri,
+                uri=True,
+                check_same_thread=False,
+                timeout=10.0,
+            )
+        else:
+            self._db_path.parent.mkdir(parents=True, exist_ok=True)
+            self._conn = sqlite3.connect(
+                str(self._db_path),
+                check_same_thread=False,
+                timeout=10.0,
+            )
         # Return rows as sqlite3.Row for dict-like access
         self._conn.row_factory = sqlite3.Row
+
+        if self._read_only:
+            self._conn.execute("PRAGMA foreign_keys=ON")
+            self._conn.execute("PRAGMA query_only=ON")
+            return
 
         # Enable WAL mode for better concurrent read performance
         self._conn.execute("PRAGMA journal_mode=WAL")

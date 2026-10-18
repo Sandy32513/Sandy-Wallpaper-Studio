@@ -61,25 +61,25 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 8 — Automatic Rotation (complete) |
-| Latest test result | 317 passed, 0 failed on October 19, 2026; see [Project Status](docs/PROJECT_STATUS.md) for test and platform details |
+| Latest implemented milestone | Phase 9 — Duplicate Manager (partial; deletion remains disabled) |
+| Latest test result | Phase 9 targeted suite: 19 passed; full suite: 336 passed, 0 failed on October 19, 2026 |
 
 ## Project status
 
-Phases 0–8 are complete. Phase 8 automatic rotation passes its targeted tests, the full test suite, Ruff, and repository-wide mypy. Its Windows Qt GUI was exercised with QTest and visually inspected captures at multiple viewport sizes; see [Project Status](docs/PROJECT_STATUS.md) for the minimum-size and screen work-area constraints. Some sidebar destinations remain placeholder screens. Features in the roadmap are not automatically available just because they appear in the UI.
+Phases 0–8 are complete. Phase 9 adds a read-only Duplicate Manager for exact and near matches, side-by-side comparison, user selection, and revalidated cleanup previews. It does not remove files: actual cleanup remains disabled until a recoverable Recycle Bin or quarantine workflow is verified. The Phase 9 status and validation record is in [Project Status](docs/PROJECT_STATUS.md). Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
 | Startup, configuration, logging | Implemented | `python -m app` initializes the app and attempts to launch the GUI |
 | SQLite library and categories | Implemented | Database migrations, repositories, search and statistics |
 | Wikimedia Commons search metadata and downloads | Implemented in backend | Online search/download is available through services; the GUI Discover/Downloads destinations are placeholders |
-| Image validation and duplicate analysis | Implemented in backend | Exact and perceptual detection; dedicated Duplicate Manager UI is planned |
+| Image validation and duplicate analysis | Implemented | SHA-256 and pHash are recomputed from current files during a read-only scan |
 | Local-folder import and library search | Implemented | Library UI includes search/filter and import workflows |
 | Native wallpaper setting and monitor detection | Implemented in service layer | Uses Windows APIs; monitor behavior depends on Windows and display setup |
 | Desktop GUI | Implemented | Dashboard, Library, Favorites and History views are present |
 | Favorites and history | Implemented | Includes applied, viewed, and recently added/imported history workflows |
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
-| Dedicated Duplicate Manager | Planned | Phase 9 |
+| Duplicate Manager | Partial | Exact/near review, compare, and revalidated plan preview are available; file removal is disabled |
 | Full settings and attribution export | Planned | Phase 10 |
 | Release hardening and packaging | Planned | Phases 11–13; no installer is claimed to be available |
 
@@ -295,14 +295,14 @@ The History view has separate workflows for desktop-applied entries, recently vi
 - Searching/browsing Wikimedia Commons from the Discover screen.
 - Triggering downloads from the Downloads screen.
 - Dedicated Categories management screen.
-- Dedicated visual duplicate review/cleanup screen.
+- Recoverable duplicate cleanup that moves or deletes files.
 - General application settings beyond the Phase 8 rotation controls.
 
 Backend capabilities do not imply that each workflow is wired into a finished GUI.
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers and shared image utilities. Phase 8 adds `RotationService` for candidate filtering and application, `RotationScheduler` for Qt timer and worker lifecycle, and `RotationSettingsView` for preferences and runtime controls.
+The project separates presentation, application services, data access, providers and shared image utilities. Phase 8 adds `RotationService`, `RotationScheduler`, and `RotationSettingsView`. Phase 9 adds `DuplicateScanService` for ephemeral read-only analysis, `DuplicateScanWorker` for off-UI-thread scanning and previews, and `DuplicateManagerView` for group review and comparison.
 
 ```text
 app/
@@ -432,7 +432,7 @@ Reset the environment variable after use with:
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-The latest full run passed **317 tests** on October 19, 2026. The Phase 8 target suite passed **31 tests**. Ruff (`python -m ruff check .`) and mypy (`python -m mypy app`) also pass. The initial workspace test run could not collect six modules because Pillow and PySide6 were missing; after installing the project's declared development dependencies, the full suite passed.
+The Phase 9 target suite passed **19 tests**, and the full suite passed **336 tests** on October 19, 2026. Phase 8's target suite passed **31 tests**. Ruff (`python -m ruff check .`) and mypy (`python -m mypy app`) pass; see [Project Status](docs/PROJECT_STATUS.md) for the latest captured results and the Phase 9 cleanup limitation. The initial workspace test run could not collect six modules because Pillow and PySide6 were missing; after installing the project's declared development dependencies, the full suite passed.
 
 Optional quality tools are configured in `pyproject.toml`:
 
@@ -441,7 +441,7 @@ python -m ruff check app tests
 python -m mypy app
 ```
 
-The checks above were run for the current Phase 8 finalization; install the corresponding development extras before rerunning them in a new environment.
+The checks above were run for the Phase 8 finalization and Phase 9 duplicate review; install the corresponding development extras before rerunning them in a new environment.
 
 ## Roadmap
 
@@ -456,7 +456,7 @@ The checks above were run for the current Phase 8 finalization; install the corr
 | 6 | PySide6 desktop interface | Complete; some destinations remain placeholders |
 | 7 | Favorites and history workflows | Complete |
 | 8 | Automatic wallpaper rotation | Complete |
-| 9 | Dedicated Duplicate Manager UI | Planned |
+| 9 | Dedicated Duplicate Manager UI | Partial; recoverable cleanup is not implemented |
 | 10 | Settings, attribution export and operational features | Planned |
 | 11 | QA, compatibility and release hardening | Planned |
 | 12 | PyInstaller packaging | Planned |

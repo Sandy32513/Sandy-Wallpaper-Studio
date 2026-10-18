@@ -33,6 +33,7 @@ from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
 from app.ui.components.sidebar import Sidebar
 from app.ui.dashboard_view import DashboardView
+from app.ui.duplicate_manager_view import DuplicateManagerView
 from app.ui.favorites_view import FavoritesView
 from app.ui.history_view import HistoryView
 from app.ui.library_view import LibraryView
@@ -215,11 +216,17 @@ class MainWindow(QMainWindow):
         rotation.status_message.connect(self._show_status)
         self._add_view("settings", rotation)
 
+        duplicates = DuplicateManagerView(
+            database_path=self._db.path,
+            config=self._config,
+        )
+        duplicates.status_message.connect(self._show_status)
+        self._add_view("duplicates", duplicates)
+
         # Placeholder views for future phases
         placeholders = {
             "discover":   "Discover",
             "categories": "Categories",
-            "duplicates": "Duplicate Manager",
             "downloads":  "Downloads",
         }
         for key, label in placeholders.items():
@@ -267,5 +274,8 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def closeEvent(self, event) -> None:  # noqa: N802
         self._rotation_scheduler.shutdown()
+        duplicates = self._views.get("duplicates")
+        if isinstance(duplicates, DuplicateManagerView):
+            duplicates.shutdown()
         self._db.close()
         super().closeEvent(event)

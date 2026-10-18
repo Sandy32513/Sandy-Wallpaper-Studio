@@ -49,7 +49,7 @@ def compute_phash(file_path: Path) -> str:
             ph = imagehash.phash(img)
             return str(ph)
     except Exception as exc:
-        logger.error("Failed to compute pHash for %s: %s", file_path, exc)
+        logger.error("Failed to compute pHash (%s).", type(exc).__name__)
         return ""
 
 
@@ -67,7 +67,7 @@ def compute_dhash(file_path: Path) -> str:
             dh = imagehash.dhash(img)
             return str(dh)
     except Exception as exc:
-        logger.error("Failed to compute dHash for %s: %s", file_path, exc)
+        logger.error("Failed to compute dHash (%s).", type(exc).__name__)
         return ""
 
 
@@ -85,7 +85,7 @@ def compute_ahash(file_path: Path) -> str:
             ah = imagehash.average_hash(img)
             return str(ah)
     except Exception as exc:
-        logger.error("Failed to compute aHash for %s: %s", file_path, exc)
+        logger.error("Failed to compute aHash (%s).", type(exc).__name__)
         return ""
 
 

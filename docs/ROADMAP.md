@@ -39,8 +39,8 @@ Favorites management with category filtering, sorting, and random favorite deskt
 In-process Qt scheduling, interval configuration, category/resolution-aware filtering, random or library-order rotation, pause/resume, and audited rotation events are implemented. The 31-test Phase 8 suite and 317-test full suite pass; Ruff and configured mypy pass. Windows Qt interaction and visually inspected captures cover the requested viewport targets subject to the application minimum and screen work area. See [Project Status](PROJECT_STATUS.md) for test results, screenshot paths, and QA limitations.
 
 # Phase 9 — Duplicate Manager
-**NEXT**
-Exact duplicate groups, near-duplicate groups, similarity display, side-by-side comparison, user-confirmed cleanup and safe deletion/recycle-bin workflow.
+**PARTIALLY COMPLETE**
+Read-only exact and near duplicate scanning, configurable pHash distance threshold, searchable/sortable/paginated review, independent selection for comparison and plan preview, side-by-side metadata/image comparison, and a revalidated cleanup preview are implemented. Actual removal is disabled until a recoverable Recycle Bin or quarantine workflow and its failure recovery can be verified. See [Project Status](PROJECT_STATUS.md) for the phase boundary and checks.
 
 # Phase 10 — Settings & Operational Features
 Library settings, source settings, download limits, duplicate thresholds, thumbnail settings, logging settings, attribution export and preferences.

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — 2026-10-19
 
+### Phase 9 — Duplicate Manager (partial)
+
+#### Added
+- Read-only full-library duplicate scanning on a background Qt worker, with current-file SHA-256 and pHash recomputation, exact byte verification, and BK-tree near-match grouping.
+- Searchable, sortable, paginated exact and near-match review with explicit retained-file choice, independent comparison selection, path/metadata display, and scan issue details.
+- Side-by-side image and metadata comparison for two to four selected files.
+- Revalidated cleanup-plan preview with no file or database changes; database opening in read-only/query-only mode.
+- Nineteen focused Phase 9 service, database, cleanup-preview, and UI tests.
+
+#### Safety boundary
+- The cleanup action remains disabled because a recoverable Recycle Bin/quarantine workflow has not been implemented or verified. Phase 9 is partial.
+
+#### Verified
+- The full regression suite passed 336 / 336; Ruff and configured mypy passed.
+- Windows Qt captures were inspected at 1440×820, 1280×800, 1024×768, and the 1024×680 minimum for an 800×600 request. Native Recycle Bin/quarantine behavior remains untested because cleanup is disabled.
+
 ### Phase 8 — Automatic Rotation (finalized)
 
 #### Added

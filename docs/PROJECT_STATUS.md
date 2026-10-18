@@ -1,14 +1,14 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 8 — COMPLETE**
+**Current development phase: Phase 9 — PARTIALLY COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 317 passing / 0 failing**
+**Latest full test run: 336 passing / 0 failing**
 **Branch: `chore/repository-cleanup`**
-**Remote baseline: `9279aea` (`origin/main` and `origin/chore/repository-cleanup`)**
+**Phase 9 starting baseline: `625611c` (`origin/main`)**
 
 This document is the implementation-status reference for the repository.
 
-The Phase 8 implementation and its QA note were recovered from local Git history (`df3c797` and `d8088ee`) with the local restoration commits `5cf5e2b` and `fb44b46`. This finalization remains on `chore/repository-cleanup`; it has not been pushed.
+The Phase 8 finalization is included in the `origin/main` baseline at `625611c`. Phase 9 development is being completed on `chore/repository-cleanup`; this work is local and has not been pushed.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -88,7 +88,7 @@ Dedicated `FavoritesView` with live category filtering, multi-criteria sorting, 
 - [x] Foreign key cascade deletion preserves database integrity when wallpapers are removed
 
 ## Phase 8 — Automatic Rotation
-**Status: COMPLETE; finalization work is local and unpushed**
+**Status: COMPLETE**
 
 Automatic rotation uses a dedicated `RotationService`, a single-shot Qt timer, and a worker thread with its own SQLite connection. Rotation preferences are stored in the existing JSON configuration. The Settings sidebar destination now exposes enable/apply, pause, resume, stop, interval, random or library-order selection, category, and minimum-dimension controls. The first rotation occurs after a full interval, and the app does not apply a wallpaper immediately on startup. Rotation events are marked in applied history; failures are retained as unsuccessful rotation events and excluded from applied history, previous-wallpaper restoration, and repeat avoidance.
 
@@ -153,6 +153,48 @@ The first pytest attempt, before dependency installation, could not collect six 
 - Pause state is runtime-only. If rotation remains enabled, restart schedules the next change after a full interval.
 - Failed attempts share the existing `wallpaper_history` table via additive `source`, `success`, and `error_message` columns. Applied-history queries filter to successes.
 - No files are moved or deleted. No external network calls are made by rotation.
+
+## Phase 9 — Duplicate Manager
+**Status: PARTIALLY COMPLETE**
+
+The Duplicate Manager is available from the sidebar on the project's supported Windows 10/11 desktop target. It scans a read-only SQLite snapshot on a background thread, recomputes SHA-256 and 64-bit pHash from current `.jpg`, `.jpeg`, `.png`, and `.webp` files, verifies byte identity for exact groups, and indexes near matches with a BK-tree and connected components. The user-configurable pHash Hamming-distance threshold is inclusive and limited to 0–64. The UI includes exact/near tabs, search, sort, pagination, image metadata, independent compare and preview selections, issue details, and side-by-side comparison.
+
+Cleanup plans require a complete scan, an explicit retained file per selected group, and current file identity, content hash, image decode, and exact-byte checks. Preview runs off the UI thread and reports a plan without changing files or database rows. The actual cleanup button is intentionally disabled: the application has no verified recoverable Recycle Bin or quarantine implementation. Phase 9 remains partial until recoverable cleanup and its failure/recovery behavior are implemented and validated.
+
+No Phase 9 database migration or persistent scan result was added. The scan database connection opens with SQLite `mode=ro` and `query_only`; the database is read in a short snapshot transaction, then closed before image files are processed. Scans make no network requests and report filenames without logging absolute paths.
+
+### Phase 9 Validation Record
+- [x] Exact groups are SHA-256 matched and byte-compared; estimated redundant bytes include exact copies only
+- [x] Near matches use pHash Hamming distance, an inclusive threshold, a BK-tree, and direct edge scores; scores are not probabilities
+- [x] Scan cancellation and file-change checks discard incomplete groups and stale records
+- [x] Invalid, missing, unsupported, duplicate-path and unreadable library records are surfaced as issues
+- [x] Cleanup preview requires an explicit retained item and revalidates selected files; no file or row is modified
+- [x] Read-only database mode rejects writes, performs no migrations, and does not create a missing database
+- [x] Sidebar navigation, disabled cleanup state, and compact-window UI are covered by Qt tests
+- [x] Targeted Phase 9 tests pass (19 / 19; `python -m pytest tests/test_phase9.py`)
+- [x] Ruff passes (`python -m ruff check .`)
+- [x] Configured mypy passes with zero errors (`python -m mypy app`, 50 source files)
+- [x] Full regression suite passes (336 / 336; `python -m pytest`)
+- [x] Windows Qt window was exercised with QTest and inspected captures from a temporary database and image set; no user's library or wallpaper files were used
+- [x] Exact and near tabs, comparison dialog roles, scan completion, and the compact scrolled view were captured and inspected at multiple client sizes; see the record below
+- [ ] Recoverable Recycle Bin/quarantine cleanup, deletion failure recovery, and their tests remain outstanding
+- [ ] Native Recycle Bin or quarantine behavior was not exercised because no cleanup mechanism is implemented and the file action remains disabled
+
+The Computer Use native pipe was unavailable after its retry and reset workflow. The available fallback used the real Windows Qt platform, QTest event delivery, and `QWidget.grab()` captures; this covered the in-app controls and layout but not physical mouse/keyboard use.
+
+### Phase 9 GUI viewport record
+
+Captures are in `%TEMP%\\sws_phase9_gui_qa_1d3a518af9654edc8a04933d50a78347\\screenshots`. The isolated QA library contained three synthetic images (two byte-identical and one re-encoded visual variant) and a temporary SQLite database. The main window minimum is 1024×680.
+
+| Requested client size | Actual client size | Capture | Result |
+|---|---:|---|---|
+| 1440×820 | 1440×820 | `duplicate_manager_1440x820.png` | Exact group, selection controls, toolbar, and disabled cleanup state fit. |
+| 1280×800 | 1280×800 | `duplicate_manager_1280x800.png` | Group browser and actions fit without horizontal clipping. |
+| 1024×768 | 1024×768 | `duplicate_manager_1024x768.png` | Compact layout remains readable; duplicate results scroll vertically. |
+| 800×600 | 1024×680 | `duplicate_manager_800x600_minimum.png`, `duplicate_manager_minimum_scrolled.png` | Request is constrained by app minimum; the group member choices are reachable by scrolling. |
+| Near tab and compare dialog | 1440×820 | `duplicate_manager_near_1440x820.png`, `comparison_dialog_1440x820.png` | Direct pHash score and selected Keep/preview roles are visible. |
+
+The small viewport review found horizontal clipping in the first layout. The toolbar now wraps into separate rows, member choices stack vertically, and the compact result pane scrolls; the revised captures show these controls reachable. No deletion, file movement, database reconciliation, physical-input spot check, or large-library performance benchmark was run. No speed claim is made.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase
