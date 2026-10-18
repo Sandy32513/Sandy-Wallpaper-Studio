@@ -105,7 +105,7 @@ Automatic rotation uses a dedicated `RotationService`, a single-shot Qt timer, a
 - [x] Visible Windows GUI startup and rotation controls were smoke-checked with temporary configuration/database data
 - [x] Native Windows rotation worker applied a temporary library image, recorded one rotation event, then restored the original wallpaper path and style
 - [ ] Full configured mypy check is clean; it reports 14 existing issues in requests typing/Wikimedia, the wallpaper card, image utilities, dashboard/library/favorites views, and `main.py`. No Phase 8 service or settings-view errors remain.
-- [ ] Interactive visual review across multiple window sizes has not been performed; the Computer Use screenshot helper could not start (`failed to connect native pipe: The system cannot find the file specified`, OS error 2). Startup/control visibility and the automated small-window scroll test were verified.
+- [ ] Interactive visual review across multiple window sizes has not been performed
 
 The first pytest attempt, before dependency installation, could not collect six test modules because Pillow and PySide6 were absent. After installing the declared development dependencies, the suite completed. The initial migration assertion was updated from schema version 1 to version 2 to reflect the new additive migration; existing assertions and workflows were retained. User wallpaper and style were restored after the Windows integration check; the user's library/database were not used by that check.
 
