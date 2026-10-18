@@ -10,7 +10,8 @@ from threading import Event
 
 import pytest
 from PIL import Image
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QPoint, Qt, QThread, Signal
+from PySide6.QtTest import QTest
 
 from app.config import Config, RotationPreferences
 from app.database.category_repository import CategoryRepository
@@ -22,6 +23,7 @@ from app.database.wallpaper_repository import WallpaperRepository
 from app.services.rotation_scheduler import RotationScheduler
 from app.services.rotation_service import RotationResult, RotationService
 from app.services.wallpaper_service import WindowsWallpaperService
+from app.ui.components.wallpaper_card import WallpaperCard
 from app.ui.history_view import HistoryView
 from app.ui.main_window import MainWindow
 from app.ui.rotation_view import RotationSettingsView
@@ -428,21 +430,138 @@ class TestRotationSchedulerAndUI:
         scheduler = RotationScheduler(phase8_db.path)
         view = RotationSettingsView(config, phase8_db, scheduler)
         try:
+            view.resize(800, 600)
+            view.show()
+            qapp.processEvents()
             view._interval.setValue(5)
-            view._enabled.setChecked(True)
-            view._apply_settings()
+            QTest.mouseClick(
+                view._enabled,
+                Qt.MouseButton.LeftButton,
+                pos=QPoint(10, view._enabled.height() // 2),
+            )
+            QTest.mouseClick(view._apply_button, Qt.MouseButton.LeftButton)
+            qapp.processEvents()
             assert config.rotation_preferences.enabled
             assert config.rotation_preferences.interval_minutes == 5
             assert scheduler.state == "running"
             assert view._status_label.text() == "Automatic rotation is running."
             assert view._pause_button.isEnabled()
 
-            scheduler.pause()
+            QTest.mouseClick(view._pause_button, Qt.MouseButton.LeftButton)
+            qapp.processEvents()
             assert view._status_label.text() == "Automatic rotation is paused."
             assert view._resume_button.isEnabled()
+
+            QTest.mouseClick(view._resume_button, Qt.MouseButton.LeftButton)
+            qapp.processEvents()
+            assert scheduler.state == "running"
+            assert view._status_label.text() == "Automatic rotation resumed."
+
+            QTest.mouseClick(view._stop_button, Qt.MouseButton.LeftButton)
+            qapp.processEvents()
+            assert scheduler.state == "stopped"
+            assert not scheduler.timer_active
         finally:
             scheduler.shutdown()
             view.close()
+
+    def test_settings_keyboard_focus_order_includes_categories_and_controls(
+        self, qapp, phase8_db: Database, tmp_path: Path
+    ) -> None:
+        scheduler = RotationScheduler(phase8_db.path)
+        view = RotationSettingsView(Config(tmp_path / "focus-config"), phase8_db, scheduler)
+        try:
+            view.resize(720, 520)
+            view.show()
+            qapp.processEvents()
+            focus_order = [
+                view._enabled,
+                view._interval,
+                view._random,
+                view._min_width,
+                view._min_height,
+                *view._category_checks.values(),
+                view._apply_button,
+            ]
+            assert all(widget.accessibleName() for widget in focus_order)
+            focus_order[0].setFocus()
+            qapp.processEvents()
+            assert focus_order[0].hasFocus()
+
+            for expected in focus_order[1:]:
+                focused = qapp.focusWidget()
+                assert focused is not None
+                QTest.keyClick(focused, Qt.Key.Key_Tab)
+                qapp.processEvents()
+                assert qapp.focusWidget() is expected
+
+            # Start so the enabled Pause and Stop controls enter the focus sequence.
+            view._enabled.setChecked(True)
+            QTest.mouseClick(view._apply_button, Qt.MouseButton.LeftButton)
+            qapp.processEvents()
+            view._apply_button.setFocus()
+            QTest.keyClick(view._apply_button, Qt.Key.Key_Tab)
+            qapp.processEvents()
+            assert qapp.focusWidget() is view._pause_button
+            QTest.keyClick(view._pause_button, Qt.Key.Key_Tab)
+            qapp.processEvents()
+            assert qapp.focusWidget() is view._stop_button
+        finally:
+            scheduler.shutdown()
+            view.close()
+
+    def test_wallpaper_card_thumbnail_click_emits_detail_request(self, qapp, tmp_path: Path) -> None:
+        wallpaper = Wallpaper(
+            id=42,
+            filename="missing.jpg",
+            path=str(tmp_path / "missing.jpg"),
+            category="Nature",
+        )
+        card = WallpaperCard(wallpaper=wallpaper)
+        emitted: list[int] = []
+        card.detail_requested.connect(emitted.append)
+        card.show()
+        qapp.processEvents()
+        try:
+            QTest.mouseClick(
+                card._thumb_label,
+                Qt.MouseButton.LeftButton,
+                pos=QPoint(12, card._thumb_label.height() // 2),
+            )
+            assert emitted == [42]
+        finally:
+            card.stop_loader()
+            card.close()
+
+    def test_main_window_navigation_and_rotation_history_tab_with_qtest(
+        self, qapp, phase8_db: Database, tmp_path: Path
+    ) -> None:
+        window = MainWindow(config=Config(tmp_path / "navigation-config"), db=phase8_db)
+        window.show()
+        qapp.processEvents()
+        try:
+            QTest.mouseClick(
+                window._sidebar._buttons["settings"],
+                Qt.MouseButton.LeftButton,
+            )
+            qapp.processEvents()
+            settings = window._views["settings"]
+            assert window._stack.currentWidget() is settings
+            assert window._sidebar._buttons["settings"]._active
+
+            QTest.mouseClick(
+                window._sidebar._buttons["history"],
+                Qt.MouseButton.LeftButton,
+            )
+            qapp.processEvents()
+            history = window._views["history"]
+            assert window._stack.currentWidget() is history
+            QTest.mouseClick(history._btn_tab_rotation, Qt.MouseButton.LeftButton)
+            qapp.processEvents()
+            assert history._stack.currentIndex() == 3
+            assert history._btn_tab_rotation.isChecked()
+        finally:
+            window.close()
 
     def test_rotation_settings_remain_scrollable_at_small_sizes(
         self, qapp, phase8_db: Database, tmp_path: Path

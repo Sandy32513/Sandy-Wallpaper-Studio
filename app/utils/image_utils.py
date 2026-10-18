@@ -104,11 +104,12 @@ def create_thumbnail(
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with Image.open(source_path) as img:
-            img.thumbnail(size, Image.Resampling.LANCZOS)
+            thumbnail: Image.Image = img
+            thumbnail.thumbnail(size, Image.Resampling.LANCZOS)
             # Save as JPEG for consistent thumbnails
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-            img.save(output_path, format="JPEG", quality=quality, optimize=True)
+            if thumbnail.mode in ("RGBA", "P"):
+                thumbnail = thumbnail.convert("RGB")
+            thumbnail.save(output_path, format="JPEG", quality=quality, optimize=True)
         logger.debug("Created thumbnail: %s", output_path.name)
         return True
     except Exception as exc:

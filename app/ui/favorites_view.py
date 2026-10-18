@@ -240,9 +240,10 @@ class FavoritesView(QWidget):
 
         while self._grid_layout.count():
             item = self._grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
 
         if not wallpapers:
             self._show_empty_state()

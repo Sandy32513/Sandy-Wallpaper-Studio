@@ -35,11 +35,11 @@ Professional dark-themed PySide6 desktop interface connecting directly to tested
 Favorites management with category filtering, sorting, and random favorite desktop application; Desktop Applied history timeline with relative timestamps, monitor tags, and direct reapply action; Recently Viewed tracking and Recently Downloaded/Imported views; backend `HistoryService` and single-click "Restore Previous Wallpaper" workflow.
 
 # Phase 8 — Automatic Rotation
-**IN PROGRESS — implementation and automated/Windows checks complete; final review gates remain**
-In-process Qt scheduling, interval configuration, category/resolution-aware filtering, random or library-order rotation, pause/resume, and audited rotation events are implemented. The full pytest suite and Windows rotation worker integration passed. Full mypy cleanup and interactive visual review across window sizes remain open; see [Project Status](PROJECT_STATUS.md) for evidence and exact results.
+**COMPLETE**
+In-process Qt scheduling, interval configuration, category/resolution-aware filtering, random or library-order rotation, pause/resume, and audited rotation events are implemented. The 31-test Phase 8 suite and 317-test full suite pass; Ruff and configured mypy pass. Windows Qt interaction and visually inspected captures cover the requested viewport targets subject to the application minimum and screen work area. See [Project Status](PROJECT_STATUS.md) for test results, screenshot paths, and QA limitations.
 
 # Phase 9 — Duplicate Manager
-**NEXT AFTER PHASE 8 EXIT GATE**
+**NEXT**
 Exact duplicate groups, near-duplicate groups, similarity display, side-by-side comparison, user-confirmed cleanup and safe deletion/recycle-bin workflow.
 
 # Phase 10 — Settings & Operational Features

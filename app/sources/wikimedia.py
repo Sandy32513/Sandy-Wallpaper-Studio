@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from typing import Optional
 from urllib.parse import quote
 
@@ -168,7 +169,7 @@ class WikimediaSource(WallpaperSource):
 
         Returns a list of file titles (e.g. ["File:Mountain.jpg", ...]).
         """
-        params = {
+        params: dict[str, str | int] = {
             "action": "query",
             "format": "json",
             "generator": "search",
@@ -207,7 +208,7 @@ class WikimediaSource(WallpaperSource):
             return []
 
         # MediaWiki API accepts up to 50 titles per request
-        params = {
+        params: dict[str, str | int] = {
             "action": "query",
             "format": "json",
             "titles": "|".join(titles[:50]),
@@ -315,11 +316,10 @@ def _mime_to_extension(mime: str) -> str:
     return mapping.get(mime, "")
 
 
-def _extract_text(field: dict) -> str:
+def _extract_text(field: Mapping[str, object]) -> str:
     """Extract text value from a MediaWiki extmetadata field."""
-    if not field:
-        return ""
-    return field.get("value", "")
+    value = field.get("value", "")
+    return value if isinstance(value, str) else ""
 
 
 def _strip_html(text: str) -> str:

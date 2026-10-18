@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QObject, QSize, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QImage, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -27,6 +27,17 @@ from app.ui import design_system as ds
 # ============================================================
 # Async Thumbnail Loader
 # ============================================================
+class _ClickableLabel(QLabel):
+    """QLabel that exposes left clicks through a typed Qt signal."""
+
+    clicked = Signal()
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+
 class ThumbnailLoader(QObject):
     """Worker that loads a thumbnail QPixmap off the UI thread."""
 
@@ -133,7 +144,7 @@ class WallpaperCard(QFrame):
         layout.setSpacing(0)
 
         # ---- Thumbnail area ----
-        self._thumb_label = QLabel()
+        self._thumb_label = _ClickableLabel()
         self._thumb_label.setFixedSize(ds.CARD_WIDTH, ds.CARD_THUMB_H)
         self._thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._thumb_label.setStyleSheet(f"""
@@ -145,7 +156,9 @@ class WallpaperCard(QFrame):
             }}
         """)
         self._thumb_label.setPixmap(_placeholder_pixmap(ds.CARD_WIDTH, ds.CARD_THUMB_H))
-        self._thumb_label.mousePressEvent = lambda e: self.detail_requested.emit(self._wallpaper.id or 0)
+        self._thumb_label.clicked.connect(
+            lambda: self.detail_requested.emit(self._wallpaper.id or 0)
+        )
         layout.addWidget(self._thumb_label)
 
         # ---- Info area ----

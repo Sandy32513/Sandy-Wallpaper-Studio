@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — 2026-10-19
 
-### Phase 8 — Automatic Rotation (implementation; final QA review pending)
+### Phase 8 — Automatic Rotation (finalized)
 
 #### Added
 - `RotationService` for metadata-filtered category and minimum-dimension selection, local image validation, random or deterministic cycling, repeat avoidance, cancellation, and existing wallpaper-engine application.
@@ -15,15 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic Rotation settings under the existing Settings sidebar destination, including interval, random selection, categories, and minimum width/height controls.
 - Additive database migration for rotation source, success status, and safe error details in the existing wallpaper history table.
 - A Rotation Events tab that distinguishes successful automatic changes and failed application attempts.
-- 28 Phase 8 tests; the full suite passed 314 / 314 on October 19, 2026.
+- 31 Phase 8 tests; the full suite passed 317 / 317 on October 19, 2026.
+- Zero repository mypy errors after correcting 14 pre-existing type issues across eight files.
+- Typed category and control focus order, visible keyboard focus styles, and QTest coverage for navigation, rotation controls, history, and card thumbnail activation.
 
 #### Verified
 - Windows rotation worker applied a temporary library image, recorded the rotation event, and restored the prior desktop wallpaper path and style.
-- The desktop GUI opened with the rotation controls visible using temporary configuration and database data.
+- Windows Qt GUI interaction and visually inspected captures at 1280×800, 1024×768, the 1024×680 application minimum for the 800×600 request, and 1440×844 under the 1440×900 request's screen work-area limit. The QA run used temporary app data and a simulated wallpaper service.
+- `python -m ruff check .`, `python -m mypy app`, the targeted Phase 8 suite, and the full test suite passed.
 
-#### Remaining review
-- Repository-wide mypy currently reports existing typing errors; see `docs/PROJECT_STATUS.md`.
-- Interactive visual review across multiple window sizes remains pending.
+#### QA limitation
+- The Computer Use native-pipe helper was unavailable. Visible Windows Qt widgets were driven with QTest and captured with `QWidget.grab()`; physical keyboard/mouse spot-check steps are recorded in `docs/PROJECT_STATUS.md`.
 
 ## [0.7.0-dev] - 2026-10-18
 

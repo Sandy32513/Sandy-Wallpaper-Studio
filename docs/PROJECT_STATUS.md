@@ -1,12 +1,14 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 8 — PARTIALLY COMPLETE**
+**Current development phase: Phase 8 — COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 314 passing / 0 failing**
+**Latest full test run: 317 passing / 0 failing**
 **Branch: `chore/repository-cleanup`**
-**Baseline commit: `63ac973`**
+**Remote baseline: `9279aea` (`origin/main` and `origin/chore/repository-cleanup`)**
 
 This document is the implementation-status reference for the repository.
+
+The Phase 8 implementation and its QA note were recovered from local Git history (`df3c797` and `d8088ee`) with the local restoration commits `5cf5e2b` and `fb44b46`. This finalization remains on `chore/repository-cleanup`; it has not been pushed.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -86,7 +88,7 @@ Dedicated `FavoritesView` with live category filtering, multi-criteria sorting, 
 - [x] Foreign key cascade deletion preserves database integrity when wallpapers are removed
 
 ## Phase 8 — Automatic Rotation
-**Status: PARTIALLY COMPLETE; Windows integration verified; final QA gates remain**
+**Status: COMPLETE; finalization work is local and unpushed**
 
 Automatic rotation uses a dedicated `RotationService`, a single-shot Qt timer, and a worker thread with its own SQLite connection. Rotation preferences are stored in the existing JSON configuration. The Settings sidebar destination now exposes enable/apply, pause, resume, stop, interval, random or library-order selection, category, and minimum-dimension controls. The first rotation occurs after a full interval, and the app does not apply a wallpaper immediately on startup. Rotation events are marked in applied history; failures are retained as unsuccessful rotation events and excluded from applied history, previous-wallpaper restoration, and repeat avoidance.
 
@@ -99,15 +101,50 @@ Automatic rotation uses a dedicated `RotationService`, a single-shot Qt timer, a
 - [x] Successful and failed rotation history is distinguishable; failed attempts do not count as applied wallpapers
 - [x] Version 2 migration preserves existing applied-history rows and supplies manual/success defaults
 - [x] Settings persistence, invalid configuration fallback, GUI controls, history view, and Qt thread delivery covered
-- [x] Targeted Phase 8 suite passes (28 / 28)
-- [x] Full pytest suite passes (314 / 314, October 19, 2026)
-- [x] Ruff passes (`python -m ruff check app tests`)
-- [x] Visible Windows GUI startup and rotation controls were smoke-checked with temporary configuration/database data
-- [x] Native Windows rotation worker applied a temporary library image, recorded one rotation event, then restored the original wallpaper path and style
-- [ ] Full configured mypy check is clean; it reports 14 existing issues in requests typing/Wikimedia, the wallpaper card, image utilities, dashboard/library/favorites views, and `main.py`. No Phase 8 service or settings-view errors remain.
-- [ ] Interactive visual review across multiple window sizes has not been performed; the Computer Use screenshot helper could not start (`failed to connect native pipe: The system cannot find the file specified`, OS error 2). Startup/control visibility and the automated small-window scroll test were verified.
+- [x] Targeted Phase 8 suite passes (31 / 31; `python -m pytest tests/test_phase8.py`)
+- [x] Full pytest suite passes (317 / 317; `python -m pytest`)
+- [x] Ruff passes (`python -m ruff check .`)
+- [x] Full configured mypy check passes with zero errors (`python -m mypy app`, 46 source files)
+- [x] QTest-driven interactive Windows Qt run covered startup, Settings navigation, disabled/enabled status, interval and filters, empty-filter error, start/pause/resume/stop, next-rotation text, Rotation Events tab, and shutdown while active
+- [x] Captured and visually inspected the four requested viewport targets; see the viewport record below for actual sizes, constraints, and screenshot paths
+- [x] Keyboard focus order includes rotation controls and category filters; QTest coverage and visible focus styling/screenshots were verified
+- [x] Native Windows rotation worker applied a temporary library image, recorded one rotation event, then restored the original wallpaper path and style in a separate isolated integration check
+- [x] GUI QA used a temporary configuration/database and a simulated wallpaper service; no wallpaper was changed during the interactive run
 
-The first pytest attempt, before dependency installation, could not collect six test modules because Pillow and PySide6 were absent. After installing the declared development dependencies, the suite completed. The initial migration assertion was updated from schema version 1 to version 2 to reflect the new additive migration; existing assertions and workflows were retained. User wallpaper and style were restored after the Windows integration check; the user's library/database were not used by that check.
+The first streamed full-suite invocation displayed `317 passed` but its execution session reported exit code 1 without a failure summary. An immediate rerun captured to `%TEMP%\sws-pytest-full.log` displayed `317 passed in 32.47s` and exit code 0. The targeted Phase 8 run also exited 0 (`31 passed in 6.57s`); Ruff and mypy each exited 0.
+
+### Typing baseline and fixes
+
+The first baseline on the reverted checkout reported 21 errors across 12 files, including seven diagnostics from the in-tree revert state. After restoring the original Phase 8 source and documentation from local Git history, a repeatable baseline reported the 14 pre-existing errors across 8 files listed below; none originated in Phase 8. The full outputs are saved outside the repository at `%TEMP%\sws-mypy-baseline.txt` and `%TEMP%\sws-mypy-restored.txt`. The fixes add `types-requests` to the development extras, add narrow types and value narrowing, and correct optional Qt values, variable reuse, callback wiring, and the CLI return path. Mypy strictness and configured error codes were not weakened.
+
+| Baseline location | Error code | Root cause and correction | Origin |
+|---|---|---|---|
+| `app/sources/wikimedia.py:21`; `app/services/download_service.py:23` | `import-untyped` | Requests lacked stubs; added the `types-requests` development dependency. | Pre-existing |
+| `app/sources/wikimedia.py:159` | `no-any-return` | Untyped Requests response made the success value `Any`; stubs now provide the declared response type. | Pre-existing |
+| `app/sources/wikimedia.py:322` | `no-any-return` | API mapping values were untyped; narrowed the text field from `Mapping[str, object]`. | Pre-existing |
+| `app/utils/image_utils.py:110` | `assignment` | A converted Pillow `Image` reused a variable inferred as `ImageFile`; now uses a separately typed thumbnail. | Pre-existing |
+| `app/ui/components/wallpaper_card.py:148` | `method-assign` | A mouse handler was assigned dynamically; replaced it with a typed clickable label and signal. | Pre-existing |
+| `app/ui/dashboard_view.py:184, 199–202` | `assignment`, `attr-defined` | A local inferred as `StatCard` was reused for unrelated widgets; gave each widget its own variable. | Pre-existing |
+| `app/ui/library_view.py:282` | `union-attr` | `QLayoutItem.widget()` can return `None`; added a guard. | Pre-existing |
+| `app/ui/favorites_view.py:243` | `union-attr` | `takeAt()` can return `None`; added a guard before accessing the widget. | Pre-existing |
+| `app/main.py:74` | `return` | Fallback flow did not guarantee a return value; made the path explicit. | Pre-existing |
+
+### Interactive GUI viewport record
+
+The capture alternative was a visible Windows Qt platform session driven with `QTest`, with client-window captures from `QWidget.grab()` at 125% display scaling. The screen was 1536×864 and the application minimum was 1024×680. Sidebar labels and active state remained visible; Settings showed the disabled status, interval, selection and dimension controls, category list, and action buttons. At the constrained minimum, action buttons are below the initial fold and are reachable by vertical scrolling. No horizontal overflow or clipped widgets were seen at the achieved client sizes. The QA harness used temporary app data and a simulated wallpaper service; it did not change the desktop wallpaper.
+
+| Requested client size | Actual client size | Screenshot | Result |
+|---|---:|---|---|
+| 1280×800 | 1280×800 | `%TEMP%\sws_phase8_gui_qa_eux_p3dx\screenshots\settings_1280x800.png` | Sidebar, settings, filters and controls visible; no clipping observed. |
+| 1024×768 | 1024×768 | `%TEMP%\sws_phase8_gui_qa_eux_p3dx\screenshots\settings_1024x768.png` | Compact layout remained readable; controls remained reachable. |
+| 800×600 | 1024×680 | `%TEMP%\sws_phase8_gui_qa_eux_p3dx\screenshots\settings_800x600.png`; actions after scrolling: `%TEMP%\sws_phase8_gui_qa_eux_p3dx\screenshots\settings_800x600_scrolled.png` | The request was constrained by the app minimum; vertical page scroll exposes the action buttons. |
+| 1440×900 | 1440×844 | `%TEMP%\sws_phase8_gui_qa_eux_p3dx\screenshots\settings_1440x900.png` | Height was constrained by the screen work area; layout remained readable with no clipping observed. |
+
+Additional captures in the same temporary folder: `startup.png`, `settings_keyboard_focus.png`, `settings_keyboard_focus_category.png`, `settings_empty_filter_error.png`, `settings_running.png`, `settings_paused.png`, and `history_rotation_events.png`. QTest exercised sidebar navigation and return to Settings, the category and minimum-dimension filters, error messaging, start/pause/resume/stop and next-rotation status, and the Rotation Events tab. Start showed the scheduled next rotation and left history empty before the interval elapsed. Closing with rotation active stopped the scheduler and timer. A dedicated Qt test also covers small-window scrolling, widget navigation, the card thumbnail click signal, and the focus chain.
+
+The Computer Use native-pipe helper remained unavailable; the alternative above used real application widgets, Qt event delivery, and inspected captures, but did not simulate a human using a physical keyboard or mouse. For a physical-input spot check, launch the app in a disposable Windows profile/library, visit Settings, tab through Enable → interval → random → dimensions → categories → actions, verify the focus outline, set a one-minute interval, start then pause/resume/stop rotation before it expires, open History → Rotation Events, then close the app while rotation is active and confirm it exits cleanly. Use an isolated profile/library so this check does not use personal wallpaper files.
+
+The first pytest attempt, before dependency installation, could not collect six test modules because Pillow and PySide6 were absent. After installing the declared development dependencies, the suite completed. The initial migration assertion was updated from schema version 1 to version 2 to reflect the new additive migration; existing assertions and workflows were retained. User wallpaper and style were restored after the separate Windows integration check; the user's library/database were not used by either isolated GUI check.
 
 ### Phase 8 Design Notes
 - A Qt timer owns the schedule; no Windows service or Task Scheduler job is installed.

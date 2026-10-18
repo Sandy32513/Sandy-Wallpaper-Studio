@@ -61,12 +61,12 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 8 — Automatic Rotation (final review pending) |
-| Latest test result | 314 passed, 0 failed on October 19, 2026; see [Project Status](docs/PROJECT_STATUS.md) for test and platform details |
+| Latest implemented milestone | Phase 8 — Automatic Rotation (complete) |
+| Latest test result | 317 passed, 0 failed on October 19, 2026; see [Project Status](docs/PROJECT_STATUS.md) for test and platform details |
 
 ## Project status
 
-Phases 0–7 are complete. Phase 8 automatic rotation is implemented; its automated suite and a reversible Windows worker integration check pass. A full interactive visual review and a clean repository-wide mypy run remain open. Some sidebar destinations remain placeholder screens. Features in the roadmap are not automatically available just because they appear in the UI.
+Phases 0–8 are complete. Phase 8 automatic rotation passes its targeted tests, the full test suite, Ruff, and repository-wide mypy. Its Windows Qt GUI was exercised with QTest and visually inspected captures at multiple viewport sizes; see [Project Status](docs/PROJECT_STATUS.md) for the minimum-size and screen work-area constraints. Some sidebar destinations remain placeholder screens. Features in the roadmap are not automatically available just because they appear in the UI.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -78,7 +78,7 @@ Phases 0–7 are complete. Phase 8 automatic rotation is implemented; its automa
 | Native wallpaper setting and monitor detection | Implemented in service layer | Uses Windows APIs; monitor behavior depends on Windows and display setup |
 | Desktop GUI | Implemented | Dashboard, Library, Favorites and History views are present |
 | Favorites and history | Implemented | Includes applied, viewed, and recently added/imported history workflows |
-| Automatic wallpaper rotation | Implemented; final QA pending | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
+| Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
 | Dedicated Duplicate Manager | Planned | Phase 9 |
 | Full settings and attribution export | Planned | Phase 10 |
 | Release hardening and packaging | Planned | Phases 11–13; no installer is claimed to be available |
@@ -432,7 +432,7 @@ Reset the environment variable after use with:
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-The latest full run passed **314 tests** on October 19, 2026. The historical Phase 7 count was 286. The initial workspace test run could not collect six modules because Pillow and PySide6 were missing; after installing the project's declared development dependencies, the full suite passed.
+The latest full run passed **317 tests** on October 19, 2026. The Phase 8 target suite passed **31 tests**. Ruff (`python -m ruff check .`) and mypy (`python -m mypy app`) also pass. The initial workspace test run could not collect six modules because Pillow and PySide6 were missing; after installing the project's declared development dependencies, the full suite passed.
 
 Optional quality tools are configured in `pyproject.toml`:
 
@@ -441,7 +441,7 @@ python -m ruff check app tests
 python -m mypy app
 ```
 
-These optional checks are useful only after the corresponding tools are installed; they are not represented as passing here.
+The checks above were run for the current Phase 8 finalization; install the corresponding development extras before rerunning them in a new environment.
 
 ## Roadmap
 
@@ -455,7 +455,7 @@ These optional checks are useful only after the corresponding tools are installe
 | 5 | Windows wallpaper engine, style preview, monitor detection and restore | Complete in service layer |
 | 6 | PySide6 desktop interface | Complete; some destinations remain placeholders |
 | 7 | Favorites and history workflows | Complete |
-| 8 | Automatic wallpaper rotation | Implemented; final QA review pending |
+| 8 | Automatic wallpaper rotation | Complete |
 | 9 | Dedicated Duplicate Manager UI | Planned |
 | 10 | Settings, attribution export and operational features | Planned |
 | 11 | QA, compatibility and release hardening | Planned |

@@ -92,6 +92,7 @@ class RotationSettingsView(QWidget):
             f"color: {ds.TEXT_PRIMARY}; font-size: {ds.FONT_SIZE_MD}px; font-weight: 600;"
         )
         self._next_label = QLabel()
+        self._next_label.setAccessibleName("Next scheduled rotation")
         self._next_label.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px;")
         status_layout.addWidget(self._status_label)
         status_layout.addWidget(self._next_label)
@@ -167,6 +168,7 @@ class RotationSettingsView(QWidget):
 
         self._validation_label = QLabel()
         self._validation_label.setWordWrap(True)
+        self._validation_label.setAccessibleName("Rotation settings validation")
         self._validation_label.setStyleSheet(f"color: {ds.DANGER};")
         self._validation_label.hide()
         outer.addWidget(self._validation_label)
@@ -174,19 +176,23 @@ class RotationSettingsView(QWidget):
         controls = QHBoxLayout()
         self._apply_button = QPushButton("Start / Apply Settings")
         self._apply_button.setObjectName("accent")
+        self._apply_button.setAccessibleName("Save or start automatic rotation")
         self._apply_button.clicked.connect(self._apply_settings)
         self._enabled.toggled.connect(self._update_apply_button_text)
         controls.addWidget(self._apply_button)
 
         self._pause_button = QPushButton("Pause")
+        self._pause_button.setAccessibleName("Pause automatic rotation")
         self._pause_button.clicked.connect(self._scheduler.pause)
         controls.addWidget(self._pause_button)
 
         self._resume_button = QPushButton("Resume")
+        self._resume_button.setAccessibleName("Resume automatic rotation")
         self._resume_button.clicked.connect(self._scheduler.resume)
         controls.addWidget(self._resume_button)
 
         self._stop_button = QPushButton("Stop")
+        self._stop_button.setAccessibleName("Stop automatic rotation")
         self._stop_button.clicked.connect(self._stop_rotation)
         controls.addWidget(self._stop_button)
         controls.addStretch()
@@ -195,18 +201,32 @@ class RotationSettingsView(QWidget):
 
         self.setStyleSheet(
             f"QWidget {{ color: {ds.TEXT_PRIMARY}; }} QCheckBox {{ spacing: 8px; }} "
+            f"QCheckBox:focus {{ color: {ds.ACCENT_LIGHT}; background: {ds.BG_ELEVATED}; }} "
             f"QSpinBox {{ min-height: 30px; padding: 2px 8px; background: {ds.BG_INPUT}; "
             f"color: {ds.TEXT_PRIMARY}; border: 1px solid {ds.BG_BORDER}; border-radius: 4px; }} "
+            f"QSpinBox:focus {{ border: 2px solid {ds.ACCENT_LIGHT}; padding: 1px 7px; }} "
             f"QPushButton {{ min-height: 34px; padding: 4px 14px; background: {ds.BG_INPUT}; "
             f"color: {ds.TEXT_PRIMARY}; border: 1px solid {ds.BG_BORDER}; border-radius: 6px; }} "
             f"QPushButton:hover {{ background: {ds.BG_ELEVATED}; }} "
-            f"QPushButton#accent {{ background: {ds.ACCENT_PRIMARY}; border-color: {ds.ACCENT_PRIMARY}; }}"
+            f"QPushButton:focus {{ border: 2px solid {ds.ACCENT_LIGHT}; padding: 3px 13px; }} "
+            f"QPushButton#accent {{ background: {ds.ACCENT_PRIMARY}; border-color: {ds.ACCENT_PRIMARY}; }} "
+            f"QPushButton#accent:focus {{ border: 2px solid {ds.ACCENT_LIGHT}; }} "
+            f"QPushButton:disabled {{ color: {ds.TEXT_DISABLED}; background: {ds.BG_DEEP}; }}"
         )
-        self.setTabOrder(self._enabled, self._interval)
-        self.setTabOrder(self._interval, self._random)
-        self.setTabOrder(self._random, self._min_width)
-        self.setTabOrder(self._min_width, self._min_height)
-        self.setTabOrder(self._min_height, self._apply_button)
+        focus_order: list[QWidget] = [
+            self._enabled,
+            self._interval,
+            self._random,
+            self._min_width,
+            self._min_height,
+            *self._category_checks.values(),
+            self._apply_button,
+            self._pause_button,
+            self._resume_button,
+            self._stop_button,
+        ]
+        for current, following in zip(focus_order, focus_order[1:], strict=False):
+            self.setTabOrder(current, following)
 
     def _collect_preferences(self, enabled: bool | None = None) -> RotationPreferences:
         categories = tuple(

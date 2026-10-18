@@ -278,8 +278,10 @@ class LibraryView(QWidget):
         # Clear layout items
         while self._grid_layout.count():
             item = self._grid_layout.takeAt(0)
-            if item and item.widget():
-                item.widget().deleteLater()
+            if item is not None:
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
 
     # ------------------------------------------------------------------
     # Signals / Event Handlers

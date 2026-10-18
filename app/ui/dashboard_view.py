@@ -141,8 +141,8 @@ class DashboardView(QWidget):
             ("Resolution",       monitors[0].resolution if monitors else "—", "⧉", False),
         ]
         for i, (label, value, icon, accent) in enumerate(stat_cards):
-            card = StatCard(label=label, value=value, icon=icon, accent=accent)
-            stats_grid.addWidget(card, i // 3, i % 3)
+            stat_card = StatCard(label=label, value=value, icon=icon, accent=accent)
+            stats_grid.addWidget(stat_card, i // 3, i % 3)
         content_layout.addLayout(stats_grid)
 
         # ---- Quick actions ----
@@ -181,8 +181,8 @@ class DashboardView(QWidget):
         mon_row = QHBoxLayout()
         mon_row.setSpacing(ds.SPACE_MD)
         for mon in monitors:
-            card = self._make_monitor_card(mon)
-            mon_row.addWidget(card)
+            monitor_card = self._make_monitor_card(mon)
+            mon_row.addWidget(monitor_card)
         mon_row.addStretch()
         content_layout.addLayout(mon_row)
 
@@ -196,11 +196,11 @@ class DashboardView(QWidget):
             recent_row = QHBoxLayout()
             recent_row.setSpacing(ds.SPACE_MD)
             for wp in recent:
-                card = WallpaperCard(wallpaper=wp)
-                card.set_wallpaper_requested.connect(self._apply_wallpaper)
-                card.detail_requested.connect(self._show_detail)
-                card.favorite_toggled.connect(self._on_fav_toggle)
-                recent_row.addWidget(card)
+                wallpaper_card = WallpaperCard(wallpaper=wp)
+                wallpaper_card.set_wallpaper_requested.connect(self._apply_wallpaper)
+                wallpaper_card.detail_requested.connect(self._show_detail)
+                wallpaper_card.favorite_toggled.connect(self._on_fav_toggle)
+                recent_row.addWidget(wallpaper_card)
             recent_row.addStretch()
             content_layout.addLayout(recent_row)
 
