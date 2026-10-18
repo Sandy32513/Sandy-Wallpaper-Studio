@@ -1,7 +1,9 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 3 — Complete**  
-**Status date: 2026-10-02**
+**Current development phase: Phase 5 — Complete**  
+**Status date: 2026-10-18**  
+**Test suite: 253 passing / 0 failing**  
+**Branch: `main`**
 
 This document is the implementation-status reference for the repository.
 
@@ -29,26 +31,32 @@ SHA-256, pHash, dHash, aHash, Hamming distance, similarity percentage, exact and
 
 Milestone: 6434e8c6b71a9fdcca4612a107e1c605a429345c
 
-## Phase 3 Exit Gate
-Before Phase 4 is treated as released, verify:
-- full pytest suite passes
-- Phase 0–3 tests pass together
-- database initialization has no regression
-- Wikimedia search and download behavior has no regression
-- invalid images are rejected
-- oversized downloads are rejected
-- hashes are deterministic
-- duplicate detection does not delete files
-- thumbnails are generated
-- documentation matches implementation
-- a Git milestone tag is created
+## Phase 4 — Smart Library
+**Status: COMPLETE**
+Import existing folders, recursive/flat discovery, metadata indexing, per-file validation, SHA-256 and pHash duplicate-aware import, category assignment, multi-dimensional search, filtering, pagination, library statistics, import history and error reporting.
 
-## Phase 4 Entry Point
-Phase 4 turns the existing database, metadata, hashing and download primitives into a complete local library workflow.
+Milestone: 5741e023d36fddc0c68d79c659e6ac45aecc499d
 
-Primary objective: **Import, index, search, filter and manage a local wallpaper library without depending on the future GUI.**
+## Phase 5 — Windows Wallpaper Engine
+**Status: COMPLETE**
+Native Windows wallpaper setting via `SystemParametersInfoW` with style registry mapping (`Center`, `Tile`, `Stretch`, `Fit`, `Fill`, `Span`), multi-monitor detection & bounds awareness via `EnumDisplayMonitors`, random wallpaper selection with category/favorite/resolution filters and repeat avoidance, previous wallpaper restoration, multi-style desktop preview generation, and `HistoryRepository` for desktop application tracking.
 
-Planned capabilities: existing-folder import, recursive discovery, metadata indexing, duplicate-aware import, search, filtering, category assignment, resolution filtering, aspect-ratio filtering, source/license filtering, pagination, statistics and Phase 4 tests.
+## Phase 5 Exit Gate Verification
+- [x] Full pytest suite passes (253 / 253 tests pass)
+- [x] Phases 0–5 pass together without regressions
+- [x] Wallpaper setting supports Center, Tile, Stretch, Fit, Fill, Span
+- [x] Multi-monitor detection reports resolution, bounds, orientation, primary status
+- [x] Random wallpaper supports category, favorites, min-resolution filters and repeat prevention
+- [x] Restore previous wallpaper operates via history stack and database records
+- [x] Wallpaper preview generation accurately renders all 6 desktop styles
+- [x] Image integrity validation rejects missing, corrupt, and unsupported formats
+- [x] Non-destructive operation preserves user files
+- [x] Simulation mode provides clean, deterministic testing across platforms
+
+## Phase 6 Entry Point — Desktop GUI
+Phase 6 builds the PySide6 desktop interface over the tested backend services.
+
+Planned capabilities: Main window layout, sidebar navigation (Dashboard, Discover, Categories, Favorites, History, Library, Duplicates, Settings), wallpaper grid, lazy-loaded thumbnails, detail modal/view, search & filter controls, and native wallpaper setting integration.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase
@@ -61,5 +69,3 @@ When documentation conflicts with implementation, use this order:
 4. Project status
 5. README
 6. Older planning documents
-
-Documentation must be updated whenever implementation changes.

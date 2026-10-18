@@ -10,7 +10,7 @@ from pathlib import Path
 # Application Identity
 # ============================================================
 APP_NAME = "Sandy Wallpaper Studio"
-APP_VERSION = "0.4.0-dev"
+APP_VERSION = "0.5.0-dev"
 APP_AUTHOR = "Sandy"
 APP_DESCRIPTION = "Professional 4K/5K/8K Wallpaper Management for Windows"
 
@@ -162,6 +162,7 @@ WALLPAPER_STYLES = {
     "Stretch": 2,
     "Fit": 6,
     "Fill": 10,
+    "Span": 22,
 }
 
 # ============================================================

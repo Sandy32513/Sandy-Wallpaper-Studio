@@ -18,35 +18,39 @@ Wikimedia Commons integration, metadata retrieval and safe downloading.
 **Complete**
 Validation, SHA-256, perceptual hashing, duplicate detection and thumbnails.
 
-# Phase 4 — Smart Library
+## Phase 4 — Smart Library
+**Complete**
+Import existing folders, recursive/flat discovery, metadata indexing, duplicate-aware import, search, filtering, pagination and library statistics.
+
+## Phase 5 — Windows Wallpaper Engine
+**Complete**
+Native Windows wallpaper setting via `SystemParametersInfoW` & registry styles, multi-monitor detection & orientation awareness, selected wallpaper application with database usage updates, random wallpaper with filters and repeat avoidance, previous wallpaper restoration, multi-style preview generation, and history tracking.
+
+# Phase 6 — Desktop GUI
 **NEXT**
 
 ### Objective
-Build a complete local wallpaper library workflow using the existing database and image-processing services.
+Build a professional dark-themed PySide6 desktop interface connecting directly to tested backend services.
 
 ### Scope
-- import existing folders
-- recursive image discovery
-- file validation during import
-- metadata extraction
-- SHA-256 and pHash indexing
-- exact and near duplicate detection
-- category assignment
-- search
-- filtering
-- pagination
-- statistics
-- import history
-- error reporting
+- Main application window with responsive layout
+- Sidebar navigation:
+  - Dashboard
+  - Discover / Search
+  - Categories
+  - Favorites
+  - History
+  - Library
+  - Duplicates
+  - Settings
+- Wallpaper card grid with thumbnail lazy loading
+- Wallpaper detail view (preview, metadata, "Set Wallpaper", "Favorite", "Find Similar")
+- Filter bar (resolution, orientation, category, source)
+- Integrated wallpaper setting and preview actions
+- Error dialogs and status notifications
 
 ### Exit gate
-Automated tests pass, earlier phases remain intact, imported files are validated, duplicates are identified without automatic deletion, database records remain consistent and documentation is updated.
-
-# Phase 5 — Windows Wallpaper Engine
-Set selected wallpaper, random wallpaper, preview, restore previous wallpaper, multi-monitor awareness and monitor-specific selection.
-
-# Phase 6 — Desktop GUI
-Build the PySide6 desktop interface over tested services. Planned areas: dashboard, library, search, filters, preview, categories, downloads, favorites, duplicate manager, settings and history.
+GUI launches cleanly, all views connect to underlying services without placeholders, thumbnails render smoothly, wallpaper setting works from UI, and automated UI/service integration tests pass.
 
 # Phase 7 — Favorites & History
 Favorites, recently viewed, recently downloaded, recently applied, filtering and restore/reapply workflows.

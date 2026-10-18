@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sandy-wallpaper-studio"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 description = "Professional 4K/5K/8K wallpaper management application for Windows 10/11"
 readme = "README.md"
 license = {text = "MIT"}

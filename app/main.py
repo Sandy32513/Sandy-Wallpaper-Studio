@@ -117,15 +117,21 @@ def main() -> int:
     # GUI Launch (Phase 6 — currently placeholder)
     # -------------------------------------------------------
     from app.database.wallpaper_repository import WallpaperRepository
+    from app.services.wallpaper_service import WindowsWallpaperService
+
     cat_count = cat_repo.count()
     wp_repo = WallpaperRepository(db)
     wp_count = wp_repo.count()
+    wp_svc = WindowsWallpaperService(db=db, wallpaper_repo=wp_repo)
+    monitors = wp_svc.detect_monitors()
+
     print(f"\n  {APP_NAME} v{APP_VERSION}")
     print(f"  Library:     {config.config_dir}")
     print(f"  Database:    {config.database_path}")
     print(f"  Categories:  {cat_count}")
     print(f"  Wallpapers:  {wp_count}")
-    print("\n  [Phase 4 Complete] Library engine ready.")
+    print(f"  Monitors:    {len(monitors)} detected")
+    print("\n  [Phase 5 Complete] Windows Wallpaper Engine ready.")
     print("  GUI will be available after Phase 6.\n")
 
     db.close()

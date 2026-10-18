@@ -146,3 +146,11 @@ class WallpaperHistory:
     wallpaper_id: int = 0
     set_at: Optional[str] = None  # ISO 8601 string
     monitor: str = ""  # Monitor identifier (e.g. "primary", "\\.\DISPLAY1")
+
+    def to_dict(self) -> dict:
+        """Convert to a dictionary for database insertion."""
+        return {
+            "wallpaper_id": self.wallpaper_id,
+            "set_at": self.set_at,
+            "monitor": self.monitor,
+        }

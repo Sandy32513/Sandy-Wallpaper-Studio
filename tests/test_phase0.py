@@ -34,7 +34,7 @@ class TestConstants:
 
     def test_app_identity(self) -> None:
         assert APP_NAME == "Sandy Wallpaper Studio"
-        assert APP_VERSION == "0.4.0-dev"
+        assert APP_VERSION == "0.5.0-dev"
 
     def test_resolution_classes_ordered(self) -> None:
         """8K > 5K > 4K must be defined and have correct minimums."""
