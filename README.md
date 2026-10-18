@@ -9,7 +9,7 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or later"></a>
   <a href="https://www.qt.io/qt-for-python"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt&logoColor=white" alt="GUI framework: PySide6"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
-  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/commits/main"><img src="https://img.shields.io/badge/status-Phase%207%20complete-6f42c1" alt="Phase 7 is documented as complete"></a>
+  <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2010%20complete-6f42c1" alt="Phase 10 is implemented and validated; see the QA record"></a>
 </p>
 
 <p align="center">
@@ -61,12 +61,12 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 9 — Duplicate Manager (complete) |
+| Latest implemented milestone | Phase 10 - Settings & Operational Features (complete) |
 | Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0–9 are complete. Phase 9 adds a Duplicate Manager for exact and near matches, side-by-side comparison, explicit retention and target selection, and confirmed Windows Recycle Bin cleanup. See [Project Status](docs/PROJECT_STATUS.md) for the implementation, test, and GUI evidence. Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 10 adds validated settings, operational controls wired to their services, background thumbnail maintenance, a library integrity check, and safe CSV attribution export. See [Project Status](docs/PROJECT_STATUS.md) for the completion matrix and current QA evidence. Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -80,7 +80,7 @@ Phases 0–9 are complete. Phase 9 adds a Duplicate Manager for exact and near m
 | Favorites and history | Implemented | Includes applied, viewed, and recently added/imported history workflows |
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
 | Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
-| Full settings and attribution export | Planned | Phase 10 |
+| Settings and attribution export | Complete | Operational preferences and stored-metadata CSV export |
 | Release hardening and packaging | Planned | Phases 11–13; no installer is claimed to be available |
 
 For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATUS.md) and [Roadmap](docs/ROADMAP.md). Historical test counts in those documents are not a guarantee of the current machine's result.
@@ -163,6 +163,19 @@ The clear-favorites action removes favorite status; it does not delete image fil
 
 Rotation runs only while the application is open. It does not install a Windows service or scheduled task, access online sources, move files, or delete files.
 
+### Settings and attribution
+
+- Change the configured library cleanup boundary and default recursive import behavior. Existing files and the database are not moved or reindexed.
+- Enable Wikimedia Commons and adjust request limits, minimum resolution, and timeout.
+- Set download folder, image-size limit, request timeout, retry count/backoff, and concurrent-operation limit.
+- Tune the 64-bit pHash Hamming-distance threshold (0–64). Exact matches continue to require SHA-256 plus byte comparison.
+- Configure thumbnail dimensions, quality, cache enablement, and budget. Cache rebuild runs in the background and can be cancelled.
+- Configure log level, file output, rotation size, and retention. Console logging remains available if file output fails.
+- Export stored creator, source, license, and image details to UTF-8 CSV with formula-injection protection and overwrite confirmation.
+- Select the saved desktop wallpaper style and continue to manage automatic local rotation.
+
+See [Configuration](docs/CONFIGURATION.md) for the setting schema, validation rules, defaults, and application behavior.
+
 ## Technology stack
 
 | Technology | Role |
@@ -182,15 +195,11 @@ Runtime dependencies are declared in [pyproject.toml](pyproject.toml) and [requi
 
 ## Screenshots
 
-No dedicated, checked-in screenshot asset was identified in the current repository tree during this audit. This section is intentionally not populated with mock screenshots.
+Settings captures from the running Windows Qt application use synthetic data. Requested logical window sizes were 1280x800, 1024x768, 800x600, and 1440x900. Windows display scaling rendered the saved PNGs at 125% physical dimensions. The compact 800x600 view keeps the settings controls and action row visible; longer pages scroll within their tab.
 
-To add real screenshots, capture the running application and commit them under a stable repository path such as `docs/images/`. Then reference the committed files, for example:
+![Sandy Wallpaper Studio Settings at 1280 by 800, showing the library root, recursive import, and integrity controls](docs/images/phase10/settings-1280x800.png)
 
-```markdown
-![Sandy Wallpaper Studio dashboard showing library statistics and monitor details](docs/images/dashboard.png)
-```
-
-Do not use this example image path until the screenshot has actually been added.
+Additional inspected captures: [1024x768](docs/images/phase10/settings-1024x768.png), [800x600](docs/images/phase10/settings-800x600.png), and [1440x900](docs/images/phase10/settings-1440x900.png).
 
 ## Quick start
 
@@ -304,13 +313,13 @@ The History view has separate workflows for desktop-applied entries, recently vi
 - Searching/browsing Wikimedia Commons from the Discover screen.
 - Triggering downloads from the Downloads screen.
 - Dedicated Categories management screen.
-- General application settings beyond the Phase 8 rotation controls.
+- Discover and Downloads remain placeholders; Settings configures the backend services but does not add source browsing or download initiation screens.
 
 Backend capabilities do not imply that each workflow is wired into a finished GUI.
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers and shared image utilities. Phase 8 adds `RotationService`, `RotationScheduler`, and `RotationSettingsView`. Phase 9 adds `DuplicateScanService` for ephemeral read-only analysis, `DuplicateScanWorker` for off-UI-thread scanning and previews, `DuplicateCleanupWorker` for per-file Recycle Bin operations, and `DuplicateManagerView` for group review and comparison.
+The project separates presentation, application services, data access, providers, and shared image utilities. Phase 10 adds validated JSON settings, `SettingsView`, safe attribution CSV export, configurable source/download construction, and background library/cache maintenance. Rotation and duplicate review remain dedicated service/UI workflows.
 
 ```text
 app/
@@ -374,28 +383,30 @@ The diagram is a logical overview: not every provider/service workflow is curren
 
 ## Configuration and local data
 
-The configuration manager stores JSON settings in the application's data root and creates supporting directories as needed.
+Settings are stored as JSON at `settings.json` in the application data root. Writes use a same-directory temporary file and atomic replacement. Invalid settings are rejected individually so valid values in the same file survive; unknown keys are ignored. Existing rotation interval settings are migrated into the current minute-based setting. No database migration is required for Phase 10.
 
 | Data | Default location |
 |---|---|
-| Root/configuration directory | `%USERPROFILE%\Pictures\SandyWallpaperStudio` |
-| Settings | `settings.json` inside the root directory |
-| SQLite database | Database file inside the root directory (filename is defined by `app/constants.py`) |
-| Wallpaper library/downloads | `Library` by default, based on configuration |
-| Thumbnail cache | `Cache` |
-| Temporary download files | `Temp` |
-| Logs | `Logs` |
-| Exports / duplicates workspace | `Exports` / `Duplicates` |
+| Application data/configuration root | `%USERPROFILE%\Pictures\SandyWallpaperStudio` |
+| Settings | `settings.json` in the application data root |
+| SQLite database | `wallpapers.db` in the application data root |
+| Library and downloads | `Library` by default; configurable existing folder |
+| Thumbnail cache | `Cache\thumbnails` |
+| Temporary files | `Temp` under the application data root |
+| Logs | `Logs\app.log` |
+| Attribution exports | `Exports` (chosen destination can be changed per export) |
 
-Use the `--library` startup argument to choose a different application data root. Back up the database and any images you care about before making manual changes. Avoid deleting the database or library directory as a troubleshooting shortcut.
+The startup `--library` argument changes the application data root. The Settings page's library-root value sets the boundary used by guarded duplicate cleanup; changing it does not move images, reindex database rows, or change the database path. See [Configuration](docs/CONFIGURATION.md) for all defaults, ranges, and service behavior. Avoid deleting the database or library directory as a troubleshooting shortcut.
 
 ### Implemented safeguards
 
 - Download size is checked using response metadata and again while streaming (default limit: 100 MB in the download service).
-- HTTP status, content type and supported image handling are checked before a downloaded file is accepted by the download pipeline.
-- Downloads use temporary files before moving the completed file to the target location.
+- HTTP status, content type, supported image format, and decoded image integrity are checked before a completed download is published.
+- Downloads use temporary files and exclusive finalization; partial or invalid files are not treated as completed downloads.
 - Existing target filenames are not silently overwritten by the download service.
 - Destination filenames and subdirectory names are sanitized.
+- Settings values are validated individually and saved through same-directory atomic replacement.
+- Attribution CSV export is atomic, escapes formula-like cells, and confirms before replacing an existing file.
 - SQLite enables write-ahead logging and foreign-key enforcement and runs schema migrations at connection time.
 - Duplicate detection and integrity checks are designed to identify issues rather than silently delete user images.
 
@@ -411,7 +422,7 @@ Wikimedia Commons items can carry different licenses and attribution requirement
 
 ## Testing
 
-The test suite uses **pytest** and is organized by project phase.
+The test suite contains phase-based coverage through Phase 10. The current verified result is recorded below and in [Project Status](docs/PROJECT_STATUS.md).
 
 From the repository root, with development dependencies installed:
 
@@ -424,7 +435,8 @@ Run a focused phase suite:
 ```powershell
 python -m pytest tests/test_phase7.py -v
 python -m pytest tests/test_phase8.py -v
-python -m pytest tests/test_phase6.py -v
+python -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py -v
+python -m pytest tests/test_phase10.py -v
 ```
 
 For GUI tests on a headless CI environment, Qt may need the offscreen platform plugin. If needed and supported in the environment, run:
@@ -440,7 +452,7 @@ Reset the environment variable after use with:
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-The latest full test and static-analysis results are recorded in [Project Status](docs/PROJECT_STATUS.md). Phase 9 validation includes a disposable Windows Recycle Bin round trip that restores its fixture, Qt tests for cleanup approval/cancellation, database-reference integrity checks, and inspected screenshots from synthetic data. No production library or wallpaper was used.
+The Phase 10 QA record is based on the commands actually run for this checkout; see [Project Status](docs/PROJECT_STATUS.md). Its tests use temporary synthetic data and mocked network boundaries. No production library or desktop wallpaper was used.
 
 Optional quality tools are configured in `pyproject.toml`:
 
@@ -449,7 +461,7 @@ python -m ruff check app tests
 python -m mypy app
 ```
 
-The checks above were run for the Phase 8 finalization and Phase 9 completion; install the corresponding development extras before rerunning them in a new environment.
+The recorded checks were run for Phase 8, Phase 9, and Phase 10 finalization. Install the development extras before rerunning them in a new environment.
 
 ## Roadmap
 
@@ -465,7 +477,7 @@ The checks above were run for the Phase 8 finalization and Phase 9 completion; i
 | 7 | Favorites and history workflows | Complete |
 | 8 | Automatic wallpaper rotation | Complete |
 | 9 | Dedicated Duplicate Manager UI | Complete; confirmed Windows Recycle Bin cleanup |
-| 10 | Settings, attribution export and operational features | Planned |
+| 10 | Settings, attribution export and operational features | Complete |
 | 11 | QA, compatibility and release hardening | Planned |
 | 12 | PyInstaller packaging | Planned |
 | 13 | Windows installer | Planned |

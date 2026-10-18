@@ -155,7 +155,7 @@ class WikimediaSource(WallpaperSource):
             resp = self._session.get(
                 API_ENDPOINT,
                 params={"action": "query", "meta": "siteinfo", "format": "json"},
-                timeout=10,
+                timeout=self._timeout,
             )
             return resp.status_code == 200
         except requests.RequestException:

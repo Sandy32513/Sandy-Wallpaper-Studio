@@ -111,9 +111,11 @@ class WallpaperCard(QFrame):
         self,
         wallpaper: Wallpaper,
         parent: Optional[QWidget] = None,
+        thumbnail_path: Path | None = None,
     ) -> None:
         super().__init__(parent)
         self._wallpaper = wallpaper
+        self._thumbnail_path = thumbnail_path
         self._is_fav = wallpaper.favorite
         self._thread: Optional[QThread] = None
         self._loader: Optional[ThumbnailLoader] = None
@@ -253,6 +255,8 @@ class WallpaperCard(QFrame):
 
     def _get_thumb_path(self) -> Optional[str]:
         """Return best available image path for thumbnail."""
+        if self._thumbnail_path and self._thumbnail_path.is_file():
+            return str(self._thumbnail_path)
         if self._wallpaper.path and Path(self._wallpaper.path).is_file():
             return self._wallpaper.path
         return None

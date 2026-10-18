@@ -21,10 +21,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from app.config import Config
+from app.constants import THUMBNAIL_QUALITY, THUMBNAIL_SIZE
 from app.database.category_repository import CategoryRepository
 from app.database.database import Database
 from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
+from app.utils.image_utils import thumbnail_cache_path
 
 logger = logging.getLogger(__name__)
 
@@ -95,12 +98,19 @@ class LibraryService:
         self,
         db: Database,
         cache_dir: Optional[Path] = None,
+        config: Config | None = None,
     ) -> None:
         self._db = db
         self._wallpaper_repo = WallpaperRepository(db)
         self._category_repo = CategoryRepository(db)
         self._cache_dir = cache_dir
         self._thumbnail_dir = cache_dir / "thumbnails" if cache_dir else None
+        self._thumbnail_enabled = bool(config.get("thumbnail_enabled", True)) if config else True
+        self._thumbnail_size = (
+            (config.get("thumbnail_width", THUMBNAIL_SIZE[0]), config.get("thumbnail_height", THUMBNAIL_SIZE[1]))
+            if config else THUMBNAIL_SIZE
+        )
+        self._thumbnail_quality = config.get("thumbnail_quality", THUMBNAIL_QUALITY) if config else THUMBNAIL_QUALITY
 
     # ----------------------------------------------------------
     # Search & Filtering
@@ -339,8 +349,10 @@ class LibraryService:
                     report.missing_file_paths.append(wp.path)
 
                 # Check thumbnail
-                if self._thumbnail_dir and wp.sha256:
-                    thumb_path = self._thumbnail_dir / f"{wp.sha256[:16]}.jpg"
+                if self._thumbnail_dir and self._thumbnail_enabled and wp.sha256:
+                    thumb_path = thumbnail_cache_path(
+                        self._thumbnail_dir, wp.sha256, self._thumbnail_size, self._thumbnail_quality
+                    )
                     if not thumb_path.exists():
                         report.stale_thumbnails += 1
 

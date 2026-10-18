@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.config import Config
 from app.constants import DEFAULT_LIBRARY_DIR_NAME
 from app.database.category_repository import CategoryRepository
 from app.database.database import Database
@@ -35,6 +36,7 @@ from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
 from app.ui.components.detail_dialog import DetailDialog
 from app.ui.components.wallpaper_card import WallpaperCard
+from app.utils.image_utils import thumbnail_cache_path
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +57,11 @@ class FavoritesView(QWidget):
         history_service: HistoryService | None = None,
         cache_dir: Path | None = None,
         parent: QWidget | None = None,
+        config: Config | None = None,
     ) -> None:
         super().__init__(parent)
         self._db = db
+        self._config = config
         self._wp_service = wallpaper_service
         self._history_service = history_service or HistoryService(
             db=db,
@@ -250,7 +254,11 @@ class FavoritesView(QWidget):
             return
 
         for idx, wp in enumerate(wallpapers):
-            card = WallpaperCard(wallpaper=wp, parent=self._grid_container)
+            card = WallpaperCard(
+                wallpaper=wp,
+                parent=self._grid_container,
+                thumbnail_path=self._thumbnail_path(wp),
+            )
             card.set_wallpaper_requested.connect(self._on_apply_wallpaper)
             card.detail_requested.connect(self._on_show_detail)
             card.favorite_toggled.connect(self._on_fav_toggle)
@@ -331,9 +339,19 @@ class FavoritesView(QWidget):
             dlg.favorite_toggled.connect(self._on_fav_toggle)
             dlg.exec()
 
+    def _wallpaper_style(self) -> str:
+        return str(self._config.get("wallpaper_style", "Fill")) if self._config else "Fill"
+
+    def _thumbnail_path(self, wallpaper: Wallpaper) -> Path | None:
+        if not self._config or not self._config.get("thumbnail_enabled", True) or not wallpaper.sha256:
+            return None
+        size = (self._config.get("thumbnail_width", 400), self._config.get("thumbnail_height", 225))
+        quality = self._config.get("thumbnail_quality", 85)
+        return thumbnail_cache_path(self._cache_dir / "thumbnails", wallpaper.sha256, size, quality)
+
     def _on_apply_wallpaper(self, wallpaper_id: int) -> None:
         try:
-            result = self._wp_service.set_selected_wallpaper(wallpaper_id, style="Fill")
+            result = self._wp_service.set_selected_wallpaper(wallpaper_id, style=self._wallpaper_style())
             if result.success:
                 wp_title = result.wallpaper.title if result.wallpaper else "Wallpaper"
                 self.status_message.emit(f"✓ Applied to desktop: {wp_title}")
@@ -348,6 +366,7 @@ class FavoritesView(QWidget):
         result = self._wp_service.set_random_wallpaper(
             category=category,
             favorites_only=True,
+            style=self._wallpaper_style(),
         )
         if result.success:
             wp_title = result.wallpaper.title if result.wallpaper else "Unknown"

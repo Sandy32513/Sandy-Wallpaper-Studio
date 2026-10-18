@@ -27,6 +27,7 @@ from app.ui.components.wallpaper_card import WallpaperCard
 from app.ui.history_view import HistoryView
 from app.ui.main_window import MainWindow
 from app.ui.rotation_view import RotationSettingsView
+from app.ui.settings_view import SettingsView
 
 
 @pytest.fixture
@@ -593,7 +594,7 @@ class TestRotationSchedulerAndUI:
             assert window._rotation_scheduler.state == "disabled"
             assert not window._rotation_scheduler.timer_active
             assert "settings" in window._views
-            assert isinstance(window._views["settings"], RotationSettingsView)
+            assert isinstance(window._views["settings"], SettingsView)
         finally:
             window.close()
 

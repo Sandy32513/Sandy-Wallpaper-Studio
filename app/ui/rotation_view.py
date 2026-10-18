@@ -249,8 +249,19 @@ class RotationSettingsView(QWidget):
             self._validation_label.show()
             return
         self._validation_label.hide()
-        self._config.set_rotation_preferences(preferences)
-        self._config.save()
+        try:
+            self._config.apply_settings({
+                "rotation_enabled": preferences.enabled,
+                "rotation_interval_minutes": preferences.interval_minutes,
+                "rotation_random": preferences.random_selection,
+                "rotation_categories": list(preferences.categories),
+                "rotation_min_width": preferences.min_width,
+                "rotation_min_height": preferences.min_height,
+            })
+        except OSError:
+            self._validation_label.setText("Settings could not be saved. Check the configuration folder permissions.")
+            self._validation_label.show()
+            return
         self._scheduler.configure(preferences, style=str(self._config.get("wallpaper_style", "Fill")))
         self._preferences = preferences
         self.status_message.emit("Automatic rotation settings saved.")
@@ -258,9 +269,20 @@ class RotationSettingsView(QWidget):
 
     def _stop_rotation(self) -> None:
         preferences = self._collect_preferences(enabled=False)
+        try:
+            self._config.apply_settings({
+                "rotation_enabled": preferences.enabled,
+                "rotation_interval_minutes": preferences.interval_minutes,
+                "rotation_random": preferences.random_selection,
+                "rotation_categories": list(preferences.categories),
+                "rotation_min_width": preferences.min_width,
+                "rotation_min_height": preferences.min_height,
+            })
+        except OSError:
+            self._validation_label.setText("Settings could not be saved. Check the configuration folder permissions.")
+            self._validation_label.show()
+            return
         self._enabled.setChecked(False)
-        self._config.set_rotation_preferences(preferences)
-        self._config.save()
         self._scheduler.configure(preferences, style=str(self._config.get("wallpaper_style", "Fill")))
         self._preferences = preferences
         self.status_message.emit("Automatic rotation stopped.")

@@ -25,6 +25,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+from app.config import Config
 from app.constants import (
     DEFAULT_LIBRARY_DIR_NAME,
     SUPPORTED_FORMATS,
@@ -37,7 +38,12 @@ from app.database.wallpaper_repository import WallpaperRepository
 from app.services.duplicate_service import DuplicateService
 from app.services.metadata_service import ImageValidationError, MetadataService
 from app.utils.hashing import compute_phash
-from app.utils.image_utils import create_thumbnail, validate_image_file
+from app.utils.image_utils import (
+    create_thumbnail,
+    enforce_thumbnail_cache_limit,
+    thumbnail_cache_path,
+    validate_image_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -133,16 +139,29 @@ class ImportService:
         db: Database,
         cache_dir: Optional[Path] = None,
         phash_threshold: int = 10,
+        config: Config | None = None,
     ) -> None:
         if cache_dir is None:
             cache_dir = Path.home() / "Pictures" / DEFAULT_LIBRARY_DIR_NAME / "Cache"
+        self._config = config
         self._db = db
         self._repo = WallpaperRepository(db)
         self._metadata_svc = MetadataService()
-        self._duplicate_svc = DuplicateService(db, threshold=phash_threshold)
+        self._duplicate_svc = DuplicateService(
+            db,
+            threshold=(config.get("phash_threshold", phash_threshold) if config else phash_threshold),
+        )
         self._cache_dir = cache_dir
         self._thumbnail_dir = cache_dir / "thumbnails"
-        self._thumbnail_dir.mkdir(parents=True, exist_ok=True)
+        self._thumbnail_enabled = bool(config.get("thumbnail_enabled", True)) if config else True
+        self._thumbnail_size = (
+            (config.get("thumbnail_width", THUMBNAIL_SIZE[0]),
+             config.get("thumbnail_height", THUMBNAIL_SIZE[1]))
+            if config else THUMBNAIL_SIZE
+        )
+        self._thumbnail_quality = config.get("thumbnail_quality", THUMBNAIL_QUALITY) if config else THUMBNAIL_QUALITY
+        if self._thumbnail_enabled:
+            self._thumbnail_dir.mkdir(parents=True, exist_ok=True)
 
     # ----------------------------------------------------------
     # Public API
@@ -406,13 +425,15 @@ class ImportService:
             ]
 
         # 9. Generate thumbnail
-        thumb_filename = f"{sha256[:16]}.jpg"
-        thumb_path = self._thumbnail_dir / thumb_filename
-        if not thumb_path.exists():
-            create_thumbnail(
-                file_path, thumb_path,
-                size=THUMBNAIL_SIZE, quality=THUMBNAIL_QUALITY,
-            )
+        thumb_path = thumbnail_cache_path(
+            self._thumbnail_dir, sha256, self._thumbnail_size, self._thumbnail_quality
+        )
+        if self._thumbnail_enabled and not thumb_path.exists() and create_thumbnail(
+            file_path, thumb_path,
+            size=self._thumbnail_size, quality=self._thumbnail_quality,
+        ):
+            cache_budget = self._config.get("thumbnail_cache_size_mb", 500) if self._config else 500
+            enforce_thumbnail_cache_limit(self._thumbnail_dir, cache_budget, preserve=thumb_path)
 
         # 10. Create database record
         try:

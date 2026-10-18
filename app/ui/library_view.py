@@ -26,7 +26,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.constants import DEFAULT_LIBRARY_DIR_NAME
+from app.config import Config
+from app.constants import DEFAULT_LIBRARY_DIR_NAME, THUMBNAIL_QUALITY, THUMBNAIL_SIZE
 from app.database.category_repository import CategoryRepository
 from app.database.database import Database
 from app.database.models import Wallpaper
@@ -38,6 +39,7 @@ from app.ui import design_system as ds
 from app.ui.components.import_dialog import ImportProgressDialog
 from app.ui.components.search_bar import SearchFilterBar
 from app.ui.components.wallpaper_card import WallpaperCard
+from app.utils.image_utils import thumbnail_cache_path
 
 _PAGE_SIZE = 40
 _GRID_COLS = 4
@@ -60,6 +62,7 @@ class LibraryView(QWidget):
         wallpaper_service: WindowsWallpaperService,
         cache_dir: Optional[Path] = None,
         parent: Optional[QWidget] = None,
+        config: Config | None = None,
     ) -> None:
         super().__init__(parent)
         self._db = db
@@ -67,12 +70,18 @@ class LibraryView(QWidget):
         if cache_dir is None:
             cache_dir = Path.home() / "Pictures" / DEFAULT_LIBRARY_DIR_NAME / "Cache"
         self._cache_dir = cache_dir
+        self._config = config
+        self._thumbnail_size = (
+            (config.get("thumbnail_width", THUMBNAIL_SIZE[0]), config.get("thumbnail_height", THUMBNAIL_SIZE[1]))
+            if config else THUMBNAIL_SIZE
+        )
+        self._thumbnail_quality = config.get("thumbnail_quality", THUMBNAIL_QUALITY) if config else THUMBNAIL_QUALITY
 
         # Repositories
         self._wp_repo = WallpaperRepository(db)
         self._cat_repo = CategoryRepository(db)
-        self._lib_service = LibraryService(db, cache_dir=self._cache_dir)
-        self._import_service = ImportService(db, cache_dir=self._cache_dir)
+        self._lib_service = LibraryService(db, cache_dir=self._cache_dir, config=config)
+        self._import_service = ImportService(db, cache_dir=self._cache_dir, config=config)
 
         # State
         self._current_page = 0
@@ -211,6 +220,12 @@ class LibraryView(QWidget):
         self._load_page(reset=True)
 
     def _load_page(self, reset: bool = False) -> None:
+        if self._config:
+            self._thumbnail_size = (
+                self._config.get("thumbnail_width", THUMBNAIL_SIZE[0]),
+                self._config.get("thumbnail_height", THUMBNAIL_SIZE[1]),
+            )
+            self._thumbnail_quality = self._config.get("thumbnail_quality", THUMBNAIL_QUALITY)
         filters = self._current_filters
         query    = filters.get("query", "")
         category = filters.get("category", "")
@@ -260,7 +275,13 @@ class LibraryView(QWidget):
         start_idx = 0 if reset else len(self._cards)
 
         for i, wp in enumerate(wallpapers):
-            card = WallpaperCard(wallpaper=wp)
+            thumb_path = None
+            if self._config and self._config.get("thumbnail_enabled", True) and wp.sha256:
+                thumb_path = thumbnail_cache_path(
+                    self._cache_dir / "thumbnails", wp.sha256,
+                    self._thumbnail_size, self._thumbnail_quality,
+                )
+            card = WallpaperCard(wallpaper=wp, thumbnail_path=thumb_path)
             card.set_wallpaper_requested.connect(self._apply_wallpaper)
             card.detail_requested.connect(self._show_detail)
             card.favorite_toggled.connect(self._on_fav_toggle)
@@ -299,7 +320,7 @@ class LibraryView(QWidget):
 
     def _apply_wallpaper(self, wallpaper_id: int) -> None:
         try:
-            style = "Fill"
+            style = str(self._config.get("wallpaper_style", "Fill")) if self._config else "Fill"
             result = self._wp_service.set_selected_wallpaper(wallpaper_id, style=style)
             if result.success:
                 self.status_message.emit(f"✓ Wallpaper applied: {result.wallpaper.title if result.wallpaper else 'Unknown'}")
@@ -326,16 +347,26 @@ class LibraryView(QWidget):
         self.status_message.emit(f"{'♥' if is_fav else '♡'} Wallpaper {state}.")
 
     def _on_import_folder(self) -> None:
+        if self._config:
+            self._import_service = ImportService(
+                self._db, cache_dir=self._cache_dir, config=self._config
+            )
+        initial_directory = (
+            self._config.library_path
+            if self._config and self._config.library_path.is_dir()
+            else Path.home() / "Pictures"
+        )
         folder = QFileDialog.getExistingDirectory(
             self,
             "Select Folder to Import",
-            str(Path.home() / "Pictures"),
+            str(initial_directory),
         )
         if not folder:
             return
         dlg = ImportProgressDialog(
             folder_path=Path(folder),
             import_service=self._import_service,
+            recursive=bool(self._config.get("recursive_import", False)) if self._config else False,
             parent=self,
         )
         dlg.import_finished.connect(self._on_import_done)
@@ -354,6 +385,7 @@ class LibraryView(QWidget):
         result = self._wp_service.set_random_wallpaper(
             category=filters.get("category") or None,
             favorites_only=filters.get("favorites_only", False),
+            style=str(self._config.get("wallpaper_style", "Fill")) if self._config else "Fill",
         )
         if result.success:
             title = result.wallpaper.title if result.wallpaper else "Unknown"

@@ -21,12 +21,15 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.config import Config
 from app.database.database import Database
+from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
 from app.services.library_service import LibraryService
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
 from app.ui.components.wallpaper_card import WallpaperCard
+from app.utils.image_utils import thumbnail_cache_path
 
 
 class StatCard(QFrame):
@@ -86,12 +89,15 @@ class DashboardView(QWidget):
         wallpaper_service: WindowsWallpaperService,
         cache_dir: Optional[Path] = None,
         parent: Optional[QWidget] = None,
+        config: Config | None = None,
     ) -> None:
         super().__init__(parent)
         self._db = db
         self._wp_svc = wallpaper_service
         self._wp_repo = WallpaperRepository(db)
-        self._lib_service = LibraryService(db, cache_dir=cache_dir)
+        self._cache_dir = cache_dir
+        self._config = config
+        self._lib_service = LibraryService(db, cache_dir=cache_dir, config=config)
 
         self._build_ui()
 
@@ -196,7 +202,7 @@ class DashboardView(QWidget):
             recent_row = QHBoxLayout()
             recent_row.setSpacing(ds.SPACE_MD)
             for wp in recent:
-                wallpaper_card = WallpaperCard(wallpaper=wp)
+                wallpaper_card = WallpaperCard(wallpaper=wp, thumbnail_path=self._thumbnail_path(wp))
                 wallpaper_card.set_wallpaper_requested.connect(self._apply_wallpaper)
                 wallpaper_card.detail_requested.connect(self._show_detail)
                 wallpaper_card.favorite_toggled.connect(self._on_fav_toggle)
@@ -260,7 +266,7 @@ class DashboardView(QWidget):
 
     def _quick_action(self, target: str) -> None:
         if target == "_random":
-            result = self._wp_svc.set_random_wallpaper()
+            result = self._wp_svc.set_random_wallpaper(style=self._wallpaper_style())
             if result.success:
                 title = result.wallpaper.title if result.wallpaper else "Unknown"
                 self.status_message.emit(f"⚄ Random wallpaper applied: {title}")
@@ -278,7 +284,7 @@ class DashboardView(QWidget):
 
     def _apply_wallpaper(self, wallpaper_id: int) -> None:
         try:
-            result = self._wp_svc.set_selected_wallpaper(wallpaper_id, style="Fill")
+            result = self._wp_svc.set_selected_wallpaper(wallpaper_id, style=self._wallpaper_style())
             if result.success:
                 title = result.wallpaper.title if result.wallpaper else "Unknown"
                 self.status_message.emit(f"✓ Wallpaper applied: {title}")
@@ -287,6 +293,18 @@ class DashboardView(QWidget):
                 self.status_message.emit(f"✕ {result.error}")
         except Exception as exc:
             self.status_message.emit(f"✕ {exc}")
+
+    def _wallpaper_style(self) -> str:
+        return str(self._config.get("wallpaper_style", "Fill")) if self._config else "Fill"
+
+    def _thumbnail_path(self, wallpaper: Wallpaper) -> Path | None:
+        if not self._cache_dir or not self._config or not self._config.get("thumbnail_enabled", True):
+            return None
+        if not wallpaper.sha256:
+            return None
+        size = (self._config.get("thumbnail_width", 400), self._config.get("thumbnail_height", 225))
+        quality = self._config.get("thumbnail_quality", 85)
+        return thumbnail_cache_path(self._cache_dir / "thumbnails", wallpaper.sha256, size, quality)
 
     def _show_detail(self, wallpaper_id: int) -> None:
         wp = self._wp_repo.get_by_id(wallpaper_id)

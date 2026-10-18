@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.config import Config
 from app.constants import DEFAULT_LIBRARY_DIR_NAME
 from app.database.database import Database
 from app.database.models import Wallpaper, WallpaperHistory
@@ -38,6 +39,7 @@ from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
 from app.ui.components.detail_dialog import DetailDialog
 from app.ui.components.wallpaper_card import WallpaperCard
+from app.utils.image_utils import thumbnail_cache_path
 
 logger = logging.getLogger(__name__)
 
@@ -250,9 +252,11 @@ class HistoryView(QWidget):
         history_service: HistoryService | None = None,
         cache_dir: Path | None = None,
         parent: QWidget | None = None,
+        config: Config | None = None,
     ) -> None:
         super().__init__(parent)
         self._db = db
+        self._config = config
         self._wp_service = wallpaper_service
         self._history_service = history_service or HistoryService(
             db=db,
@@ -638,7 +642,11 @@ class HistoryView(QWidget):
             return
 
         for idx, wp in enumerate(wallpapers):
-            card = WallpaperCard(wallpaper=wp, parent=self._viewed_container)
+            card = WallpaperCard(
+                wallpaper=wp,
+                parent=self._viewed_container,
+                thumbnail_path=self._thumbnail_path(wp),
+            )
             card.set_wallpaper_requested.connect(self._on_reapply_wallpaper)
             card.detail_requested.connect(self._on_show_detail)
             card.favorite_toggled.connect(self._on_fav_toggle)
@@ -677,7 +685,11 @@ class HistoryView(QWidget):
             return
 
         for idx, wp in enumerate(wallpapers):
-            card = WallpaperCard(wallpaper=wp, parent=self._downloaded_container)
+            card = WallpaperCard(
+                wallpaper=wp,
+                parent=self._downloaded_container,
+                thumbnail_path=self._thumbnail_path(wp),
+            )
             card.set_wallpaper_requested.connect(self._on_reapply_wallpaper)
             card.detail_requested.connect(self._on_show_detail)
             card.favorite_toggled.connect(self._on_fav_toggle)
@@ -790,9 +802,19 @@ class HistoryView(QWidget):
         self._update_tab_button_styles()
         self.refresh()
 
+    def _wallpaper_style(self) -> str:
+        return str(self._config.get("wallpaper_style", "Fill")) if self._config else "Fill"
+
+    def _thumbnail_path(self, wallpaper: Wallpaper) -> Path | None:
+        if not self._config or not self._config.get("thumbnail_enabled", True) or not wallpaper.sha256:
+            return None
+        size = (self._config.get("thumbnail_width", 400), self._config.get("thumbnail_height", 225))
+        quality = self._config.get("thumbnail_quality", 85)
+        return thumbnail_cache_path(self._cache_dir / "thumbnails", wallpaper.sha256, size, quality)
+
     def _on_reapply_wallpaper(self, wallpaper_id: int) -> None:
         try:
-            result = self._history_service.reapply_wallpaper(wallpaper_id, style="Fill")
+            result = self._history_service.reapply_wallpaper(wallpaper_id, style=self._wallpaper_style())
             if result.success:
                 wp_title = result.wallpaper.title if result.wallpaper else "Wallpaper"
                 self.status_message.emit(f"✓ Reapplied to desktop: {wp_title}")

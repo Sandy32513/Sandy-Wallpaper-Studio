@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
+import os
 import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,8 +20,11 @@ from typing import Any
 from app.constants import (
     CACHE_MAX_SIZE_MB,
     DEFAULT_LIBRARY_DIR_NAME,
+    DEFAULT_MAX_DOWNLOAD_SIZE_MB,
+    DEFAULT_MAX_RETRIES,
     DEFAULT_MAX_SIMULTANEOUS_DOWNLOADS,
     DEFAULT_PHASH_THRESHOLD,
+    DEFAULT_RETRY_BACKOFF_FACTOR,
     DEFAULT_TIMEOUT_SECONDS,
     MIN_ACCEPTED_HEIGHT,
     MIN_ACCEPTED_WIDTH,
@@ -68,6 +74,7 @@ class RotationPreferences:
 # Default Settings
 # ============================================================
 _DEFAULT_SETTINGS: dict[str, Any] = {
+    "config_schema_version": 2,
     # --- General ---
     "library_path": "",  # Set dynamically at first launch
     "theme": "dark",
@@ -81,10 +88,13 @@ _DEFAULT_SETTINGS: dict[str, Any] = {
     "preferred_aspect_ratio": "any",
     "max_simultaneous_downloads": DEFAULT_MAX_SIMULTANEOUS_DOWNLOADS,
     "timeout_seconds": DEFAULT_TIMEOUT_SECONDS,
+    "max_download_size_mb": DEFAULT_MAX_DOWNLOAD_SIZE_MB,
+    "max_retries": DEFAULT_MAX_RETRIES,
+    "retry_backoff_factor": DEFAULT_RETRY_BACKOFF_FACTOR,
 
     # --- Library ---
     "auto_organize_by_category": True,
-
+    "recursive_import": False,
     # --- Wallpaper ---
     "wallpaper_style": "Fill",
 
@@ -100,16 +110,44 @@ _DEFAULT_SETTINGS: dict[str, Any] = {
 
     # --- Sources ---
     "enabled_sources": ["wikimedia"],
+    "source_result_limit": 20,
 
     # --- Performance ---
     "thumbnail_cache_size_mb": CACHE_MAX_SIZE_MB,
     "lazy_load_thumbnails": True,
+    "thumbnail_enabled": True,
+    "thumbnail_width": 400,
+    "thumbnail_height": 225,
+    "thumbnail_quality": 85,
 
     # --- Privacy ---
     "analytics_enabled": False,  # Always False; we never collect data
 
     # --- Duplicate Detection ---
     "phash_threshold": DEFAULT_PHASH_THRESHOLD,
+    "log_level": "INFO",
+    "file_logging_enabled": True,
+    "log_max_size_mb": 5,
+    "log_backup_count": 3,
+}
+
+_BOOL_KEYS = {
+    "start_with_windows", "check_updates", "auto_organize_by_category",
+    "recursive_import", "rotation_enabled", "rotation_random",
+    "lazy_load_thumbnails", "thumbnail_enabled", "analytics_enabled",
+    "file_logging_enabled",
+}
+_INT_RANGES: dict[str, tuple[int, int]] = {
+    "max_simultaneous_downloads": (1, 8), "timeout_seconds": (1, 300),
+    "max_download_size_mb": (1, 2048), "max_retries": (1, 10),
+    "min_resolution_width": (0, 32768), "min_resolution_height": (0, 32768),
+    "rotation_interval_minutes": (ROTATION_MIN_INTERVAL_MINUTES, ROTATION_MAX_INTERVAL_MINUTES),
+    "rotation_min_width": (0, ROTATION_MAX_DIMENSION),
+    "rotation_min_height": (0, ROTATION_MAX_DIMENSION),
+    "source_result_limit": (1, 50), "thumbnail_width": (64, 1024),
+    "thumbnail_height": (64, 1024), "thumbnail_quality": (50, 95),
+    "thumbnail_cache_size_mb": (50, 2048), "phash_threshold": (0, 64),
+    "log_max_size_mb": (1, 100), "log_backup_count": (1, 10),
 }
 
 CONFIG_FILENAME = "settings.json"
@@ -155,12 +193,15 @@ class Config:
                 parsed_interval = self._parse_legacy_rotation_interval(legacy_interval)
                 if parsed_interval is not None:
                     self._settings["rotation_interval_minutes"] = parsed_interval
-            # Merge: user overrides defaults
+            # Validate keys independently: one damaged value must not hide valid settings.
             for key, value in user_settings.items():
-                if key in _DEFAULT_SETTINGS:
-                    self._settings[key] = value
-                else:
+                if key not in _DEFAULT_SETTINGS:
                     logger.warning("Unknown config key ignored: %s", key)
+                    continue
+                try:
+                    self._settings[key] = self._validate_value(key, value)
+                except ValueError as exc:
+                    logger.warning("Invalid config setting %s ignored: %s", key, exc)
             logger.info("Configuration loaded from %s", self._config_path)
         except json.JSONDecodeError as exc:
             logger.error("Malformed config file: %s — using defaults.", exc)
@@ -168,25 +209,105 @@ class Config:
             logger.error("Could not read config file: %s — using defaults.", exc)
 
     def save(self) -> None:
-        """Persist current settings to disk."""
+        """Atomically persist current settings. Raises OSError on disk failures."""
+        temporary_path: Path | None = None
         try:
             self._config_dir.mkdir(parents=True, exist_ok=True)
-            with open(self._config_path, "w", encoding="utf-8") as f:
+            with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", dir=self._config_dir,
+                prefix=".settings-", suffix=".tmp", delete=False,
+            ) as f:
+                temporary_path = Path(f.name)
                 json.dump(self._settings, f, indent=2, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temporary_path, self._config_path)
             logger.info("Configuration saved to %s", self._config_path)
         except OSError as exc:
-            logger.error("Could not save config: %s", exc)
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+            logger.error("Could not save configuration.")
+            raise OSError("Could not save configuration.") from exc
 
     def get(self, key: str, default: Any = None) -> Any:
         """Retrieve a setting by key."""
         return self._settings.get(key, default)
+
+    def snapshot(self) -> Config:
+        """Create an in-memory copy for a long-running operation."""
+        copy = Config(self._config_dir)
+        copy._settings = dict(self._settings)
+        return copy
 
     def set(self, key: str, value: Any) -> None:
         """Update a setting. The key must be a known setting."""
         if key not in _DEFAULT_SETTINGS:
             logger.warning("Attempt to set unknown config key: %s", key)
             return
-        self._settings[key] = value
+        self._settings[key] = self._validate_value(key, value)
+
+    def apply_settings(self, values: dict[str, Any]) -> None:
+        """Validate, persist and then apply a set of preferences atomically."""
+        candidate = dict(self._settings)
+        for key, value in values.items():
+            if key not in _DEFAULT_SETTINGS:
+                raise KeyError(f"Unknown configuration setting: {key}")
+            candidate[key] = self._validate_value(key, value)
+        # Use a temporary candidate so failed persistence never changes live settings.
+        current = self._settings
+        self._settings = candidate
+        try:
+            self.save()
+        except OSError:
+            self._settings = current
+            raise
+
+    @staticmethod
+    def _validate_value(key: str, value: Any) -> Any:
+        if key in _BOOL_KEYS:
+            if type(value) is not bool:
+                raise ValueError("must be true or false")
+            return value
+        if key in _INT_RANGES:
+            minimum, maximum = _INT_RANGES[key]
+            if type(value) is not int or not minimum <= value <= maximum:
+                raise ValueError(f"must be an integer from {minimum} to {maximum}")
+            return value
+        if key == "retry_backoff_factor":
+            if type(value) not in (int, float) or not math.isfinite(value) or not 1 <= value <= 10:
+                raise ValueError("must be a finite number from 1 to 10")
+            return float(value)
+        if key in {"library_path", "download_folder"}:
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError("must be a non-empty path")
+            return str(Path(value).expanduser())
+        if key == "enabled_sources":
+            if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+                raise ValueError("must be a list of source names")
+            if any(item != "wikimedia" for item in value):
+                raise ValueError("only the Wikimedia source is currently supported")
+            return list(dict.fromkeys(value))
+        if key == "rotation_categories":
+            if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+                raise ValueError("must be a list of category names")
+            return list(dict.fromkeys(item.strip() for item in value if item.strip()))
+        if key == "wallpaper_style":
+            if not isinstance(value, str) or value not in {"Center", "Tile", "Stretch", "Fit", "Fill", "Span"}:
+                raise ValueError("unsupported wallpaper style")
+            return value
+        if key == "log_level":
+            if not isinstance(value, str) or value.upper() not in {"DEBUG", "INFO", "WARNING", "ERROR"}:
+                raise ValueError("must be DEBUG, INFO, WARNING or ERROR")
+            return value.upper()
+        if key in {"theme", "preferred_aspect_ratio", "rotation_interval", "rotation_mode"}:
+            if not isinstance(value, str):
+                raise ValueError("must be text")
+            return value
+        if key == "config_schema_version":
+            if type(value) is not int or not 1 <= value <= 2:
+                raise ValueError("unsupported configuration schema version")
+            return 2
+        return value
 
     @staticmethod
     def _parse_legacy_rotation_interval(value: Any) -> int | None:

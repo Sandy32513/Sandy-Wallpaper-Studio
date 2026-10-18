@@ -11,6 +11,7 @@ from typing import Optional
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -37,11 +38,13 @@ class ImportWorker(QThread):
         import_service,
         folder_path: Path,
         category: str = "",
+        recursive: bool = False,
     ) -> None:
         super().__init__()
         self._service = import_service
         self._folder = folder_path
         self._category = category
+        self._recursive = recursive
         self._cancelled = False
         self.signals = ImportWorkerSignals()
 
@@ -56,6 +59,7 @@ class ImportWorker(QThread):
         try:
             report = self._service.import_folder(
                 folder_path=self._folder,
+                recursive=self._recursive,
                 category=self._category,
                 progress_callback=_progress,
             )
@@ -74,12 +78,14 @@ class ImportProgressDialog(QDialog):
         folder_path: Path,
         import_service,
         category: str = "",
+        recursive: bool = False,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
         self._folder = folder_path
         self._service = import_service
         self._category = category
+        self._recursive = recursive
         self._worker: Optional[ImportWorker] = None
 
         self.setWindowTitle("Importing Wallpapers…")
@@ -97,6 +103,11 @@ class ImportProgressDialog(QDialog):
         heading = QLabel("Scanning & importing wallpapers…")
         heading.setStyleSheet(f"color: {ds.TEXT_PRIMARY}; font-size: {ds.FONT_SIZE_LG}px; font-weight: 700;")
         layout.addWidget(heading)
+
+        self._recursive_check = QCheckBox("Include subfolders")
+        self._recursive_check.setChecked(self._recursive)
+        self._recursive_check.setAccessibleName("Include subfolders when importing")
+        layout.addWidget(self._recursive_check)
 
         # Folder label
         folder_lbl = QLabel(str(self._folder))
@@ -150,6 +161,7 @@ class ImportProgressDialog(QDialog):
             import_service=self._service,
             folder_path=self._folder,
             category=self._category,
+            recursive=self._recursive_check.isChecked(),
         )
         self._worker.signals.progress.connect(self._on_progress)
         self._worker.signals.finished.connect(self._on_finished)

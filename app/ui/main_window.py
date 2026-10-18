@@ -37,7 +37,7 @@ from app.ui.duplicate_manager_view import DuplicateManagerView
 from app.ui.favorites_view import FavoritesView
 from app.ui.history_view import HistoryView
 from app.ui.library_view import LibraryView
-from app.ui.rotation_view import RotationSettingsView
+from app.ui.settings_view import SettingsView
 
 
 class PlaceholderView(QWidget):
@@ -168,6 +168,7 @@ class MainWindow(QMainWindow):
             db=self._db,
             wallpaper_service=self._wp_service,
             cache_dir=cache_dir,
+            config=self._config,
         )
         dashboard.navigate_to.connect(self._navigate_to)
         dashboard.status_message.connect(self._show_status)
@@ -179,6 +180,7 @@ class MainWindow(QMainWindow):
             db=self._db,
             wallpaper_service=self._wp_service,
             cache_dir=cache_dir,
+            config=self._config,
         )
         library.status_message.connect(self._show_status)
         library.wallpaper_applied.connect(self._on_wallpaper_applied)
@@ -190,6 +192,7 @@ class MainWindow(QMainWindow):
             wallpaper_service=self._wp_service,
             history_service=self._history_service,
             cache_dir=cache_dir,
+            config=self._config,
         )
         favorites.navigate_to.connect(self._navigate_to)
         favorites.status_message.connect(self._show_status)
@@ -202,19 +205,20 @@ class MainWindow(QMainWindow):
             wallpaper_service=self._wp_service,
             history_service=self._history_service,
             cache_dir=cache_dir,
+            config=self._config,
         )
         history.navigate_to.connect(self._navigate_to)
         history.status_message.connect(self._show_status)
         history.wallpaper_applied.connect(self._on_wallpaper_applied)
         self._add_view("history", history)
 
-        rotation = RotationSettingsView(
+        settings = SettingsView(
             config=self._config,
             db=self._db,
             scheduler=self._rotation_scheduler,
         )
-        rotation.status_message.connect(self._show_status)
-        self._add_view("settings", rotation)
+        settings.status_message.connect(self._show_status)
+        self._add_view("settings", settings)
 
         duplicates = DuplicateManagerView(
             database_path=self._db.path,

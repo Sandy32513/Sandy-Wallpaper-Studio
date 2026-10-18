@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+from app.config import Config
 from app.sources.base import WallpaperSearchResult, WallpaperSource
 from app.sources.wikimedia import WikimediaSource
 
@@ -20,13 +21,46 @@ logger = logging.getLogger(__name__)
 class SourceService:
     """Registry and coordinator for wallpaper source providers."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        enabled_sources: list[str] | None = None,
+        timeout: int = 30,
+        result_limit: int = 20,
+        min_width: int = 0,
+        min_height: int = 0,
+    ) -> None:
+        if type(timeout) is not int or not 1 <= timeout <= 300:
+            raise ValueError("Source timeout must be between 1 and 300 seconds.")
+        if type(result_limit) is not int or not 1 <= result_limit <= 50:
+            raise ValueError("Source result limit must be between 1 and 50.")
+        if any(type(value) is not int or not 0 <= value <= 32768 for value in (min_width, min_height)):
+            raise ValueError("Minimum source dimensions must be between 0 and 32768 pixels.")
+        if enabled_sources is not None and (
+            not isinstance(enabled_sources, list)
+            or any(name != "wikimedia" for name in enabled_sources)
+        ):
+            raise ValueError("Only the Wikimedia source is supported.")
         self._sources: dict[str, WallpaperSource] = {}
-        self._register_defaults()
+        self._result_limit = max(1, min(50, result_limit))
+        self._min_width = min_width
+        self._min_height = min_height
+        self._register_defaults(enabled_sources=enabled_sources, timeout=timeout)
 
-    def _register_defaults(self) -> None:
+    @classmethod
+    def from_config(cls, config: Config) -> SourceService:
+        return cls(
+            enabled_sources=config.get("enabled_sources", ["wikimedia"]),
+            timeout=config.get("timeout_seconds", 30),
+            result_limit=config.get("source_result_limit", 20),
+            min_width=config.get("min_resolution_width", 0),
+            min_height=config.get("min_resolution_height", 0),
+        )
+
+    def _register_defaults(self, *, enabled_sources: list[str] | None, timeout: int) -> None:
         """Register the built-in source providers."""
-        self.register(WikimediaSource())
+        if enabled_sources is None or "wikimedia" in enabled_sources:
+            self.register(WikimediaSource(timeout=timeout))
 
     def register(self, source: WallpaperSource) -> None:
         """Register a new wallpaper source provider."""
@@ -70,6 +104,10 @@ class SourceService:
             Combined list of WallpaperSearchResult objects.
         """
         results: list[WallpaperSearchResult] = []
+        if type(limit) is not int or not 1 <= limit <= 50 or type(offset) is not int or offset < 0:
+            raise ValueError("Source result limits must be 1–50 and offsets must be non-negative.")
+        min_width = max(min_width, self._min_width)
+        min_height = max(min_height, self._min_height)
 
         if source_name:
             source = self._sources.get(source_name)
@@ -87,7 +125,7 @@ class SourceService:
                     category=category,
                     min_width=min_width,
                     min_height=min_height,
-                    limit=limit,
+                    limit=min(limit, self._result_limit),
                     offset=offset,
                 )
                 results.extend(source_results)

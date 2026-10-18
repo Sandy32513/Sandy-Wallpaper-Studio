@@ -86,7 +86,14 @@ def main() -> int:
     config.load()
 
     # Set up logging
-    setup_logging(config.logs_dir, debug=args.debug)
+    setup_logging(
+        config.logs_dir,
+        debug=args.debug,
+        level_name=config.get("log_level", "INFO"),
+        file_enabled=config.get("file_logging_enabled", True),
+        max_size_mb=config.get("log_max_size_mb", 5),
+        backup_count=config.get("log_backup_count", 3),
+    )
     logger.info("=" * 60)
     logger.info("%s v%s — Starting", APP_NAME, APP_VERSION)
     logger.info("=" * 60)
@@ -97,7 +104,10 @@ def main() -> int:
     _ensure_directory_structure(config)
 
     # Save config (creates settings.json if first run)
-    config.save()
+    try:
+        config.save()
+    except OSError:
+        logger.warning("Configuration could not be saved; the application will continue with in-memory defaults.")
 
     # -------------------------------------------------------
     # Database Initialization (Phase 1)

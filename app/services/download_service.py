@@ -14,14 +14,18 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import shutil
+import math
+import os
 import tempfile
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
 
 import requests
+from PIL import Image
 
+from app.config import Config
 from app.constants import (
     DEFAULT_MAX_DOWNLOAD_SIZE_MB,
     DEFAULT_MAX_RETRIES,
@@ -79,13 +83,26 @@ class DownloadService:
         max_retries: int = DEFAULT_MAX_RETRIES,
         backoff_factor: float = DEFAULT_RETRY_BACKOFF_FACTOR,
         max_size_mb: int = DEFAULT_MAX_DOWNLOAD_SIZE_MB,
+        max_concurrent: int = 3,
     ) -> None:
+        if type(timeout) is not int or not 1 <= timeout <= 300:
+            raise ValueError("Download timeout must be between 1 and 300 seconds.")
+        if type(max_retries) is not int or not 1 <= max_retries <= 10:
+            raise ValueError("Retry count must be between 1 and 10.")
+        if type(backoff_factor) not in (int, float) or not math.isfinite(backoff_factor) or not 1 <= backoff_factor <= 10:
+            raise ValueError("Retry backoff must be a finite value from 1 to 10.")
+        if type(max_size_mb) is not int or not 1 <= max_size_mb <= 2048:
+            raise ValueError("Maximum image size must be from 1 to 2048 MB.")
+        if type(max_concurrent) is not int or not 1 <= max_concurrent <= 8:
+            raise ValueError("Concurrent download limit must be from 1 to 8.")
         self._download_dir = download_dir
         self._temp_dir = temp_dir
         self._timeout = timeout
         self._max_retries = max_retries
         self._backoff_factor = backoff_factor
         self._max_size_bytes = max_size_mb * 1024 * 1024
+        self._max_concurrent = max_concurrent
+        self._semaphore = threading.BoundedSemaphore(max_concurrent)
         self._session = requests.Session()
         self._session.headers.update({
             "User-Agent": "SandyWallpaperStudio/1.0",
@@ -95,12 +112,38 @@ class DownloadService:
         self._download_dir.mkdir(parents=True, exist_ok=True)
         self._temp_dir.mkdir(parents=True, exist_ok=True)
 
+    @classmethod
+    def from_config(cls, config: Config) -> DownloadService:
+        return cls(
+            download_dir=Path(config.get("download_folder", str(config.library_path))),
+            temp_dir=config.temp_dir,
+            timeout=config.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS),
+            max_retries=config.get("max_retries", DEFAULT_MAX_RETRIES),
+            backoff_factor=config.get("retry_backoff_factor", DEFAULT_RETRY_BACKOFF_FACTOR),
+            max_size_mb=config.get("max_download_size_mb", DEFAULT_MAX_DOWNLOAD_SIZE_MB),
+            max_concurrent=config.get("max_simultaneous_downloads", 3),
+        )
+
     def download(
         self,
         result: WallpaperSearchResult,
         target_subdir: str = "",
         progress_callback: Optional[ProgressCallback] = None,
         cancelled: Optional[Callable[[], bool]] = None,
+    ) -> DownloadResult:
+        if not self._semaphore.acquire(timeout=self._timeout):
+            return DownloadResult(success=False, error_message="Download queue is full; try again shortly.")
+        try:
+            return self._download_unlocked(result, target_subdir, progress_callback, cancelled)
+        finally:
+            self._semaphore.release()
+
+    def _download_unlocked(
+        self,
+        result: WallpaperSearchResult,
+        target_subdir: str,
+        progress_callback: Optional[ProgressCallback],
+        cancelled: Optional[Callable[[], bool]],
     ) -> DownloadResult:
         """Download a wallpaper image.
 
@@ -119,7 +162,7 @@ class DownloadService:
 
         # Validate URL scheme
         if not url.startswith(("https://", "http://")):
-            return DownloadResult(success=False, error_message=f"Invalid URL scheme: {url}")
+            return DownloadResult(success=False, error_message="Invalid URL scheme; HTTP or HTTPS is required.")
 
         # Determine target filename
         filename = self._sanitize_filename(result)
@@ -127,7 +170,15 @@ class DownloadService:
             target_dir = self._download_dir / self._sanitize_dirname(target_subdir)
         else:
             target_dir = self._download_dir
-        target_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            target_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return DownloadResult(success=False, error_message="Download destination is unavailable.")
+        try:
+            if not target_dir.resolve().is_relative_to(self._download_dir.resolve()):
+                return DownloadResult(success=False, error_message="Download destination is outside the configured folder.")
+        except OSError:
+            return DownloadResult(success=False, error_message="Download destination is unavailable.")
         target_path = target_dir / filename
 
         # Never silently overwrite (Rule 9)
@@ -147,8 +198,8 @@ class DownloadService:
             except requests.Timeout:
                 last_error = f"Timeout after {self._timeout}s (attempt {attempt})"
                 logger.warning(last_error)
-            except requests.ConnectionError as exc:
-                last_error = f"Connection error: {exc} (attempt {attempt})"
+            except requests.ConnectionError:
+                last_error = f"Connection error (attempt {attempt})"
                 logger.warning(last_error)
             except requests.HTTPError as exc:
                 status = exc.response.status_code if exc.response is not None else 0
@@ -164,13 +215,18 @@ class DownloadService:
                     return DownloadResult(
                         success=False, error_message=f"HTTP {status} error."
                     )
+            except requests.RequestException as exc:
+                last_error = f"Request failed ({type(exc).__name__}, attempt {attempt})"
+                logger.warning(last_error)
             except DownloadError as exc:
                 return DownloadResult(success=False, error_message=str(exc))
+            except OSError:
+                return DownloadResult(success=False, error_message="Download could not be written to the configured folder.")
 
             # Exponential backoff
             if attempt < self._max_retries:
                 import time
-                wait = self._backoff_factor ** attempt
+                wait = min(30.0, self._backoff_factor ** attempt)
                 logger.info("Retrying in %.1fs...", wait)
                 time.sleep(wait)
 
@@ -185,68 +241,72 @@ class DownloadService:
     ) -> DownloadResult:
         """Perform the actual download with streaming."""
         resp = self._session.get(url, stream=True, timeout=self._timeout)
-        resp.raise_for_status()
-
-        # Check content size
-        content_length = int(resp.headers.get("content-length", 0))
-        if content_length > self._max_size_bytes:
-            raise DownloadError(
-                f"File too large: {content_length / (1024*1024):.1f} MB "
-                f"(max {self._max_size_bytes / (1024*1024):.0f} MB)"
-            )
-
-        # Validate content type
-        content_type = resp.headers.get("content-type", "")
-        if not content_type.startswith("image/"):
-            raise DownloadError(f"Not an image: content-type={content_type}")
-
-        # Download to a temporary file, then move (atomic-ish)
-        hasher = hashlib.sha256()
-        downloaded = 0
-
-        with tempfile.NamedTemporaryFile(
-            dir=str(self._temp_dir), delete=False, suffix=target_path.suffix
-        ) as tmp_file:
-            tmp_path = Path(tmp_file.name)
+        tmp_path: Path | None = None
+        try:
+            resp.raise_for_status()
             try:
+                content_length = int(resp.headers.get("content-length", 0))
+            except (TypeError, ValueError) as exc:
+                raise DownloadError("Invalid content length.") from exc
+            if content_length < 0 or content_length > self._max_size_bytes:
+                raise DownloadError("Image exceeds the configured maximum size.")
+
+            content_type = resp.headers.get("content-type", "").split(";", 1)[0].lower()
+            if not content_type.startswith("image/"):
+                raise DownloadError("Response is not an image.")
+
+            hasher = hashlib.sha256()
+            downloaded = 0
+            temp_root = self._temp_dir
+            if self._temp_dir.stat().st_dev != target_path.parent.stat().st_dev:
+                temp_root = target_path.parent
+            with tempfile.NamedTemporaryFile(
+                dir=str(temp_root), delete=False, suffix=".part"
+            ) as tmp_file:
+                tmp_path = Path(tmp_file.name)
                 for chunk in resp.iter_content(chunk_size=8192):
                     if cancelled and cancelled():
-                        logger.info("Download cancelled: %s", url)
-                        tmp_path.unlink(missing_ok=True)
-                        return DownloadResult(
-                            success=False, error_message="Download cancelled."
-                        )
-
+                        return DownloadResult(success=False, error_message="Download cancelled.")
+                    if not chunk:
+                        continue
                     tmp_file.write(chunk)
                     hasher.update(chunk)
                     downloaded += len(chunk)
-
-                    # Size guard during streaming
                     if downloaded > self._max_size_bytes:
-                        tmp_path.unlink(missing_ok=True)
-                        raise DownloadError(
-                            f"Download exceeded max size ({self._max_size_bytes / (1024*1024):.0f} MB)"
-                        )
-
+                        raise DownloadError("Image exceeds the configured maximum size.")
                     if progress_callback:
                         progress_callback(downloaded, content_length or downloaded)
 
-            except Exception:
-                tmp_path.unlink(missing_ok=True)
+            if downloaded == 0:
+                raise DownloadError("Downloaded image is empty.")
+            try:
+                with Image.open(tmp_path) as image:
+                    if image.format and image.format.lower() not in {"jpeg", "png", "webp"}:
+                        raise DownloadError("Downloaded image format is not supported.")
+                    image.verify()
+            except DownloadError:
                 raise
+            except Exception as exc:
+                raise DownloadError("Downloaded file is not a valid image.") from exc
 
-        # Move temp file to target
-        try:
-            shutil.move(str(tmp_path), str(target_path))
-        except OSError as exc:
-            tmp_path.unlink(missing_ok=True)
-            raise DownloadError(f"Failed to save file: {exc}") from exc
+            try:
+                # link() fails if the target appears concurrently; never overwrite it.
+                os.link(tmp_path, target_path)
+                tmp_path.unlink()
+                tmp_path = None
+            except FileExistsError as exc:
+                raise DownloadError("A file with this name already exists.") from exc
+            except OSError as exc:
+                raise DownloadError("Failed to save downloaded image.") from exc
+        finally:
+            close = getattr(resp, "close", None)
+            if callable(close):
+                close()
+            if tmp_path is not None:
+                tmp_path.unlink(missing_ok=True)
 
         sha256 = hasher.hexdigest()
-        logger.info(
-            "Downloaded: %s (%d bytes, sha256=%s)",
-            target_path.name, downloaded, sha256[:16]
-        )
+        logger.info("Downloaded %s (%d bytes, sha256=%s)", target_path.name, downloaded, sha256[:16])
 
         return DownloadResult(
             success=True,

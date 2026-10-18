@@ -64,7 +64,7 @@ class DuplicateService:
         threshold: int = DEFAULT_PHASH_THRESHOLD,
     ) -> None:
         self._repo = WallpaperRepository(db)
-        self._threshold = threshold
+        self.threshold = threshold
 
     @property
     def threshold(self) -> int:
@@ -73,8 +73,8 @@ class DuplicateService:
     @threshold.setter
     def threshold(self, value: int) -> None:
         """Update the similarity threshold (configurable per Section 8)."""
-        if value < 0:
-            value = 0
+        if type(value) is not int or not 0 <= value <= 64:
+            raise ValueError("pHash Hamming-distance threshold must be an integer from 0 to 64.")
         self._threshold = value
         logger.info("Duplicate threshold updated to %d.", value)
 
@@ -147,11 +147,11 @@ class DuplicateService:
 
                 # Create a placeholder for the "duplicate" side
                 # (caller will fill in the actual wallpaper)
-                match_type = "exact" if dist == 0 else "near"
                 matches.append(DuplicateMatch(
                     original=existing_wp,
                     duplicate=Wallpaper(),  # Placeholder
-                    match_type=match_type,
+                    # A pHash match is only visual similarity; exact means byte identity.
+                    match_type="near",
                     distance=dist,
                     similarity=sim,
                 ))

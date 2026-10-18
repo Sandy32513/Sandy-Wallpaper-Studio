@@ -1,14 +1,14 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 9 - COMPLETE**
+**Current development phase: Phase 10 - COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 352 passed / 2 skipped / 0 failed (354 collected)**
+**Latest full test run: 377 passed / 2 skipped / 0 failed (379 collected)**
 **Branch: chore/repository-cleanup**
 **Phase 9 starting baseline: 69dea77 (origin/main)**
 
 This document is the implementation-status reference for the repository.
 
-The Phase 8 finalization is included in the origin/main baseline at 69dea77. Phase 9 is complete on chore/repository-cleanup; the completion commit is published to origin/chore/repository-cleanup.
+Phase 8 and Phase 9 are complete in the existing release history. Phase 10 is complete on `chore/repository-cleanup`, based on a378d4f (tag v0.9.0), and remains separate from `main`.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -194,6 +194,50 @@ No Phase 9 database migration or persistent scan result was added. The scan open
 Captures are in C:\Users\Public\Documents\SandyWallpaperStudio_Phase9_QA_20261019_042122\screenshots. The isolated library held synthetic duplicate/re-encoded images and one corrupt image. The physical screen work area was 1536x864 at 125% scaling. Requested/actual logical main-window sizes were 1440x900/1440x844 (screen work-area limit), 1280x800/1280x800, 1024x768/1024x768, and 800x600/1024x680 (application minimum). The 1280x800 captures include exact and near results, the empty state, and History; other captures include the comparison dialog, cleanup confirmation, issue details, keyboard focus, and Rotation Settings. The result scan reported one exact group, one near group, and one issue. The QA harness removed the temporary database and image library after capture; the screenshots remain outside the repository.
 
 The Computer Use native pipe was unavailable after the documented wait, retry, and runtime reset/retry. The fallback used the visible Windows Qt application, QTest event delivery, and QWidget.grab() captures, which were visually inspected. Physical keyboard/mouse spot checks were not performed. The QA harness used an isolated database and a simulated wallpaper service; it did not change the desktop wallpaper.
+
+## Phase 10 - Settings & Operational Features
+**Status: COMPLETE**
+
+Phase 10 adds schema-versioned, per-value validated JSON settings with atomic replacement and no database migration. The Settings page exposes the supported operations and keeps the existing Rotation tab. Source and download factories consume saved controls; imports read the latest recursive-import and thumbnail preferences; wallpaper application uses the saved style. Library integrity checks and thumbnail rebuilds run in a background worker, and rebuild cancellation stops after the current image. Attribution export reads stored database fields only and writes formula-safe UTF-8 CSV atomically with overwrite confirmation in the UI.
+
+Changing the configured library root does not move or reindex image files and does not change the database location. Thumbnail cache names include the selected dimensions and quality; the configured cache budget evicts only app-owned cache entries. Discover, Categories, and Downloads remain placeholder screens; the remote source and download controls configure backend services but do not claim those screens are complete.
+
+### Phase 10 completion matrix
+
+| Requirement | Implementation | Acceptance evidence | Known limit |
+|---|---|---|---|
+| Library settings | Existing directory validation, cleanup root boundary, default recursive import, background integrity check. | Settings save test; existing import/integrity regression tests; isolated read-only integrity worker. | No automatic reindex or file relocation is performed. |
+| Source settings | Wikimedia enablement, timeout, result cap, minimum dimensions through `SourceService.from_config()`. | Factory tests for disablement, timeout, result cap; network boundary is not called. | Wikimedia is the only provider; Discover remains a placeholder. |
+| Download limits | Configurable destination, image-size cap, timeout, retries/backoff, and per-instance concurrency gate. Streams to a temporary file, verifies Pillow image integrity, and finalizes exclusively. | Mocked successful, corrupt, oversized, and retry downloads; invalid constructor limits rejected. | The Downloads screen remains a placeholder; no live-provider download was performed. |
+| Duplicate threshold | Persisted inclusive pHash Hamming threshold 0-64; scan start snapshots the value. pHash matches are always near candidates; exact scan requires SHA-256 and byte comparison. | Threshold-boundary service test plus Phase 9 exact/near scanner tests. | pHash is not a probability or proof of interchangeable images. |
+| Thumbnail controls | Enablement, dimensions, quality, cache budget; versioned cache paths; current cache is used by Dashboard, Library, Favorites, and History cards. Rebuild and cancellation run in a `QThread`. | Dimension/cache/original-preservation tests and isolated rebuild/cancel worker test. | Cache budget evicts old app cache files only; the original image is not resized or changed. |
+| Logging settings | Dynamic level/file output/rotation; only application-owned handlers are replaced; console remains active on file failure. | Repeated-setup handler-count and file-failure tests. | `--debug` can override the configured level for that process. |
+| Attribution export | UTF-8 CSV from stored fields, formula neutralization, atomic output, explicit overwrite confirmation, incomplete online-row count. | Unicode/formula/overwrite/local-import export tests. | Missing source metadata is reported, never inferred or fetched. |
+| User preferences and config migration | Global settings schema v2, independent validation, legacy rotation interval conversion, atomic save rollback. Existing rotation control is retained. | Invalid-value fallback, atomic-write failure, snapshot, and integrated UI persistence tests. | Old no-op keys remain readable but are documented as legacy, not working controls. |
+
+### Phase 10 validation record
+
+- Focused Phase 10 tests: 25 passed (`python -m pytest tests/test_phase10.py -q`, exit code 0).
+- Phase 8 + Phase 10 focused regression: 56 passed (`python -m pytest tests/test_phase8.py tests/test_phase10.py -q`, exit code 0).
+- Full regression: 377 passed, 2 skipped, 0 failed (379 collected; `python -m pytest -q`, exit code 0). The two skips are the existing opt-in Windows Recycle Bin integration checks.
+- During finalization, an earlier full run printed all tests as passing but Windows returned `0xC0000409` during process shutdown. Isolation traced it to changing the rotation Stop checkbox before a simulated settings-save failure. The control now changes only after persistence succeeds; the final full run exited 0.
+- Ruff: passed (`python -m ruff check .`, exit code 0).
+- Mypy: passed with no issues in 55 source files (`python -m mypy app`, exit code 0).
+- Whitespace/conflict-marker check: passed (`git diff --check`, exit code 0; Git printed informational CRLF-to-LF notices for existing Windows-format files).
+- Startup smoke: `python -m app --library <temporary-directory>` completed with exit code 0 using an isolated temporary data root and a 1.2-second Qt auto-close hook. It created only the temporary settings and database, initialized the GUI, and logged no GUI launch failure. The first hook variant had an incorrect Python binding and was rejected by the smoke assertion; the corrected hook passed. The temporary root was removed afterward.
+- README link check: 65 links checked; no missing local files or heading anchors.
+- No unit test made a network request. Download and source boundaries use mocked responses; the README screenshot uses synthetic data and public placeholder paths.
+- Windows Qt captures were saved under `docs/images/phase10/` and visually inspected. At 125% Windows scaling, requested and achieved logical window sizes and rendered PNG sizes were:
+
+  | Requested logical | Achieved logical | PNG dimensions |
+  |---|---|---|
+  | 1280 x 800 | 1280 x 800 | 1600 x 1000 |
+  | 1024 x 768 | 1024 x 768 | 1280 x 960 |
+  | 800 x 600 | 800 x 600 | 1000 x 750 |
+  | 1440 x 900 | 1440 x 900 | 1800 x 1125 |
+
+  These are Qt widget captures, not physical keyboard/mouse testing. The functional Qt tests exercised Settings tab navigation, save, cancel, invalid-path recovery, reset confirmation, and preservation of rotation preferences.
+- No production database, user wallpaper, credentials, personal logs, or live desktop wallpaper were used for Phase 10 tests or captures.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

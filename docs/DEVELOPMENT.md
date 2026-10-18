@@ -60,7 +60,7 @@ python -m app --help
 
 ## 3. Testing Workflows
 
-The test suite contains 286 automated tests covering all implemented milestones (Phases 0 through 7).
+The suite covers Phases 0 through 10. Use the latest test count recorded in [Project Status](PROJECT_STATUS.md); milestone counts change as regression coverage grows.
 
 ### Running All Tests
 ```powershell
@@ -77,6 +77,9 @@ python -m pytest tests/test_phase4.py  # Phase 4: Smart Library & Import
 python -m pytest tests/test_phase5.py  # Phase 5: Windows Wallpaper Engine
 python -m pytest tests/test_phase6.py  # Phase 6: Desktop PySide6 GUI
 python -m pytest tests/test_phase7.py  # Phase 7: Favorites & History
+python -m pytest tests/test_phase8.py  # Phase 8: Automatic Rotation
+python -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py  # Phase 9: Duplicate Manager
+python -m pytest tests/test_phase10.py  # Phase 10: Settings & Operational Features
 ```
 
 ### Running in Headless Mode (CI Simulation)
@@ -115,21 +118,21 @@ The database engine is SQLite with WAL mode enabled.
 ### Database Location
 Default local path:
 ```
-%USERPROFILE%\Pictures\SandyWallpaperStudio\Metadata\wallpapers.db
+%USERPROFILE%\Pictures\SandyWallpaperStudio\wallpapers.db
 ```
 
 ### Adding a Migration
 1. Open `app/database/migrations.py`.
 2. Define a new migration function:
    ```python
-   def _migration_002_new_feature(cursor: sqlite3.Cursor) -> None:
+   def _migration_003_new_feature(cursor: sqlite3.Cursor) -> None:
        cursor.execute("ALTER TABLE ...")
    ```
 3. Register the migration in `MIGRATIONS`:
    ```python
    MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
        (1, "Initial schema", _migration_001_initial_schema),
-       (2, "New feature description", _migration_002_new_feature),
+       (3, "New feature description", _migration_003_new_feature),
    ]
    ```
 4. All migrations are applied sequentially and idempotently on application startup.

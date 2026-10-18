@@ -43,7 +43,8 @@ In-process Qt scheduling, interval configuration, category/resolution-aware filt
 Read-only exact and near-match scans, explicit retained-file and cleanup-target selection, comparison, bounded near-match reporting, and confirmed Windows Recycle Bin cleanup are implemented. Cleanup revalidates every target, has no permanent-delete fallback, stops on failures, and preserves database rows. Focused tests, the full regression suite, Ruff, mypy, a real temporary-file Recycle Bin round trip, and isolated Windows GUI review passed. See [Project Status](PROJECT_STATUS.md) for detailed evidence and limitations.
 
 # Phase 10 — Settings & Operational Features
-Library settings, source settings, download limits, duplicate thresholds, thumbnail settings, logging settings, attribution export and preferences.
+**COMPLETE**
+Validated, atomic JSON preferences; operational Settings tabs for library/import, Wikimedia, downloads, duplicate thresholds, thumbnails, logging, display style, and rotation; background integrity and cancellable thumbnail maintenance; safe attribution CSV export. Phase 10 acceptance and regression evidence are recorded in [Project Status](PROJECT_STATUS.md), and the settings schema is documented in [Configuration](CONFIGURATION.md).
 
 # Phase 11 — Release Hardening
 Regression testing, performance testing, large-library testing, error recovery, security review, accessibility review, Windows compatibility and documentation audit.

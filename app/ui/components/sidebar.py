@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.constants import APP_VERSION
 from app.ui import design_system as ds
 
 
@@ -138,7 +139,7 @@ class Sidebar(QFrame):
         layout.addStretch()
 
         # Version label at the bottom
-        ver = QLabel("v0.5.0-dev")
+        ver = QLabel(f"v{APP_VERSION}")
         ver.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ver.setStyleSheet(f"color: {ds.TEXT_DISABLED}; font-size: {ds.FONT_SIZE_XS}px; padding: 8px;")
         layout.addWidget(ver)

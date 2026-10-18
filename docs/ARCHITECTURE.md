@@ -45,10 +45,10 @@ The codebase enforces strict unidirectional dependencies from presentation down 
 ## 2. Component Decomposition
 
 ### 2.1 Configuration and Constants (`app.config`, `app.constants`)
-- **`Config`**: Manages application settings (`settings.json`) located in `%USERPROFILE%\Pictures\SandyWallpaperStudio\Metadata`. Supports runtime overrides for library locations and cache directories.
+- **`Config`**: Manages validated, versioned JSON settings (`settings.json`) in the application data root (`%USERPROFILE%\Pictures\SandyWallpaperStudio` by default). Writes atomically; library root and database/cache paths remain distinct.
 - **`constants.py`**: Central repository for application constants:
   - Resolution thresholds (8K: 7680x4320, 5K: 5120x2880, 4K: 3840x2160, QHD: 2560x1440, FHD: 1920x1080).
-  - Accepted image formats (`.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`).
+  - Import formats (`.jpg`, `.jpeg`, `.png`, `.webp`); AVIF is optional and not accepted by every processing path.
   - Native Windows wallpaper styles (`Center`, `Tile`, `Stretch`, `Fit`, `Fill`, `Span`).
   - Default wallpaper categories and network timeouts.
 
@@ -82,7 +82,9 @@ The codebase enforces strict unidirectional dependencies from presentation down 
 - **`ImportService`**: Batched local folder scanning, metadata extraction, dimension validation, and duplicate-aware importing.
 - **`DuplicateService`**: Cryptographic exact matching (SHA-256) and perceptual near-duplicate detection (pHash, dHash, aHash). All duplicate detection is strictly **non-destructive**.
 - **`LibraryService`**: Unified search queries, statistics aggregation (resolution distribution, storage usage), and non-destructive library integrity checking.
-- **`DownloadService`**: Streaming HTTP downloads with size limits (100 MB max), exponential retry backoff, temporary file buffering, and cancellation support.
+- **`DownloadService`**: Configurable size and timeout limits, bounded retries/backoff and concurrency, streaming temporary files, cancellation, content-type and Pillow integrity checks, and exclusive target finalization.
+- **`SourceService`**: Builds the enabled Wikimedia provider with saved request timeout, minimum dimensions, and result cap. No other remote provider is registered.
+- **`AttributionExportService`**: Exports stored licensing and creator metadata to formula-safe UTF-8 CSV through atomic replacement.
 
 ### 2.5 Presentation Layer (`app.ui`)
 - **Design System (`design_system.py`)**: Curated "Obsidian" dark palette (`#0B0E14` base, `#121824` surface, `#4E75F6` primary accent, `#8257E5` secondary accent), typography scale, and layout spacing tokens.
@@ -92,7 +94,9 @@ The codebase enforces strict unidirectional dependencies from presentation down 
   - `LibraryView`: Infinite-scroll / paginated grid of wallpapers with live search and filtering.
   - `FavoritesView`: Dedicated favorites showcase with live category dropdown, multi-criteria sorting, and quick random favorite desktop application.
   - `HistoryView`: Three specialized tabs: Desktop Applied history (with relative timestamps and reapply), Recently Viewed, and Recently Downloaded.
-  - Placeholder views for future milestones (Discover, Categories, Duplicates, Downloads, Settings).
+  - `DuplicateManagerView`: Exact/near review and guarded Windows Recycle Bin cleanup.
+  - `SettingsView`: Library/source/download/duplicate/thumbnail/logging preferences, background maintenance, attribution export, and the existing Rotation tab.
+  - Placeholder destinations: Discover, Categories, and Downloads.
 - **Components (`app.ui.components`)**:
   - `SearchFilterBar`: Debounced search input, category dropdown, resolution selector, and orientation filters.
   - `WallpaperCard`: Interactive card widget featuring asynchronous background thumbnail loading (`QThread`), star favorite toggle, and resolution tags.
@@ -121,5 +125,5 @@ To ensure a responsive GUI running at 60 FPS on Windows:
 
 1. **Zero Silent Deletions**: Duplicate detection never deletes or renames files without explicit confirmation.
 2. **Transaction Integrity**: All database updates run inside explicit SQLite transactions. If a file fails validation during import, the partial record is discarded.
-3. **Safe File Handling**: Remote downloads stream directly into temporary files (`.tmp`). Only after successful integrity validation and hash generation is the file moved to its permanent library location.
+3. **Safe File Handling**: Remote downloads stream into temporary `.part` files and are published only after response, size, image-format, and decode checks. Existing destination files are never silently replaced.
 4. **Isolated Test Fixtures**: All automated tests operate inside isolated temporary directories (`tmp_path`). Tests never read or modify the active developer's real wallpaper library.

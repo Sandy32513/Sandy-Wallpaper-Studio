@@ -30,6 +30,7 @@ from app.services.library_service import (
     LibraryService,
 )
 from app.utils.hashing import compute_sha256
+from app.utils.image_utils import thumbnail_cache_path
 
 
 # ============================================================
@@ -227,7 +228,7 @@ class TestImportValidImages:
 
         assert report.total_imported == 1
         thumb_dir = tmp_path / "cache" / "thumbnails"
-        thumb_path = thumb_dir / f"{sha[:16]}.jpg"
+        thumb_path = thumbnail_cache_path(thumb_dir, sha, (400, 225), 85)
         assert thumb_path.exists()
 
     def test_large_folder(self, import_svc: ImportService, tmp_path: Path) -> None:

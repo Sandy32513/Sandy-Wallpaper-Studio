@@ -289,8 +289,8 @@ class TestDuplicateService:
         assert svc.threshold == 15
         svc.threshold = 20
         assert svc.threshold == 20
-        svc.threshold = -1
-        assert svc.threshold == 0
+        with pytest.raises(ValueError, match="0 to 64"):
+            svc.threshold = -1
 
     def test_find_near_duplicates_empty_library(self, db: Database) -> None:
         svc = DuplicateService(db)

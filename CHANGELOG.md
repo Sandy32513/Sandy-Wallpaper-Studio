@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-10-19
 
+### Phase 10 - Settings & Operational Features
+
+#### Added
+- Integrated Settings tabs for library/import behavior, Wikimedia enablement and query limits, download safeguards, duplicate threshold, thumbnail cache, logging, wallpaper style, and preserved automatic rotation.
+- Schema-v2 JSON configuration with independent validation, legacy rotation interval migration, same-directory atomic writes, and rollback of in-memory values after persistence failures.
+- Config-backed `SourceService` and `DownloadService`; downloads enforce size, timeout, bounded retry/backoff and concurrency settings, validate image bytes, and only publish complete supported images.
+- Versioned thumbnail cache keys, cache-budget eviction limited to the app cache, cache consumption across wallpaper-card views, and cancellable background thumbnail regeneration.
+- Background library integrity checking and atomic UTF-8 attribution CSV export with spreadsheet-formula neutralization and overwrite confirmation.
+- Phase 10 isolated configuration/service/export/UI tests and inspected Settings captures at four window sizes.
+
+#### Safety and scope
+- Library-root changes do not move images, reindex rows, or relocate SQLite. Local browsing and rotation remain offline-capable.
+- Attribution export uses persisted metadata only; missing online attribution is counted and not inferred. No live provider request was made by tests.
+- Discover, Categories, and Downloads remain placeholder destinations; this release adds configuration and backend enforcement, not those workflows.
+
+#### Verified
+- Focused Phase 10 suite: 25 passed; full regression: 377 passed, 2 skipped (379 collected). Ruff, mypy, and `git diff --check` passed. Details and UI capture sizes are recorded in `docs/PROJECT_STATUS.md`.
+
 ### Phase 9 - Duplicate Manager (complete)
 
 #### Added

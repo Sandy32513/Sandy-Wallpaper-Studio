@@ -667,10 +667,19 @@ class DuplicateManagerView(QWidget):
             return DEFAULT_PHASH_THRESHOLD
 
     def _save_threshold(self, value: int) -> None:
-        self._config.set("phash_threshold", value)
-        self._config.save()
+        try:
+            self._config.apply_settings({"phash_threshold": value})
+        except OSError:
+            self.threshold.blockSignals(True)
+            self.threshold.setValue(self._read_threshold())
+            self.threshold.blockSignals(False)
+            self.status_message.emit("Could not save the duplicate threshold; the previous value is restored.")
 
     def refresh(self) -> None:
+        if not self._task_running():
+            self.threshold.blockSignals(True)
+            self.threshold.setValue(self._read_threshold())
+            self.threshold.blockSignals(False)
         self._render_report()
 
     def start_scan(self) -> None:
