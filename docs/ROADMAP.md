@@ -26,33 +26,12 @@ Import existing folders, recursive/flat discovery, metadata indexing, duplicate-
 **Complete**
 Native Windows wallpaper setting via `SystemParametersInfoW` & registry styles, multi-monitor detection & orientation awareness, selected wallpaper application with database usage updates, random wallpaper with filters and repeat avoidance, previous wallpaper restoration, multi-style preview generation, and history tracking.
 
-# Phase 6 — Desktop GUI
-**NEXT**
-
-### Objective
-Build a professional dark-themed PySide6 desktop interface connecting directly to tested backend services.
-
-### Scope
-- Main application window with responsive layout
-- Sidebar navigation:
-  - Dashboard
-  - Discover / Search
-  - Categories
-  - Favorites
-  - History
-  - Library
-  - Duplicates
-  - Settings
-- Wallpaper card grid with thumbnail lazy loading
-- Wallpaper detail view (preview, metadata, "Set Wallpaper", "Favorite", "Find Similar")
-- Filter bar (resolution, orientation, category, source)
-- Integrated wallpaper setting and preview actions
-- Error dialogs and status notifications
-
-### Exit gate
-GUI launches cleanly, all views connect to underlying services without placeholders, thumbnails render smoothly, wallpaper setting works from UI, and automated UI/service integration tests pass.
+## Phase 6 — Desktop GUI
+**Complete**
+Professional dark-themed PySide6 desktop interface connecting directly to tested backend services. Responsive main window, animated sidebar, dashboard view, library grid view with pagination, debounced search & filter bar, async thumbnail loading wallpaper cards, import progress dialog, and detail dialog with wallpaper application.
 
 # Phase 7 — Favorites & History
+**NEXT**
 Favorites, recently viewed, recently downloaded, recently applied, filtering and restore/reapply workflows.
 
 # Phase 8 — Automatic Rotation

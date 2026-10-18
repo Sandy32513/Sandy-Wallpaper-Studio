@@ -114,29 +114,56 @@ def main() -> int:
     logger.info("%s initialized successfully.", APP_NAME)
 
     # -------------------------------------------------------
-    # GUI Launch (Phase 6 — currently placeholder)
+    # Phase 6: Launch PySide6 Desktop GUI
     # -------------------------------------------------------
-    from app.database.wallpaper_repository import WallpaperRepository
-    from app.services.wallpaper_service import WindowsWallpaperService
+    gui_mode = not getattr(args, "no_gui", False)
 
-    cat_count = cat_repo.count()
-    wp_repo = WallpaperRepository(db)
-    wp_count = wp_repo.count()
-    wp_svc = WindowsWallpaperService(db=db, wallpaper_repo=wp_repo)
-    monitors = wp_svc.detect_monitors()
+    if gui_mode:
+        try:
+            from PySide6.QtWidgets import QApplication
+            from PySide6.QtCore import Qt
+            from app.ui.main_window import MainWindow
 
-    print(f"\n  {APP_NAME} v{APP_VERSION}")
-    print(f"  Library:     {config.config_dir}")
-    print(f"  Database:    {config.database_path}")
-    print(f"  Categories:  {cat_count}")
-    print(f"  Wallpapers:  {wp_count}")
-    print(f"  Monitors:    {len(monitors)} detected")
-    print("\n  [Phase 5 Complete] Windows Wallpaper Engine ready.")
-    print("  GUI will be available after Phase 6.\n")
+            app = QApplication.instance() or QApplication(sys.argv)
+            app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, True)
+            app.setApplicationName(APP_NAME)
+            app.setApplicationVersion(APP_VERSION)
+            app.setOrganizationName("Sandy")
 
-    db.close()
-    logger.info("%s — shutdown.", APP_NAME)
-    return 0
+            window = MainWindow(config=config, db=db)
+            window.show()
+            exit_code = app.exec()
+            logger.info("%s — shutdown.", APP_NAME)
+            return exit_code
+
+        except Exception as exc:
+            logger.error("GUI launch failed: %s", exc)
+            # Fallback to console report
+            gui_mode = False
+
+    if not gui_mode:
+        from app.database.wallpaper_repository import WallpaperRepository
+        from app.database.category_repository import CategoryRepository
+        from app.services.wallpaper_service import WindowsWallpaperService
+
+        cat_repo2 = CategoryRepository(db)
+        cat_count = cat_repo2.count()
+        wp_repo = WallpaperRepository(db)
+        wp_count = wp_repo.count()
+        wp_svc = WindowsWallpaperService(db=db, wallpaper_repo=wp_repo)
+        monitors = wp_svc.detect_monitors()
+
+        print(f"\n  {APP_NAME} v{APP_VERSION}")
+        print(f"  Library:     {config.config_dir}")
+        print(f"  Database:    {config.database_path}")
+        print(f"  Categories:  {cat_count}")
+        print(f"  Wallpapers:  {wp_count}")
+        print(f"  Monitors:    {len(monitors)} detected")
+        print("\n  [Phase 6] GUI initialization failed — running in console mode.\n")
+        db.close()
+        logger.info("%s — shutdown.", APP_NAME)
+        return 0
+
 
 
 if __name__ == "__main__":

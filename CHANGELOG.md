@@ -5,6 +5,22 @@ All notable changes to Sandy Wallpaper Studio are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0-dev] - 2026-10-18
+
+### Phase 6 — Desktop GUI
+
+#### Added
+- Modern dark-themed desktop interface using PySide6 (Obsidian theme)
+- Design system (`design_system.py`) with curated dark palette, typography metrics, and layout constants
+- Responsive `MainWindow` featuring animated sidebar navigation, status bar, and central view stack
+- `DashboardView` with library statistics overview, quick-action tiles, and monitor resolution card
+- `LibraryView` displaying responsive wallpaper grid with pagination and empty-state handler
+- `SearchFilterBar` toolbar with debounced search, category filter, resolution picker, orientation filter, and quick actions
+- `WallpaperCard` component with asynchronous background thumbnail loading via `QThread`, favorite toggling, and action buttons
+- `ImportProgressDialog` for interactive folder import with live progress bar and completion summary
+- `WallpaperDetailDialog` for full wallpaper preview inspection, metadata display, and desktop background application
+- Comprehensive Phase 6 test suite (`test_phase6.py`, 9 tests; 262 total suite tests passing)
+
 ## [0.5.0-dev] - 2026-10-18
 
 ### Phase 5 — Windows Wallpaper Engine

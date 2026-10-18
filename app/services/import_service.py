@@ -24,7 +24,13 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional
 
-from app.constants import ALL_IMAGE_FORMATS, SUPPORTED_FORMATS, THUMBNAIL_SIZE, THUMBNAIL_QUALITY
+from app.constants import (
+    ALL_IMAGE_FORMATS,
+    DEFAULT_LIBRARY_DIR_NAME,
+    SUPPORTED_FORMATS,
+    THUMBNAIL_QUALITY,
+    THUMBNAIL_SIZE,
+)
 from app.database.database import Database
 from app.database.models import Wallpaper
 from app.database.wallpaper_repository import WallpaperRepository
@@ -125,9 +131,11 @@ class ImportService:
     def __init__(
         self,
         db: Database,
-        cache_dir: Path,
+        cache_dir: Optional[Path] = None,
         phash_threshold: int = 10,
     ) -> None:
+        if cache_dir is None:
+            cache_dir = Path.home() / "Pictures" / DEFAULT_LIBRARY_DIR_NAME / "Cache"
         self._db = db
         self._repo = WallpaperRepository(db)
         self._metadata_svc = MetadataService()
