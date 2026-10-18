@@ -136,6 +136,23 @@ def _migration_001_initial_schema(cursor: sqlite3.Cursor) -> None:
         "CREATE INDEX IF NOT EXISTS idx_history_set_at ON wallpaper_history (set_at)"
     )
 
+    # --- Wallpaper views table ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS wallpaper_views (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            wallpaper_id    INTEGER NOT NULL,
+            viewed_at       TEXT NOT NULL,
+            FOREIGN KEY (wallpaper_id) REFERENCES wallpapers (id)
+                ON DELETE CASCADE
+        )
+    """)
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_views_wallpaper_id ON wallpaper_views (wallpaper_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_views_viewed_at ON wallpaper_views (viewed_at)"
+    )
+
     # --- Schema version table ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS schema_version (

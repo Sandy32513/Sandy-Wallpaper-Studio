@@ -29,10 +29,13 @@ from app.database.database import Database
 from app.database.wallpaper_repository import WallpaperRepository
 from app.database.category_repository import CategoryRepository
 from app.database.history_repository import HistoryRepository
+from app.services.history_service import HistoryService
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
 from app.ui.components.sidebar import Sidebar
 from app.ui.dashboard_view import DashboardView
+from app.ui.favorites_view import FavoritesView
+from app.ui.history_view import HistoryView
 from app.ui.library_view import LibraryView
 
 
@@ -81,6 +84,12 @@ class MainWindow(QMainWindow):
         self._history_repo = HistoryRepository(db)
         self._wp_service = WindowsWallpaperService(
             db=db,
+            wallpaper_repo=self._wp_repo,
+            history_repo=self._history_repo,
+        )
+        self._history_service = HistoryService(
+            db=db,
+            wallpaper_service=self._wp_service,
             wallpaper_repo=self._wp_repo,
             history_repo=self._history_repo,
         )
@@ -165,12 +174,34 @@ class MainWindow(QMainWindow):
         library.wallpaper_applied.connect(self._on_wallpaper_applied)
         self._add_view("library", library)
 
+        # Favorites (Phase 7)
+        favorites = FavoritesView(
+            db=self._db,
+            wallpaper_service=self._wp_service,
+            history_service=self._history_service,
+            cache_dir=cache_dir,
+        )
+        favorites.navigate_to.connect(self._navigate_to)
+        favorites.status_message.connect(self._show_status)
+        favorites.wallpaper_applied.connect(self._on_wallpaper_applied)
+        self._add_view("favorites", favorites)
+
+        # History (Phase 7)
+        history = HistoryView(
+            db=self._db,
+            wallpaper_service=self._wp_service,
+            history_service=self._history_service,
+            cache_dir=cache_dir,
+        )
+        history.navigate_to.connect(self._navigate_to)
+        history.status_message.connect(self._show_status)
+        history.wallpaper_applied.connect(self._on_wallpaper_applied)
+        self._add_view("history", history)
+
         # Placeholder views for future phases
         placeholders = {
             "discover":   "Discover",
             "categories": "Categories",
-            "favorites":  "Favorites",
-            "history":    "History",
             "duplicates": "Duplicate Manager",
             "downloads":  "Downloads",
             "settings":   "Settings",
@@ -188,6 +219,11 @@ class MainWindow(QMainWindow):
     def _navigate_to(self, key: str) -> None:
         view = self._views.get(key)
         if view:
+            if hasattr(view, "refresh"):
+                try:
+                    view.refresh()
+                except Exception:
+                    pass
             self._stack.setCurrentWidget(view)
             self._sidebar.navigate_to(key)
             self._show_status(f"Navigated to: {key.capitalize()}")

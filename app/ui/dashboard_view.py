@@ -292,6 +292,8 @@ class DashboardView(QWidget):
     def _show_detail(self, wallpaper_id: int) -> None:
         wp = self._wp_repo.get_by_id(wallpaper_id)
         if wp:
+            from app.database.view_repository import ViewRepository
+            ViewRepository(self._db).record_view(wallpaper_id)
             from app.ui.components.detail_dialog import DetailDialog
             dlg = DetailDialog(wallpaper=wp, parent=self)
             dlg.set_wallpaper_requested.connect(self._apply_wallpaper)

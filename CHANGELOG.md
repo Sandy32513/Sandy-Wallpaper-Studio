@@ -5,6 +5,24 @@ All notable changes to Sandy Wallpaper Studio are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-dev] - 2026-10-18
+
+### Phase 7 — Favorites & History
+
+#### Added
+- `WallpaperView` data model and `ViewRepository` for tracking inspected wallpaper events with foreign key cascade deletion
+- Dedicated `FavoritesView` (`favorites_view.py`) featuring live category filter dropdown, multi-criteria sorting (Newest, Oldest, Title, Resolution, Usage), quick random favorite desktop application, card-based favorites grid, and safe clear favorites workflow with confirmation
+- Comprehensive `HistoryView` (`history_view.py`) with 3 specialized tabs:
+  - **Desktop Applied**: Chronological application history cards displaying thumbnail, title, category, resolution, target monitor, exact timestamp, human-readable relative time ("Just now", "X mins ago", "Yesterday at..."), and a direct one-click "Reapply" desktop action
+  - **Recently Viewed**: Dynamically updated gallery of inspected wallpapers tracked whenever detail modals are viewed across the application
+  - **Recently Downloaded / Imported**: Gallery of newly imported or downloaded wallpapers ordered by date
+- Quick "Restore Previous Wallpaper" button restoring prior desktop background with a single click
+- Backend `HistoryService` (`history_service.py`) orchestrating all favorites and history business logic with zero direct database coupling in UI layers
+- Enhanced `WallpaperRepository` with `toggle_favorite`, `count_favorites`, `get_recently_downloaded`, and `get_recently_applied`
+- Enhanced `HistoryRepository` with `get_recent_with_wallpapers` (SQL JOIN) and `get_recent_wallpapers`
+- Seamless view updates: `MainWindow` refreshes views upon sidebar navigation
+- Comprehensive Phase 7 test suite (`test_phase7.py`, 24 tests; 286 total suite tests passing)
+
 ## [0.6.0-dev] - 2026-10-18
 
 ### Phase 6 — Desktop GUI

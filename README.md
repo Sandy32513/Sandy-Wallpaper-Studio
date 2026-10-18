@@ -32,16 +32,16 @@ The implementation currently covers the project foundation, SQLite persistence, 
 | Phase 3 | SHA-256, pHash, duplicate detection, image validation, thumbnails | Complete | 39 passing |
 | Phase 4 | Smart library, import pipeline, search/filter, stats, integrity | Complete | 60 passing |
 | Phase 5 | Windows wallpaper engine, multi-monitor, random, restore, preview | Complete | 33 passing |
-| Phase 6 | PySide6 desktop GUI | Next | Planned |
-| Phase 7 | Favorites and history workflows | Planned | Planned |
-| Phase 8 | Automatic wallpaper rotation | Planned | Planned |
+| Phase 6 | PySide6 desktop GUI | Complete | 9 passing |
+| Phase 7 | Favorites and history workflows | Complete | 24 passing |
+| Phase 8 | Automatic wallpaper rotation | Next | Planned |
 | Phase 9 | Duplicate Manager UI | Planned | Planned |
 | Phase 10 | Settings, attribution export and operational polish | Planned | Planned |
 | Phase 11 | Full QA and release hardening | Planned | Planned |
 | Phase 12 | PyInstaller packaging | Planned | Planned |
 | Phase 13 | Windows installer | Planned | Planned |
 
-Total automated test suite: **253 passing / 0 failing**.
+Total automated test suite: **286 passing / 0 failing**.
 
 The authoritative project status is maintained in `docs/PROJECT_STATUS.md`.
 

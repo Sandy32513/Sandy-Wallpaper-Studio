@@ -161,10 +161,79 @@ class WallpaperRepository:
         )
         return [_row_to_wallpaper(row) for row in cursor.fetchall()]
 
-    def get_favorites(self, limit: int = 100, offset: int = 0) -> list[Wallpaper]:
-        """Fetch favorite wallpapers."""
+    def get_favorites(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        category: Optional[str] = None,
+        order_by: str = "download_date DESC",
+    ) -> list[Wallpaper]:
+        """Fetch favorite wallpapers, optionally filtered by category."""
+        allowed_orders = {
+            "download_date DESC", "download_date ASC",
+            "title ASC", "title DESC",
+            "file_size ASC", "file_size DESC",
+            "width DESC", "width ASC",
+            "usage_count DESC", "usage_count ASC",
+            "last_used DESC", "last_used ASC",
+            "id ASC", "id DESC",
+        }
+        if order_by not in allowed_orders:
+            order_by = "download_date DESC"
+
+        conditions = ["favorite = 1"]
+        params: list = []
+        if category:
+            conditions.append("category = ?")
+            params.append(category)
+
+        where_clause = " AND ".join(conditions)
+        sql = f"SELECT * FROM wallpapers WHERE {where_clause} ORDER BY {order_by} LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor = self._db.execute(sql, tuple(params))
+        return [_row_to_wallpaper(row) for row in cursor.fetchall()]
+
+    def count_favorites(self, category: Optional[str] = None) -> int:
+        """Count total favorite wallpapers, optionally filtered by category."""
+        if category:
+            cursor = self._db.execute(
+                "SELECT COUNT(*) FROM wallpapers WHERE favorite = 1 AND category = ?",
+                (category,),
+            )
+        else:
+            cursor = self._db.execute(
+                "SELECT COUNT(*) FROM wallpapers WHERE favorite = 1"
+            )
+        row = cursor.fetchone()
+        return row[0] if row else 0
+
+    def get_recently_downloaded(
+        self, limit: int = 50, offset: int = 0
+    ) -> list[Wallpaper]:
+        """Fetch wallpapers ordered by most recent download/import date."""
         cursor = self._db.execute(
-            "SELECT * FROM wallpapers WHERE favorite = 1 ORDER BY download_date DESC LIMIT ? OFFSET ?",
+            """
+            SELECT * FROM wallpapers
+            WHERE download_date IS NOT NULL AND download_date != ''
+            ORDER BY download_date DESC
+            LIMIT ? OFFSET ?
+            """,
+            (limit, offset),
+        )
+        return [_row_to_wallpaper(row) for row in cursor.fetchall()]
+
+    def get_recently_applied(
+        self, limit: int = 50, offset: int = 0
+    ) -> list[Wallpaper]:
+        """Fetch wallpapers ordered by most recent desktop application date."""
+        cursor = self._db.execute(
+            """
+            SELECT * FROM wallpapers
+            WHERE last_used IS NOT NULL AND last_used != ''
+            ORDER BY last_used DESC
+            LIMIT ? OFFSET ?
+            """,
             (limit, offset),
         )
         return [_row_to_wallpaper(row) for row in cursor.fetchall()]
@@ -312,13 +381,22 @@ class WallpaperRepository:
         return cursor.rowcount > 0
 
     def set_favorite(self, wallpaper_id: int, favorite: bool) -> bool:
-        """Toggle favorite status."""
+        """Set favorite status."""
         cursor = self._db.execute(
             "UPDATE wallpapers SET favorite = ? WHERE id = ?",
             (1 if favorite else 0, wallpaper_id),
         )
         self._db.commit()
         return cursor.rowcount > 0
+
+    def toggle_favorite(self, wallpaper_id: int) -> bool:
+        """Toggle favorite status and return the new boolean state."""
+        wp = self.get_by_id(wallpaper_id)
+        if wp is None:
+            return False
+        new_state = not wp.favorite
+        self.set_favorite(wallpaper_id, new_state)
+        return new_state
 
     def record_usage(self, wallpaper_id: int, timestamp: str) -> bool:
         """Record that a wallpaper was set as desktop background."""

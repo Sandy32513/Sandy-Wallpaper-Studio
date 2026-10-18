@@ -63,6 +63,25 @@ class Database:
 
         logger.info("Database connected. Running migrations...")
         version = run_migrations(self._conn)
+
+        # Ensure wallpaper_views table exists for backwards compatibility with earlier db versions
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS wallpaper_views (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallpaper_id    INTEGER NOT NULL,
+                viewed_at       TEXT NOT NULL,
+                FOREIGN KEY (wallpaper_id) REFERENCES wallpapers (id)
+                    ON DELETE CASCADE
+            )
+        """)
+        self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_views_wallpaper_id ON wallpaper_views (wallpaper_id)"
+        )
+        self._conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_views_viewed_at ON wallpaper_views (viewed_at)"
+        )
+        self._conn.commit()
+
         logger.info("Database ready at schema version %d.", version)
 
     def close(self) -> None:

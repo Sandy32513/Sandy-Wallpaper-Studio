@@ -154,3 +154,20 @@ class WallpaperHistory:
             "set_at": self.set_at,
             "monitor": self.monitor,
         }
+
+
+@dataclass
+class WallpaperView:
+    """Tracks when a wallpaper was viewed or inspected in detail."""
+
+    id: Optional[int] = None
+    wallpaper_id: int = 0
+    viewed_at: Optional[str] = None  # ISO 8601 string
+
+    def to_dict(self) -> dict:
+        """Convert to a dictionary for database insertion."""
+        return {
+            "wallpaper_id": self.wallpaper_id,
+            "viewed_at": self.viewed_at,
+        }
+

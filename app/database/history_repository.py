@@ -11,7 +11,7 @@ import logging
 from typing import Optional
 
 from app.database.database import Database
-from app.database.models import WallpaperHistory
+from app.database.models import Wallpaper, WallpaperHistory
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +113,101 @@ class HistoryRepository:
                 (limit, offset),
             )
         return [_row_to_history(r) for r in cursor.fetchall()]
+
+    def get_recent_with_wallpapers(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        monitor: Optional[str] = None,
+    ) -> list[tuple[WallpaperHistory, Optional[Wallpaper]]]:
+        """Fetch recent history entries joined with their Wallpaper models."""
+        conditions: list[str] = []
+        params: list = []
+        if monitor is not None:
+            conditions.append("h.monitor = ?")
+            params.append(monitor)
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        sql = f"""
+            SELECT h.*, w.id as wp_id, w.filename, w.path, w.title, w.description,
+                   w.category, w.tags, w.width, w.height, w.aspect_ratio,
+                   w.resolution_class, w.file_size, w.sha256, w.phash,
+                   w.source, w.source_url, w.author, w.license, w.license_url,
+                   w.download_date, w.favorite, w.last_used, w.usage_count
+            FROM wallpaper_history h
+            LEFT JOIN wallpapers w ON h.wallpaper_id = w.id
+            {where_clause}
+            ORDER BY h.id DESC
+            LIMIT ? OFFSET ?
+        """
+        params.extend([limit, offset])
+        cursor = self._db.execute(sql, tuple(params))
+        results = []
+        for r in cursor.fetchall():
+            hist = _row_to_history(r)
+            if r["wp_id"] is not None:
+                wp = Wallpaper(
+                    id=r["wp_id"],
+                    filename=r["filename"],
+                    path=r["path"],
+                    title=r["title"],
+                    description=r["description"],
+                    category=r["category"],
+                    tags=r["tags"],
+                    width=r["width"],
+                    height=r["height"],
+                    aspect_ratio=r["aspect_ratio"],
+                    resolution_class=r["resolution_class"],
+                    file_size=r["file_size"],
+                    sha256=r["sha256"],
+                    phash=r["phash"],
+                    source=r["source"],
+                    source_url=r["source_url"],
+                    author=r["author"],
+                    license=r["license"],
+                    license_url=r["license_url"],
+                    download_date=r["download_date"],
+                    favorite=bool(r["favorite"]),
+                    last_used=r["last_used"],
+                    usage_count=r["usage_count"],
+                )
+            else:
+                wp = None
+            results.append((hist, wp))
+        return results
+
+    def get_recent_wallpapers(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        monitor: Optional[str] = None,
+    ) -> list[Wallpaper]:
+        """Fetch unique Wallpaper records ordered by most recently applied."""
+        from app.database.wallpaper_repository import _row_to_wallpaper
+
+        conditions: list[str] = []
+        params: list = []
+        if monitor is not None:
+            conditions.append("h.monitor = ?")
+            params.append(monitor)
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        sql = f"""
+            SELECT w.*
+            FROM wallpapers w
+            JOIN (
+                SELECT h.wallpaper_id, MAX(h.id) as max_hid
+                FROM wallpaper_history h
+                {where_clause}
+                GROUP BY h.wallpaper_id
+                ORDER BY max_hid DESC
+                LIMIT ? OFFSET ?
+            ) sub ON w.id = sub.wallpaper_id
+            ORDER BY sub.max_hid DESC
+        """
+        params.extend([limit, offset])
+        cursor = self._db.execute(sql, tuple(params))
+        return [_row_to_wallpaper(r) for r in cursor.fetchall()]
 
     def count(self, monitor: Optional[str] = None) -> int:
         """Count total history records."""

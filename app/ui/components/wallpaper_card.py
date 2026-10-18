@@ -275,6 +275,12 @@ class WallpaperCard(QFrame):
     def wallpaper_id(self) -> int:
         return self._wallpaper.id or 0
 
+    def stop_loader(self) -> None:
+        """Stop thumbnail loading thread if running."""
+        if self._thread and self._thread.isRunning():
+            self._thread.quit()
+            self._thread.wait(100)
+
     def update_wallpaper(self, wallpaper: Wallpaper) -> None:
         """Refresh with updated wallpaper data (e.g. after favorite toggle)."""
         self._wallpaper = wallpaper

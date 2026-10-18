@@ -1,8 +1,8 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 6 — Complete**  
+**Current development phase: Phase 7 — Complete**  
 **Status date: 2026-10-18**  
-**Test suite: 262 passing / 0 failing**  
+**Test suite: 286 passing / 0 failing**  
 **Branch: `main`**
 
 This document is the implementation-status reference for the repository.
@@ -67,6 +67,22 @@ Modern dark-themed PySide6 interface (Obsidian palette), responsive `MainWindow`
 - [x] Asynchronous thumbnail loading operates smoothly via worker threads
 - [x] Import progress dialog coordinates with ImportService
 - [x] Headless Qt testing passes in CI/test environments via offscreen platform
+
+## Phase 7 — Favorites & History
+**Status: COMPLETE**
+Dedicated `FavoritesView` with live category filtering, multi-criteria sorting, quick random favorite desktop application, card-based favorites grid, and safe clear favorites workflow. Comprehensive `HistoryView` featuring 3 specialized tabs: Desktop Applied history (with relative timestamps, monitor tags, details modal, and instant reapply action), Recently Viewed wallpapers (tracked via `ViewRepository` whenever wallpapers are inspected), and Recently Downloaded/Imported wallpapers. Backend `HistoryService` orchestrating all favorite and history operations with zero UI-database coupling, plus one-click "Restore Previous Wallpaper" workflow.
+
+## Phase 7 Exit Gate Verification
+- [x] Full pytest suite passes (286 / 286 tests pass)
+- [x] Phases 0–7 pass together without regressions
+- [x] FavoritesView provides category filtering, multi-criteria sorting, card grid, and empty state
+- [x] Random favorite selection directly applies wallpaper to desktop
+- [x] Clear favorites operates safely with user confirmation dialog
+- [x] HistoryView provides Desktop Applied, Recently Viewed, and Recently Downloaded tabs
+- [x] Applied history displays formatted relative timestamps, monitor metadata, and direct Reapply action
+- [x] Restore previous wallpaper re-applies previous background with single click
+- [x] Wallpaper inspections record to ViewRepository and populate Recently Viewed
+- [x] Foreign key cascade deletion preserves database integrity when wallpapers are removed
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

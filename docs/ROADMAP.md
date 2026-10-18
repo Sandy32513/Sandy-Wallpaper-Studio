@@ -30,11 +30,12 @@ Native Windows wallpaper setting via `SystemParametersInfoW` & registry styles, 
 **Complete**
 Professional dark-themed PySide6 desktop interface connecting directly to tested backend services. Responsive main window, animated sidebar, dashboard view, library grid view with pagination, debounced search & filter bar, async thumbnail loading wallpaper cards, import progress dialog, and detail dialog with wallpaper application.
 
-# Phase 7 — Favorites & History
-**NEXT**
-Favorites, recently viewed, recently downloaded, recently applied, filtering and restore/reapply workflows.
+## Phase 7 — Favorites & History
+**Complete**
+Favorites management with category filtering, sorting, and random favorite desktop application; Desktop Applied history timeline with relative timestamps, monitor tags, and direct reapply action; Recently Viewed tracking and Recently Downloaded/Imported views; backend `HistoryService` and single-click "Restore Previous Wallpaper" workflow.
 
 # Phase 8 — Automatic Rotation
+**NEXT**
 Scheduled rotation, interval configuration, category/resolution-aware rotation, random rotation, pause/resume and rotation history.
 
 # Phase 9 — Duplicate Manager
