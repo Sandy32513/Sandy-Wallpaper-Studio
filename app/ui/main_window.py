@@ -27,8 +27,6 @@ from app.database.database import Database
 from app.database.history_repository import HistoryRepository
 from app.database.wallpaper_repository import WallpaperRepository
 from app.services.history_service import HistoryService
-from app.services.rotation_scheduler import RotationScheduler
-from app.services.rotation_service import RotationResult
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
 from app.ui.components.sidebar import Sidebar
@@ -36,7 +34,6 @@ from app.ui.dashboard_view import DashboardView
 from app.ui.favorites_view import FavoritesView
 from app.ui.history_view import HistoryView
 from app.ui.library_view import LibraryView
-from app.ui.rotation_view import RotationSettingsView
 
 
 class PlaceholderView(QWidget):
@@ -93,19 +90,10 @@ class MainWindow(QMainWindow):
             wallpaper_repo=self._wp_repo,
             history_repo=self._history_repo,
         )
-        self._rotation_scheduler = RotationScheduler(database_path=db.path, parent=self)
-        self._rotation_scheduler.state_changed.connect(self._on_rotation_state_changed)
-        self._rotation_scheduler.rotation_finished.connect(self._on_rotation_finished)
 
         self._setup_window()
         self._build_ui()
         self._navigate_to("dashboard")
-        preferences = self._config.rotation_preferences
-        if preferences.enabled:
-            self._rotation_scheduler.start(
-                preferences,
-                style=str(self._config.get("wallpaper_style", "Fill")),
-            )
 
     # ------------------------------------------------------------------
     # Window setup
@@ -207,20 +195,13 @@ class MainWindow(QMainWindow):
         history.wallpaper_applied.connect(self._on_wallpaper_applied)
         self._add_view("history", history)
 
-        rotation = RotationSettingsView(
-            config=self._config,
-            db=self._db,
-            scheduler=self._rotation_scheduler,
-        )
-        rotation.status_message.connect(self._show_status)
-        self._add_view("settings", rotation)
-
         # Placeholder views for future phases
         placeholders = {
             "discover":   "Discover",
             "categories": "Categories",
             "duplicates": "Duplicate Manager",
             "downloads":  "Downloads",
+            "settings":   "Settings",
         }
         for key, label in placeholders.items():
             self._add_view(key, PlaceholderView(label))
@@ -253,19 +234,9 @@ class MainWindow(QMainWindow):
     def _on_wallpaper_applied(self, wallpaper_id: int) -> None:
         self._show_status(f"✓ Wallpaper #{wallpaper_id} applied.")
 
-    def _on_rotation_state_changed(self, state: str, message: str) -> None:
-        self._show_status(message)
-
-    def _on_rotation_finished(self, result: RotationResult) -> None:
-        if result.success:
-            self._show_status(f"Automatic rotation applied wallpaper #{result.wallpaper_id}.")
-        elif result.error != "CANCELLED":
-            self._show_status(result.message or "Automatic rotation could not find a matching wallpaper.")
-
     # ------------------------------------------------------------------
     # Close event
     # ------------------------------------------------------------------
     def closeEvent(self, event) -> None:  # noqa: N802
-        self._rotation_scheduler.shutdown()
         self._db.close()
         super().closeEvent(event)

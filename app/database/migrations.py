@@ -166,34 +166,11 @@ def _migration_001_initial_schema(cursor: sqlite3.Cursor) -> None:
     logger.info("Migration 001: Initial schema created.")
 
 
-def _migration_002_rotation_history(cursor: sqlite3.Cursor) -> None:
-    """Add rotation event metadata without changing existing history rows."""
-    columns = {row[1] for row in cursor.execute("PRAGMA table_info(wallpaper_history)")}
-    if "source" not in columns:
-        cursor.execute(
-            "ALTER TABLE wallpaper_history ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"
-        )
-    if "success" not in columns:
-        cursor.execute(
-            "ALTER TABLE wallpaper_history ADD COLUMN success INTEGER NOT NULL DEFAULT 1"
-        )
-    if "error_message" not in columns:
-        cursor.execute(
-            "ALTER TABLE wallpaper_history ADD COLUMN error_message TEXT NOT NULL DEFAULT ''"
-        )
-    cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_rotation_candidates "
-        "ON wallpapers (category, width, height)"
-    )
-    logger.info("Migration 002: Rotation event metadata added.")
-
-
 # ============================================================
 # Migration Registry
 # ============================================================
 MIGRATIONS: list[tuple[int, str, MigrationFn]] = [
     (1, "Initial schema", _migration_001_initial_schema),
-    (2, "Automatic rotation history", _migration_002_rotation_history),
 ]
 
 

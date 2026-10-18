@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -25,44 +23,6 @@ from app.constants import (
 )
 
 logger = logging.getLogger(__name__)
-
-ROTATION_MIN_INTERVAL_MINUTES = 1
-ROTATION_MAX_INTERVAL_MINUTES = 10_080
-ROTATION_MAX_DIMENSION = 32_768
-
-
-@dataclass(frozen=True)
-class RotationPreferences:
-    """Validated, persistent preferences for in-process wallpaper rotation."""
-
-    enabled: bool = False
-    interval_minutes: int = 60
-    random_selection: bool = True
-    categories: tuple[str, ...] = ()
-    min_width: int = 0
-    min_height: int = 0
-
-    def __post_init__(self) -> None:
-        if type(self.enabled) is not bool:
-            raise ValueError("Rotation enabled must be true or false.")
-        if type(self.random_selection) is not bool:
-            raise ValueError("Random selection must be true or false.")
-        if type(self.interval_minutes) is not int or not (
-            ROTATION_MIN_INTERVAL_MINUTES
-            <= self.interval_minutes
-            <= ROTATION_MAX_INTERVAL_MINUTES
-        ):
-            raise ValueError("Rotation interval must be between 1 and 10080 minutes.")
-        if any(
-            type(dimension) is not int or dimension < 0 or dimension > ROTATION_MAX_DIMENSION
-            for dimension in (self.min_width, self.min_height)
-        ):
-            raise ValueError("Minimum dimensions must be between 0 and 32768 pixels.")
-        if not isinstance(self.categories, tuple) or any(
-            not isinstance(category, str) or not category.strip()
-            for category in self.categories
-        ):
-            raise ValueError("Rotation categories must be non-empty category names.")
 
 # ============================================================
 # Default Settings
@@ -92,11 +52,6 @@ _DEFAULT_SETTINGS: dict[str, Any] = {
     "rotation_enabled": False,
     "rotation_interval": "1 hour",
     "rotation_mode": "Random",
-    "rotation_interval_minutes": 60,
-    "rotation_random": True,
-    "rotation_categories": [],
-    "rotation_min_width": 0,
-    "rotation_min_height": 0,
 
     # --- Sources ---
     "enabled_sources": ["wikimedia"],
@@ -150,11 +105,6 @@ class Config:
             if not isinstance(user_settings, dict):
                 logger.warning("Config file is not a JSON object — using defaults.")
                 return
-            if "rotation_interval_minutes" not in user_settings:
-                legacy_interval = user_settings.get("rotation_interval")
-                parsed_interval = self._parse_legacy_rotation_interval(legacy_interval)
-                if parsed_interval is not None:
-                    self._settings["rotation_interval_minutes"] = parsed_interval
             # Merge: user overrides defaults
             for key, value in user_settings.items():
                 if key in _DEFAULT_SETTINGS:
@@ -187,76 +137,6 @@ class Config:
             logger.warning("Attempt to set unknown config key: %s", key)
             return
         self._settings[key] = value
-
-    @staticmethod
-    def _parse_legacy_rotation_interval(value: Any) -> int | None:
-        """Read older human-readable rotation intervals when upgrading settings."""
-        if not isinstance(value, str):
-            return None
-        match = re.fullmatch(r"\s*(\d+)\s*(minute|minutes|min|hour|hours|day|days)\s*", value, re.I)
-        if not match:
-            return None
-        amount = int(match.group(1))
-        unit = match.group(2).lower()
-        multiplier = 1 if unit.startswith("min") else (60 if unit.startswith("hour") else 1440)
-        minutes = amount * multiplier
-        if not ROTATION_MIN_INTERVAL_MINUTES <= minutes <= ROTATION_MAX_INTERVAL_MINUTES:
-            return None
-        return minutes
-
-    @property
-    def rotation_preferences(self) -> RotationPreferences:
-        """Return validated rotation preferences, falling back safely on bad values."""
-        interval = self._settings.get("rotation_interval_minutes", 60)
-        if type(interval) is not int or not (
-            ROTATION_MIN_INTERVAL_MINUTES <= interval <= ROTATION_MAX_INTERVAL_MINUTES
-        ):
-            interval = 60
-            logger.warning("Invalid rotation interval in settings; using 60 minutes.")
-
-        categories = self._settings.get("rotation_categories", [])
-        if not isinstance(categories, list):
-            categories = []
-            logger.warning("Invalid rotation categories in settings; using all categories.")
-        safe_categories = tuple(
-            dict.fromkeys(
-                category.strip()
-                for category in categories
-                if isinstance(category, str) and category.strip()
-            )
-        )
-
-        dimensions: list[int] = []
-        for key in ("rotation_min_width", "rotation_min_height"):
-            value = self._settings.get(key, 0)
-            if type(value) is not int or not 0 <= value <= ROTATION_MAX_DIMENSION:
-                value = 0
-                logger.warning("Invalid %s in settings; disabling that dimension filter.", key)
-            dimensions.append(value)
-
-        enabled = self._settings.get("rotation_enabled", False)
-        random_selection = self._settings.get("rotation_random", True)
-        return RotationPreferences(
-            enabled=enabled if type(enabled) is bool else False,
-            interval_minutes=interval,
-            random_selection=random_selection if type(random_selection) is bool else True,
-            categories=safe_categories,
-            min_width=dimensions[0],
-            min_height=dimensions[1],
-        )
-
-    def set_rotation_preferences(self, preferences: RotationPreferences) -> None:
-        """Replace the persisted automatic rotation preferences."""
-        self._settings.update(
-            {
-                "rotation_enabled": preferences.enabled,
-                "rotation_interval_minutes": preferences.interval_minutes,
-                "rotation_random": preferences.random_selection,
-                "rotation_categories": list(preferences.categories),
-                "rotation_min_width": preferences.min_width,
-                "rotation_min_height": preferences.min_height,
-            }
-        )
 
     def reset(self) -> None:
         """Reset all settings to defaults."""

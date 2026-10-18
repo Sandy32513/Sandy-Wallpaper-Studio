@@ -162,7 +162,6 @@ class WindowsWallpaperService:
         self._simulate = simulate or (not self._is_windows)
 
         self._db = db
-        self._wallpaper_repo: WallpaperRepository | None
         if wallpaper_repo is not None:
             self._wallpaper_repo = wallpaper_repo
         elif db is not None:
@@ -170,7 +169,6 @@ class WindowsWallpaperService:
         else:
             self._wallpaper_repo = None
 
-        self._history_repo: HistoryRepository | None
         if history_repo is not None:
             self._history_repo = history_repo
         elif db is not None:
@@ -326,7 +324,6 @@ class WindowsWallpaperService:
         wallpaper: Wallpaper | int | Path | str,
         style: str = "Fill",
         monitor: Optional[str] = None,
-        source: str = "manual",
     ) -> WallpaperApplyResult:
         """Apply a selected wallpaper, update database usage, and record history."""
         resolved_wallpaper: Optional[Wallpaper] = None
@@ -379,7 +376,6 @@ class WindowsWallpaperService:
                         wallpaper_id=wp_id,
                         set_at=now_iso,
                         monitor=monitor or "",
-                        source=source,
                     )
                 )
 

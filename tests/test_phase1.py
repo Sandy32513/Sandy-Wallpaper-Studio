@@ -135,10 +135,10 @@ class TestDownloadRecordModel:
 # ============================================================
 class TestMigrations:
     def test_initial_migration(self, db: Database) -> None:
-        """Current schema migration should be applied to a new database."""
+        """Schema version should be 1 after initial migration."""
         cursor = db.execute("SELECT MAX(version) FROM schema_version")
         row = cursor.fetchone()
-        assert row[0] == 2
+        assert row[0] == 1
 
     def test_tables_created(self, db: Database) -> None:
         """All expected tables should exist."""

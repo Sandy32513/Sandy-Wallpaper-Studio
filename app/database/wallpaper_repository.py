@@ -148,33 +148,6 @@ class WallpaperRepository:
         )
         return [_row_to_wallpaper(row) for row in cursor.fetchall()]
 
-    def get_rotation_candidates(
-        self,
-        categories: list[str] | tuple[str, ...] = (),
-        min_width: int = 0,
-        min_height: int = 0,
-    ) -> list[Wallpaper]:
-        """Fetch library rows matching the active automatic rotation filters."""
-        conditions: list[str] = []
-        params: list[object] = []
-        selected_categories = [name for name in categories if name]
-        if selected_categories:
-            placeholders = ", ".join("?" for _ in selected_categories)
-            conditions.append(f"category IN ({placeholders})")
-            params.extend(selected_categories)
-        if min_width > 0:
-            conditions.append("width >= ?")
-            params.append(min_width)
-        if min_height > 0:
-            conditions.append("height >= ?")
-            params.append(min_height)
-
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        cursor = self._db.execute(
-            f"SELECT * FROM wallpapers {where_clause} ORDER BY id ASC", tuple(params)
-        )
-        return [_row_to_wallpaper(row) for row in cursor.fetchall()]
-
     def get_by_resolution_class(
         self,
         resolution_class: str,

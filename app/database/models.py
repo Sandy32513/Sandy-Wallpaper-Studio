@@ -139,15 +139,12 @@ class DownloadRecord:
 
 @dataclass
 class WallpaperHistory:
-    """Tracks successful applications and failed automatic rotation attempts."""
+    """Tracks when a wallpaper was set as the desktop background."""
 
     id: Optional[int] = None
     wallpaper_id: int = 0
     set_at: Optional[str] = None  # ISO 8601 string
     monitor: str = ""  # Monitor identifier (e.g. "primary", "\\.\DISPLAY1")
-    source: str = "manual"  # manual | rotation
-    success: bool = True
-    error_message: str = ""
 
     def to_dict(self) -> dict:
         """Convert to a dictionary for database insertion."""
@@ -155,9 +152,6 @@ class WallpaperHistory:
             "wallpaper_id": self.wallpaper_id,
             "set_at": self.set_at,
             "monitor": self.monitor,
-            "source": self.source,
-            "success": 1 if self.success else 0,
-            "error_message": self.error_message,
         }
 
 

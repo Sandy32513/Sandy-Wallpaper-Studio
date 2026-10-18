@@ -61,12 +61,12 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 8 — Automatic Rotation (final review pending) |
-| Latest test result | 314 passed, 0 failed on October 19, 2026; see [Project Status](docs/PROJECT_STATUS.md) for test and platform details |
+| Latest documented milestone | Phase 7 — Favorites & History |
+| Latest documented test result | 286 passed, 0 failed, recorded in project documentation on October 18, 2026; not re-run for this README update |
 
 ## Project status
 
-Phases 0–7 are complete. Phase 8 automatic rotation is implemented; its automated suite and a reversible Windows worker integration check pass. A full interactive visual review and a clean repository-wide mypy run remain open. Some sidebar destinations remain placeholder screens. Features in the roadmap are not automatically available just because they appear in the UI.
+The implementation and project status files describe **Phases 0–7 as complete**. The desktop interface exists, but some sidebar destinations remain placeholder screens. Features in the roadmap are not automatically available just because they appear in the UI.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -78,7 +78,7 @@ Phases 0–7 are complete. Phase 8 automatic rotation is implemented; its automa
 | Native wallpaper setting and monitor detection | Implemented in service layer | Uses Windows APIs; monitor behavior depends on Windows and display setup |
 | Desktop GUI | Implemented | Dashboard, Library, Favorites and History views are present |
 | Favorites and history | Implemented | Includes applied, viewed, and recently added/imported history workflows |
-| Automatic wallpaper rotation | Implemented; final QA pending | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
+| Automatic wallpaper rotation | Planned | Phase 8 |
 | Dedicated Duplicate Manager | Planned | Phase 9 |
 | Full settings and attribution export | Planned | Phase 10 |
 | Release hardening and packaging | Planned | Phases 11–13; no installer is claimed to be available |
@@ -142,17 +142,6 @@ Multi-monitor detection is implemented; do not assume independent per-monitor wa
 - Browse recently viewed and recently downloaded/imported wallpaper entries.
 
 The clear-favorites action removes favorite status; it does not delete image files.
-
-### Automatic rotation
-
-- Open **Settings** in the sidebar to configure local wallpaper rotation.
-- Choose an interval from 1 minute to 7 days, random selection or library-order cycling, optional categories, and minimum width/height.
-- Choose **Apply Settings** to enable or disable the schedule. The first wallpaper change occurs after one full interval; application startup never applies a wallpaper immediately.
-- Use **Pause**, **Resume**, and **Stop** to control the in-process schedule. Pause is runtime-only; an enabled schedule resumes after a full interval when the application starts again.
-- Rotation considers only indexed local library items and validates image files before applying them. Category and minimum-resolution filters remain strict; an empty match reports a status instead of relaxing the filters.
-- Automatic success and failed application attempts appear in **History → Rotation Events**. Successful applications also appear in **Desktop Applied** with their source identified.
-
-Rotation runs only while the application is open. It does not install a Windows service or scheduled task, access online sources, move files, or delete files.
 
 ## Technology stack
 
@@ -296,13 +285,13 @@ The History view has separate workflows for desktop-applied entries, recently vi
 - Triggering downloads from the Downloads screen.
 - Dedicated Categories management screen.
 - Dedicated visual duplicate review/cleanup screen.
-- General application settings beyond the Phase 8 rotation controls.
+- Settings screen and automatic rotation controls.
 
 Backend capabilities do not imply that each workflow is wired into a finished GUI.
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers and shared image utilities. Phase 8 adds `RotationService` for candidate filtering and application, `RotationScheduler` for Qt timer and worker lifecycle, and `RotationSettingsView` for preferences and runtime controls.
+The project separates presentation, application services, data access, providers and shared image utilities.
 
 ```text
 app/
@@ -415,7 +404,6 @@ Run a focused phase suite:
 
 ```powershell
 python -m pytest tests/test_phase7.py -v
-python -m pytest tests/test_phase8.py -v
 python -m pytest tests/test_phase6.py -v
 ```
 
@@ -432,7 +420,7 @@ Reset the environment variable after use with:
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-The latest full run passed **314 tests** on October 19, 2026. The historical Phase 7 count was 286. The initial workspace test run could not collect six modules because Pillow and PySide6 were missing; after installing the project's declared development dependencies, the full suite passed.
+The project status/changelog documents **286 passing tests as of October 18, 2026**. That is a historical repository-reported result; tests were not executed as part of this README-only change. Run the commands above to verify the current checkout.
 
 Optional quality tools are configured in `pyproject.toml`:
 
@@ -455,14 +443,14 @@ These optional checks are useful only after the corresponding tools are installe
 | 5 | Windows wallpaper engine, style preview, monitor detection and restore | Complete in service layer |
 | 6 | PySide6 desktop interface | Complete; some destinations remain placeholders |
 | 7 | Favorites and history workflows | Complete |
-| 8 | Automatic wallpaper rotation | Implemented; final QA review pending |
+| 8 | Automatic wallpaper rotation | Next |
 | 9 | Dedicated Duplicate Manager UI | Planned |
 | 10 | Settings, attribution export and operational features | Planned |
 | 11 | QA, compatibility and release hardening | Planned |
 | 12 | PyInstaller packaging | Planned |
 | 13 | Windows installer | Planned |
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed sequential roadmap and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for phase exit-gate records. Installer delivery and packaged executables remain future work.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed sequential roadmap and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for phase exit-gate records. Automatic rotation, installer delivery and packaged executables should be treated as future work until implementation and release artifacts are available.
 
 ## Troubleshooting
 

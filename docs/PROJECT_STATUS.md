@@ -1,10 +1,9 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 8 — PARTIALLY COMPLETE**
-**Status date: 2026-10-19**
-**Latest full test run: 314 passing / 0 failing**
-**Branch: `chore/repository-cleanup`**
-**Baseline commit: `63ac973`**
+**Current development phase: Phase 7 — Complete**  
+**Status date: 2026-10-18**  
+**Test suite: 286 passing / 0 failing**  
+**Branch: `main`**
 
 This document is the implementation-status reference for the repository.
 
@@ -84,38 +83,6 @@ Dedicated `FavoritesView` with live category filtering, multi-criteria sorting, 
 - [x] Restore previous wallpaper re-applies previous background with single click
 - [x] Wallpaper inspections record to ViewRepository and populate Recently Viewed
 - [x] Foreign key cascade deletion preserves database integrity when wallpapers are removed
-
-## Phase 8 — Automatic Rotation
-**Status: PARTIALLY COMPLETE; Windows integration verified; final QA gates remain**
-
-Automatic rotation uses a dedicated `RotationService`, a single-shot Qt timer, and a worker thread with its own SQLite connection. Rotation preferences are stored in the existing JSON configuration. The Settings sidebar destination now exposes enable/apply, pause, resume, stop, interval, random or library-order selection, category, and minimum-dimension controls. The first rotation occurs after a full interval, and the app does not apply a wallpaper immediately on startup. Rotation events are marked in applied history; failures are retained as unsuccessful rotation events and excluded from applied history, previous-wallpaper restoration, and repeat avoidance.
-
-### Phase 8 Exit Gate Verification
-- [x] Rotation disabled by default; enabled-on-start schedules a full interval without an immediate wallpaper change
-- [x] Start/configure, pause, resume, stop, repeated-start, cancellation, and shutdown scheduling behavior covered
-- [x] Category and minimum width/height filters query library metadata and retain strict criteria at boundaries
-- [x] Missing, corrupt, and unsupported image candidates are skipped; empty and unmatched libraries report an error
-- [x] Random ordering is injectable for deterministic tests; library-order cycling and immediate-repeat avoidance are covered
-- [x] Successful and failed rotation history is distinguishable; failed attempts do not count as applied wallpapers
-- [x] Version 2 migration preserves existing applied-history rows and supplies manual/success defaults
-- [x] Settings persistence, invalid configuration fallback, GUI controls, history view, and Qt thread delivery covered
-- [x] Targeted Phase 8 suite passes (28 / 28)
-- [x] Full pytest suite passes (314 / 314, October 19, 2026)
-- [x] Ruff passes (`python -m ruff check app tests`)
-- [x] Visible Windows GUI startup and rotation controls were smoke-checked with temporary configuration/database data
-- [x] Native Windows rotation worker applied a temporary library image, recorded one rotation event, then restored the original wallpaper path and style
-- [ ] Full configured mypy check is clean; it reports 14 existing issues in requests typing/Wikimedia, the wallpaper card, image utilities, dashboard/library/favorites views, and `main.py`. No Phase 8 service or settings-view errors remain.
-- [ ] Interactive visual review across multiple window sizes has not been performed
-
-The first pytest attempt, before dependency installation, could not collect six test modules because Pillow and PySide6 were absent. After installing the declared development dependencies, the suite completed. The initial migration assertion was updated from schema version 1 to version 2 to reflect the new additive migration; existing assertions and workflows were retained. User wallpaper and style were restored after the Windows integration check; the user's library/database were not used by that check.
-
-### Phase 8 Design Notes
-- A Qt timer owns the schedule; no Windows service or Task Scheduler job is installed.
-- The worker queries a fresh metadata-filtered candidate list and validates candidates as needed, keeping file checks off the UI thread.
-- Each worker creates and closes its own database connection. Shutdown stops the timer, requests cancellation before application, and joins the worker.
-- Pause state is runtime-only. If rotation remains enabled, restart schedules the next change after a full interval.
-- Failed attempts share the existing `wallpaper_history` table via additive `source`, `success`, and `error_message` columns. Applied-history queries filter to successes.
-- No files are moved or deleted. No external network calls are made by rotation.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

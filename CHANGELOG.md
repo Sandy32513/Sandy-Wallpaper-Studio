@@ -5,26 +5,6 @@ All notable changes to Sandy Wallpaper Studio are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-10-19
-
-### Phase 8 — Automatic Rotation (implementation; final QA review pending)
-
-#### Added
-- `RotationService` for metadata-filtered category and minimum-dimension selection, local image validation, random or deterministic cycling, repeat avoidance, cancellation, and existing wallpaper-engine application.
-- `RotationScheduler` with one Qt timer, pause/resume/stop controls, a worker-owned SQLite connection, and shutdown cleanup.
-- Automatic Rotation settings under the existing Settings sidebar destination, including interval, random selection, categories, and minimum width/height controls.
-- Additive database migration for rotation source, success status, and safe error details in the existing wallpaper history table.
-- A Rotation Events tab that distinguishes successful automatic changes and failed application attempts.
-- 28 Phase 8 tests; the full suite passed 314 / 314 on October 19, 2026.
-
-#### Verified
-- Windows rotation worker applied a temporary library image, recorded the rotation event, and restored the prior desktop wallpaper path and style.
-- The desktop GUI opened with the rotation controls visible using temporary configuration and database data.
-
-#### Remaining review
-- Repository-wide mypy currently reports existing typing errors; see `docs/PROJECT_STATUS.md`.
-- Interactive visual review across multiple window sizes remains pending.
-
 ## [0.7.0-dev] - 2026-10-18
 
 ### Phase 7 — Favorites & History
