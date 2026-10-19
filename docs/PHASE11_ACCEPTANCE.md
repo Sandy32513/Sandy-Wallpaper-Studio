@@ -63,12 +63,12 @@ This later local run supersedes the earlier 405/407 regression count above. It i
 
 | Gate | Current evidence |
 |---|---|
-| Regression | `QT_QPA_PLATFORM=offscreen .venv\\Scripts\\python.exe -m pytest -q -rs`: 409 passed, 2 skipped, 0 failed (411 collected; exit 0; 43.10 seconds). Skips: symlink creation is denied by this Windows profile; the real Recycle Bin integration is opt-in. |
+| Regression | PowerShell: set `$env:QT_QPA_PLATFORM = "offscreen"`, then run `.\.venv\Scripts\python.exe -m pytest -q -rs`: 409 passed, 2 skipped, 0 failed (411 collected; exit 0; 55.06 seconds). Skips: symlink creation is denied by this Windows profile; the real Recycle Bin integration is opt-in. |
 | Static and dependency checks | Ruff passed; mypy passed for 55 application files; `pip check` reported no broken requirements; `pip-audit --local` found no known advisories (the local project distribution is not on PyPI). |
 | Version and entry points | App and console commands report `V1.0.0`; installed distribution metadata normalizes to `1.0.0`; `packaging.version.Version` accepts the normalized version. |
 | Added acceptance safeguards | Fake API tests verify exact registry value/type restoration and SystemParametersInfo error handling without changing the live wallpaper. Settings-apply failure retains existing usage/history. Proxy variables do not affect the download session. QTest verifies automatic-rotation keyboard focus order. |
 | Manual acceptance | Native wallpaper application, physical keyboard/Narrator review, Windows 10, and a clean-machine test remain **NOT RUN**. The prompt requires explicit approval before the live wallpaper change; none was given. |
-| Release state | Phase 11 remains **PARTIALLY COMPLETE**. Phase 12 is local packaging validation only; no installer, tag, signature, or public release is created. Current branch work is confined to `chore/repository-cleanup`; `main` is not updated by this work. |
+| Release state | Phase 11 remains **PARTIALLY COMPLETE**. Phase 12 is local packaging validation only. The tested tip was later fast-forwarded to `main` on explicit user request; `main` CI passed for `9aed7f3`. This follow-up is limited to documentation and ignore rules on `chore/repository-cleanup`. Existing tags are `v0.7.0` and `v0.9.0`; no `v1.0.0` tag, installer, signature, or public release was created. |
 
 The current clean-commit Windows package was built on Windows 11 Enterprise build 26300 from `725b7a9b14987ce556406e1f34440fab59fd92da` with Python 3.12.10 and PyInstaller 6.22.3. ProductVersion `V1.0.0`, normalized distribution version `1.0.0`, and FileVersion `1.0.0.0` agree. Its unsigned executable is 11,263,131 bytes (SHA-256 `17A797EC365F209379EBA185B0A787E90BEEF3E10C0358024FEBA59C3E473D22`); the full onedir bundle is 245,950,451 bytes. The isolated smoke result is `PASS`; the CI result for the pushed source is recorded in [Project Status](PROJECT_STATUS.md).
 

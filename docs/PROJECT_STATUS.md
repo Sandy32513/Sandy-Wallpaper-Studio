@@ -1,16 +1,17 @@
 # Project Status — Sandy Wallpaper Studio
 
 **Current development phase: Phase 12 - PACKAGING VALIDATION ONLY; Phase 11 remains PARTIALLY COMPLETE**
-**Status date: 2026-10-19**
+**Status date: 2026-10-20**
 **Latest full test run: 409 passed / 2 skipped / 0 failed (411 collected; exit 0)**
 **Audit starting branch/commit: `main` / `e585a874499ac8b533201fda7e8746d5fbf5dda4`**
 **Remote cleanup branch at audit start: `d8f0fd9d4a49353ab10c9d49a0348a05563f4be5`**
 **Task branch: `chore/repository-cleanup`**
+**Local main and remote main/cleanup at audit start: `9aed7f385ee948f90b7077513bd0b2af324f68b2`**
 **Phase 11 starting baseline: 12b755003ae8c462eee3b01b60b8c506e76bb8d5**
 
 This document is the implementation-status reference for the repository. The dated Phase 11/12 follow-ups supersede older test counts and the DNS residual finding in the historical Phase 11 record.
 
-Phases 0-10 are complete. Historical Phase 11 results are recorded below. This audit began from a clean local `main` at `e585a874`. The remote cleanup branch at `d8f0fd9` was verified as an ancestor, then only the local `chore/repository-cleanup` branch was fast-forwarded to `e585a874` before work began. `main` was not changed. The source version is `V1.0.0`; the current local validation bundle was rebuilt and smoke-tested from clean commit `725b7a9`. Earlier `V0.1.0` and `0.7.0-dev` records are historical.
+Phases 0-10 are complete. Historical Phase 11 results are recorded below. This audit began from a clean local `main` at `e585a874`. The remote cleanup branch at `d8f0fd9` was verified as an ancestor, then only the local `chore/repository-cleanup` branch was fast-forwarded to `e585a874` before work began. At that initial checkpoint, `main` was unchanged. After an explicit user request, the tested cleanup tip was fast-forwarded to `origin/main`; both remote branches then pointed to `9aed7f3`, and the local `main` branch was safely fast-forwarded to match. The current follow-up records documentation and ignore-rule changes on `chore/repository-cleanup`; `main` remains at the tested `9aed7f3` tip. The source version is `V1.0.0`; the current local validation bundle was rebuilt and smoke-tested from clean commit `725b7a9`. Earlier `V0.1.0` and `0.7.0-dev` records are historical.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -281,21 +282,21 @@ The application and package version sources were synchronized to `V0.1.0` (setup
 
 ## Version update to `V1.0.0` — 2026-10-19
 
-The application and package version sources use `V1.0.0` (setuptools normalizes package metadata to `1.0.0`). The initial `V1.0.0` bundle was built from clean source commit `e585a874499ac8b533201fda7e8746d5fbf5dda4` and passed the isolated packaged smoke; artifact details and SHA-256 are in [Packaging](PACKAGING.md). The bundle is unsigned internal validation output. This version update creates no Git tag or public release.
+The application and package version sources use `V1.0.0` (setuptools normalizes package metadata to `1.0.0`). The initial `V1.0.0` bundle was built from clean source commit `e585a874499ac8b533201fda7e8746d5fbf5dda4` and passed the isolated packaged smoke; artifact details and SHA-256 are in [Packaging](PACKAGING.md). The bundle is unsigned internal validation output. No `v1.0.0` tag or public release was created by this version update.
 
 ## Current Phase 11/12 audit — 2026-10-19
 
-The implementation and regression changes are committed on `chore/repository-cleanup` as `725b7a9b14987ce556406e1f34440fab59fd92da`; the validation evidence was added in `fb38f72790e0044b6249019aa430146e873c78cc`. The package was rebuilt from the clean implementation commit. Both commits were pushed to `origin/chore/repository-cleanup`; the post-push check found that branch at `fb38f72` while `origin/main` remained at `e585a874`. [GitHub Actions run 39300209725](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39300209725) passed for exact pushed SHA `fb38f72790e0044b6249019aa430146e873c78cc`, including the Windows/Python 3.12 test/static job and the independent PyInstaller package-smoke job. No change was made to `main`.
+The implementation and regression changes are committed on `chore/repository-cleanup` as `725b7a9b14987ce556406e1f34440fab59fd92da`; the validation evidence was added in `fb38f72790e0044b6249019aa430146e873c78cc`. The package was rebuilt from the clean implementation commit. Those commits were pushed to `origin/chore/repository-cleanup`; at that checkpoint it was `fb38f72` and `origin/main` was still `e585a874`. [GitHub Actions run 39300209725](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39300209725) passed for exact SHA `fb38f72790e0044b6249019aa430146e873c78cc`, including the Windows/Python 3.12 test/static job and the independent PyInstaller package-smoke job. After the subsequent user-requested main promotion, [GitHub Actions run 39302273031](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39302273031) passed for exact SHA `9aed7f385ee948f90b7077513bd0b2af324f68b2`. Both `origin/main` and `origin/chore/repository-cleanup` now point to that commit.
 
 | Gate | Current evidence |
 |---|---|
-| Regression | Full local run: 409 passed, 2 skipped, 0 failed (411 collected, 43.10 seconds, exit 0). Skips: this Windows profile blocks symlink creation; the actual Recycle Bin test is opt-in. |
+| Regression | Fresh local run on 2026-10-20: 409 passed, 2 skipped, 0 failed (411 collected, 55.06 seconds, exit 0). Skips: this Windows profile blocks symlink creation; the actual Recycle Bin test is opt-in. |
 | Static and dependency | Ruff passed. Mypy passed across 55 app files. `pip check` found no broken requirements. `pip-audit --local` found no known advisories; the local project package is not on PyPI. |
 | Version | App and console entry points report `V1.0.0`; installed project metadata is `1.0.0`; executable ProductVersion is `V1.0.0`, FileVersion `1.0.0.0`. |
 | Windows package | Python 3.12.10 x64, PyInstaller 6.22.3, Windows 11 Enterprise build 26300. Unsigned onedir EXE: 11,263,131 bytes; bundle: 245,950,451 bytes; SHA-256 and smoke evidence are in [Packaging](PACKAGING.md). The isolated import, persistence, SQLite, Qt startup/shutdown smoke passed. |
-| Documentation and workflow | 81 local Markdown links/fragments resolve. CI has a dependent Windows package smoke job; run 39300209725 passed both jobs for pushed commit `fb38f72`, and it does not upload or publish an artifact. |
+| Documentation and workflow | Local audit on 2026-10-20: 82 local Markdown links/fragments across 16 files, with no broken references. CI has a dependent Windows package smoke job; run 39302273031 passed both jobs for exact main SHA `9aed7f3`, and it does not upload or publish an artifact. |
 | Manual acceptance | Live wallpaper API, physical keyboard/Narrator, Windows 10, and clean-machine tests remain **NOT RUN**. Phase 11 remains **PARTIALLY COMPLETE**. |
-| Release boundary | No version tag, installer, signature, or public release was created. Only `chore/repository-cleanup` is in scope; the main branch is not a target of this work. |
+| Release boundary | Existing repository tags are `v0.7.0` and `v0.9.0`; no `v1.0.0` tag, installer, signature, or public release was created. The tested commit had been explicitly promoted to `main` before this follow-up; the current docs/ignore changes are scoped to `chore/repository-cleanup`. |
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase
