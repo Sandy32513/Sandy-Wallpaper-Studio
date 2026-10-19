@@ -2,13 +2,14 @@
 
 **Current development phase: Phase 11 - PARTIALLY COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 387 passed / 2 skipped / 0 failed (389 collected)**
-**Branch: chore/repository-cleanup**
+**Latest full test run: 387 passed / 2 skipped / 0 failed (389 collected; 53.83 seconds; exit 0)**
+**Remote main at finalization audit start: `b2e8474`**
+**Working branch: chore/repository-cleanup**
 **Phase 11 starting baseline: 12b755003ae8c462eee3b01b60b8c506e76bb8d5**
 
 This document is the implementation-status reference for the repository.
 
-Phases 0-10 are complete. The Phase 11 hardening review is recorded below. At the start of this work, `origin/main` and `origin/chore/repository-cleanup` both pointed to `12b7550`; local `main` was stale at `2dac973`. Phase 11 work stays on `chore/repository-cleanup`; it is not merged to `main`. The application and package metadata remain `0.7.0-dev`.
+Phases 0-10 are complete. The Phase 11 hardening review is recorded below. At the start of this work, `origin/main` and `origin/chore/repository-cleanup` both pointed to `12b7550`; local `main` was at `2dac973`. Phase 11 was developed on `chore/repository-cleanup` and later fast-forward-pushed to `main`. At the start of this finalization audit, both remote branches contained `b2e8474faa26aabab287d222c437af46cbbeaa7a`; local `main` remains 14 commits behind and is not the working branch. This finalization follow-up is recorded on the development branch only; `main` remains at `b2e8474`. The application and package metadata remain `0.7.0-dev`.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -219,7 +220,7 @@ Changing the configured library root does not move or reindex image files and do
 
 - Focused Phase 10 tests: 25 passed (`python -m pytest tests/test_phase10.py -q`, exit code 0).
 - Phase 8 + Phase 10 focused regression: 56 passed (`python -m pytest tests/test_phase8.py tests/test_phase10.py -q`, exit code 0).
-- Full regression: 377 passed, 2 skipped, 0 failed (379 collected; `python -m pytest -q`, exit code 0). The two skips are the existing opt-in Windows Recycle Bin integration checks.
+- Full regression: 377 passed, 2 skipped, 0 failed (379 collected; `python -m pytest -q`, exit code 0). The skips were the symlink-safety case (unavailable under this profile) and the opt-in Windows Recycle Bin integration.
 - During finalization, an earlier full run printed all tests as passing but Windows returned `0xC0000409` during process shutdown. Isolation traced it to changing the rotation Stop checkbox before a simulated settings-save failure. The control now changes only after persistence succeeds; the final full run exited 0.
 - Ruff: passed (`python -m ruff check .`, exit code 0).
 - Mypy: passed with no issues in 55 source files (`python -m mypy app`, exit code 0).
@@ -248,15 +249,17 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 
 ### Phase 11 validation record
 
-- Baseline on the unchanged checkout: 377 passed, 2 skipped (379 collected); Ruff and mypy passed. The two skips are optional Windows Recycle Bin integration tests.
-- Final full suite: 387 passed, 2 skipped, 0 failed (389 collected; 59.96 seconds; exit code 0; `QT_QPA_PLATFORM=offscreen python -m pytest -q`). An initial run found that the URL error text had dropped the existing “Invalid URL” prefix; the wording was restored and the full run then passed.
+- Baseline on the unchanged checkout: 377 passed, 2 skipped (379 collected); Ruff and mypy passed.
+- A preliminary `python -m pytest` resolved to system Python instead of the project venv and was intentionally interrupted during collection (exit 1); it was not treated as a failed test run. The completed venv run below is the authoritative result.
+- Latest full suite: 387 passed, 2 skipped, 0 failed (389 collected; 53.83 seconds; exit code 0; project `.venv`, Python 3.12.10, pytest 9.1.1; PowerShell set `$env:QT_QPA_PLATFORM = "offscreen"`, then run `python -m pytest`). The symlink-safety test skipped because this Windows profile disallows symlink creation; the real Recycle Bin round-trip is opt-in and was skipped in the full suite. A focused cleanup run passed 11 tests and confirmed both skip reasons (exit 0).
+- The project-venv opt-in Recycle Bin test skipped because `pywin32` is not installed there. Re-running the isolated test with system Python 3.12.10, pytest 9.0.3 and available `pywin32` passed (1 passed, exit 0); the unique temporary target was restored and its bytes verified.
 - Focused Phase 11 regression and Windows Qt capture tests: 10 passed. The tests reject oversized headers before decode, enforce direct HTTPS/no redirects, verify partial-download cleanup, exercise sidebar keyboard activation and accessible names, and assert that Library/Favorites have no horizontal scroll at 800x600.
 - Windows-rendered Qt capture sizes requested/achieved: 1280x800 / 1280x800; 1024x768 / 1024x768; 800x600 / 800x600; 1440x900 / 1440x844 (the screen work area constrained the last height). Dialog captures include detail (800x592 client), import progress, comparison, and Recycle Bin confirmation. The QTest path activates Settings by Space and checks rotation control accessible names. Physical mouse/keyboard spot checks and screen-reader testing were unavailable.
-- Large-library and performance measurements: 100, 500, 1,000 and 5,000 synthetic records completed. At 5,000, the scan took 90.129 seconds, processed 55.48 records/second, and peaked at 239.05 MiB working set. Accuracy, issues and cancellation timings are recorded in [Phase 11 Performance](PHASE11_PERFORMANCE.md).
-- Platform: Microsoft Windows 11 Enterprise, build 26300, Python 3.12.10 x64. The app was launched against temporary test data. No live wallpaper change, live provider request, or real user library operation was performed. Native wallpaper application was therefore not revalidated in this phase; optional Recycle Bin round-trip coverage was skipped in the full suite (a prior Phase 9 isolated round trip is documented above).
-- Ruff 0.17.0 checks `app`, `tests`, and `scripts`; mypy 2.4.0 checks 55 application source files. `.venv\Scripts\pip-audit.exe --local` reported no known advisories in the project environment; the local project package is not published to PyPI and was not audited as a published distribution. A separate PATH-resolved global Python audit (not the project venv) reported advisories in 12 unrelated global-environment packages; those packages were not modified.
-- `git diff --check` passed. README/docs link validation checked 56 local Markdown links and heading anchors; all resolved. Both CLI version entry points still report `0.7.0-dev`.
-- Phase 11 implementation commit `698f58c2ae19d2efe04d68cc50d852ee59606522` is pushed to `origin/chore/repository-cleanup`; [GitHub Actions run 39184405944](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39184405944) passed on Windows/Python 3.12. The branch remote points to this commit and `origin/main` remains at `12b755003ae8c462eee3b01b60b8c506e76bb8d5`.
+- Large-library and performance measurements: 100, 500, 1,000 and 5,000 synthetic records completed with correctness checks and exit code 0. At 5,000, the latest scan took 105.946 seconds, processed 47.19 records/second, peaked at 239.81 MiB working set, and returned from cancellation in 8.3 ms. Prior single-run results varied; no performance SLA or optimization claim is made. See [Phase 11 Performance](PHASE11_PERFORMANCE.md).
+- Platform: Microsoft Windows 11 Enterprise, build 26300, Python 3.12.10 x64. The app was launched against temporary test data. No live wallpaper change, live provider request, or real user library operation was performed. Native wallpaper application was therefore not revalidated in this phase. The optional Recycle Bin case skipped in the venv full suite, but its separate system-Python round-trip passed and restored the synthetic target.
+- Ruff 0.17.0 (`python -m ruff check .`) passed; mypy 2.4.0 (`python -m mypy app`) passed for 55 application source files. `.venv\Scripts\pip-audit.exe --local` reported no known advisories in installed project dependencies; the local project distribution is not on PyPI and could not be audited as a published package. A separate earlier global-Python audit reported advisories in unrelated global-environment packages; those packages were not modified.
+- `git diff --check` passed. README/docs link validation checked 58 local Markdown links and heading anchors; all resolved. Both CLI version entry points still report `0.7.0-dev`.
+- Phase 11 implementation commit `698f58c2ae19d2efe04d68cc50d852ee59606522` and documentation commit `b2e8474faa26aabab287d222c437af46cbbeaa7a` are present on `origin/main` and the development branch. [GitHub Actions run 39184857853](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39184857853) passed for the exact main SHA `b2e8474faa26aabab287d222c437af46cbbeaa7a` on Windows/Python 3.12. The finalization follow-up is recorded only on `chore/repository-cleanup`; `main` remains at `b2e8474`. No pull request was created. Updating `main` did not create a versioned release, tag, executable, or installer.
 
 ### Security and release limitations
 

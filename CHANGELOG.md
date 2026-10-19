@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Verified
 - Full regression: 387 passed, 2 skipped (389 collected); Ruff and mypy passed. Project-venv `pip-audit --local` found no known advisories in installed packages (the local project package is not on PyPI). Benchmark results and inspected Windows Qt sizes are in `docs/PHASE11_PERFORMANCE.md` and `docs/PROJECT_STATUS.md`.
-- The project version remains `0.7.0-dev`; no Phase 11 release tag, executable, installer, or main-branch merge is created.
+- The project version remains `0.7.0-dev`; Phase 11 commits are on `main`, but no Phase 11 release tag, executable, installer, or product release was created.
 
 #### Remaining security limitation
 - DNS hostnames are not pinned to a vetted public IP address. URL checks reject obvious local targets and redirects, but do not eliminate DNS rebinding or a public hostname resolving to a private address.

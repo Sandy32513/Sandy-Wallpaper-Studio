@@ -2,7 +2,8 @@
 
 ## Method
 
-Run on 2026-10-19 from the Windows Python 3.12.10 virtual environment:
+Revalidation run on 2026-10-19 from the Windows Python 3.12.10 virtual environment
+(pytest benchmark worker uses the same virtual-environment interpreter):
 
 ```powershell
 python scripts/phase11_benchmark.py --sizes 100 500 1000 5000
@@ -12,14 +13,14 @@ The script creates each dataset beneath a temporary directory and runs each scan
 
 ## Results
 
-| Records | Valid files | Scan time | Files/second | Peak working set | Cancel-to-return |
-|---:|---:|---:|---:|---:|---:|
-| 100 | 98 | 6.802 s | 14.70 | 235.85 MiB | 10.7 ms |
-| 500 | 498 | 10.379 s | 48.17 | 235.82 MiB | 23.2 ms |
-| 1,000 | 998 | 20.793 s | 48.09 | 236.15 MiB | 6.6 ms |
-| 5,000 | 4,998 | 90.129 s | 55.48 | 239.05 MiB | 6.6 ms |
+| Records | Valid files | Fixture generation | Scan time | Files/second | Peak working set | Cancel-to-return |
+|---:|---:|---:|---:|---:|---:|---:|
+| 100 | 98 | 1.050 s | 3.350 s | 29.85 | 236.09 MiB | 4.4 ms |
+| 500 | 498 | 1.961 s | 11.019 s | 45.38 | 236.17 MiB | 12.2 ms |
+| 1,000 | 998 | 3.024 s | 19.957 s | 50.11 | 236.68 MiB | 10.6 ms |
+| 5,000 | 4,998 | 18.275 s | 105.946 s | 47.19 | 239.81 MiB | 8.3 ms |
 
-At every size, the expected exact-copy group and near-match group were found; the corrupt image and missing file were reported as issues. The benchmark's correctness checks passed at all four sizes. The 5,000-record scan completed in 90.129 seconds with a 239.05 MiB peak working set on this machine.
+At every size, the expected exact-copy group and near-match group were found; the corrupt image and missing file were reported as issues. The benchmark's correctness checks passed at all four sizes (exit code 0). The 5,000-record scan completed in 105.946 seconds with a 239.81 MiB peak working set on this machine. An earlier Phase 11 run recorded 90.129 seconds for 5,000 records; these single-machine runs are reference measurements, not a controlled before/after comparison or performance guarantee.
 
 ## Interpretation and limits
 
@@ -28,4 +29,5 @@ At every size, the expected exact-copy group and near-match group were found; th
 - Peak working set is the Windows scanner child process measurement. It does not include fixture-generation process memory or other application windows.
 - Cancellation latency is a local service measurement. It does not measure how quickly the GUI repaints or how long Windows may take to close an entire application.
 - Dataset images are small except for the single 8K fixture; the run is not a worst-case 5,000-image 8K workload.
+- Hashing/decoding time was not isolated from total scan time; thumbnail generation, database-query latency, and GUI response time were not separately benchmarked. UI responsiveness was checked through Qt interaction/render tests, not timed under this synthetic scan workload.
 - The benchmark does not copy, scan, or alter the user's wallpaper library.

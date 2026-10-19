@@ -5,11 +5,12 @@
 > A Windows desktop wallpaper library built with Python and PySide6, combining local collection management, image validation, duplicate detection, Wikimedia Commons metadata, and native desktop wallpaper controls.
 
 <p align="center">
-  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio"><img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Supported platform: Windows 10 and Windows 11"></a>
+  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio"><img src="https://img.shields.io/badge/target-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Target platform: Windows 10 and Windows 11; Phase 11 was exercised on Windows 11"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or later"></a>
   <a href="https://www.qt.io/qt-for-python"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt&logoColor=white" alt="GUI framework: PySide6"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
   <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2011%20hardening%20review-6f42c1" alt="Phase 11 hardening evidence and remaining limitations are documented"></a>
+  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml"><img src="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml/badge.svg?branch=main" alt="GitHub Actions tests on main"></a>
 </p>
 
 <p align="center">
@@ -55,7 +56,7 @@ It is aimed at Windows users who want a more organized desktop-image library and
 
 | | Details |
 |---|---|
-| Platform | Windows 10 / Windows 11 |
+| Target platform | Windows 10 / Windows 11; this Phase 11 pass ran on Windows 11 |
 | Python | 3.12 or later |
 | Interface | PySide6 / Qt for Python |
 | Local persistence | SQLite |
@@ -66,7 +67,7 @@ It is aimed at Windows users who want a more organized desktop-image library and
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 adds release-hardening safeguards, responsive small-window layouts, and reproducible QA records. This checkout remains version `0.7.0-dev`; it is not a packaged release. See [Project Status](docs/PROJECT_STATUS.md) and the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md) for evidence and remaining limitations. Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 11 adds release-hardening safeguards, responsive small-window layouts, and reproducible QA records. The Phase 11 implementation commits are on `main` and `chore/repository-cleanup`; this final QA/documentation follow-up stays on the development branch. The current version remains `0.7.0-dev`, and the repository has not produced a packaged release. Native wallpaper application, screen-reader/physical-input review, and DNS address pinning remain open hardening items. See [Project Status](docs/PROJECT_STATUS.md) and the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md) for evidence. Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -81,7 +82,7 @@ Phases 0-10 are complete. Phase 11 adds release-hardening safeguards, responsive
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
 | Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
 | Settings and attribution export | Complete | Operational preferences and stored-metadata CSV export |
-| Release hardening | QA recorded; see remaining limitations | Phase 11; no release tag or package was produced |
+| Release hardening | QA recorded; see remaining limitations | Phase 11 is on `main`; no release tag, package, or installer was produced |
 | Packaging and installer | Planned | Phases 12–13; no installer is available |
 
 For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATUS.md) and [Roadmap](docs/ROADMAP.md). Historical test counts in those documents are not a guarantee of the current machine's result.
@@ -321,7 +322,7 @@ Backend capabilities do not imply that each workflow is wired into a finished GU
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers, and shared image utilities. Phase 10 adds validated JSON settings, `SettingsView`, safe attribution CSV export, configurable source/download construction, and background library/cache maintenance. Phase 11 adds image-dimension and download URL checks, responsive Dashboard/Library/Favorites layouts, and hardened previews. Rotation and duplicate review remain dedicated service/UI workflows.
+The project separates presentation, application services, data access, providers, and shared image utilities. Phase 8 adds local rotation scheduling; Phase 9 adds duplicate scanning, comparison, and guarded cleanup; Phase 10 adds validated JSON settings, safe attribution CSV export, configurable source/download construction, and background library/cache maintenance; Phase 11 adds image-dimension and download URL checks, responsive layouts, and hardened previews. The tree below highlights core modules; later-phase modules are listed after it.
 
 ```text
 app/
@@ -369,6 +370,12 @@ docs/
 ├── PROJECT_STATUS.md          # Phase status and exit-gate notes
 └── ROADMAP.md                 # Planned phase deliverables
 ```
+
+Additional Phase 8–10 modules include:
+
+- `app/services/`: `rotation_service.py`, `rotation_scheduler.py`, `duplicate_scan_service.py`, `duplicate_scan_worker.py`, `duplicate_cleanup_service.py`, and `attribution_export_service.py`.
+- `app/ui/`: `rotation_view.py`, `duplicate_manager_view.py`, and `settings_view.py`.
+- `app/ui/components/`: `comparison_dialog.py` and `cleanup_confirmation_dialog.py`.
 
 ### Request and data flow
 
@@ -430,6 +437,8 @@ Wikimedia Commons items can carry different licenses and attribution requirement
 
 The test suite contains phase-based coverage through Phase 11. The current verified result is recorded in [Project Status](docs/PROJECT_STATUS.md), and the reproducible large-library results are in [Phase 11 Performance](docs/PHASE11_PERFORMANCE.md).
 
+The latest local full run on Windows 11 with the project virtual environment (Python 3.12.10, pytest 9.1.1) completed with **387 passed, 2 skipped, 0 failed** (389 collected; 53.83 seconds). The symlink-safety test skipped because this Windows profile disallows symlink creation; the Recycle Bin integration is opt-in and was disabled in the full run. Enabling it in the project venv also skipped because `pywin32` is not installed there. The isolated real Recycle Bin round-trip passed separately under system Python with `pywin32`, restoring and byte-checking its temporary fixture. The exact main-branch commit passed GitHub Actions; details and remaining manual verification are in [Project Status](docs/PROJECT_STATUS.md).
+
 From the repository root, with development dependencies installed:
 
 ```powershell
@@ -478,7 +487,7 @@ The Phase 11 QA record uses isolated temporary images/databases and mocked netwo
 Optional quality tools are configured in `pyproject.toml`:
 
 ```powershell
-python -m ruff check app tests scripts
+python -m ruff check .
 python -m mypy app
 ```
 

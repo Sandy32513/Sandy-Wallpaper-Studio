@@ -49,7 +49,7 @@ Validated, atomic JSON preferences; operational Settings tabs for library/import
 # Phase 11 — Release Hardening
 **PARTIALLY COMPLETE — evidence and remaining limitations are recorded in [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md) and [Project Status](PROJECT_STATUS.md).**
 
-Regression, synthetic scale, error-path, dependency, and Windows-rendered Qt checks have been run. The application remains `0.7.0-dev`; native wallpaper application, physical-input/screen-reader verification, and release branch promotion are not claimed as completed release gates.
+Regression, synthetic scale, error-path, dependency, and Windows-rendered Qt checks have been run. The Phase 11 commits are present on `origin/main` and `origin/chore/repository-cleanup`, but this is not a versioned product release. The application remains `0.7.0-dev`; DNS address pinning, native wallpaper application, and screen-reader/physical-input review remain unverified in the current environment. The isolated Recycle Bin round-trip passed with a temporary file under system Python; the project venv lacks the optional `pywin32` helper.
 
 # Phase 12 — Executable Packaging
 PyInstaller build, Windows executable, version metadata, build validation and clean-machine testing.
