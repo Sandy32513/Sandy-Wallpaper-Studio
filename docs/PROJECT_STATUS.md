@@ -256,7 +256,7 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 - Platform: Microsoft Windows 11 Enterprise, build 26300, Python 3.12.10 x64. The app was launched against temporary test data. No live wallpaper change, live provider request, or real user library operation was performed. Native wallpaper application was therefore not revalidated in this phase; optional Recycle Bin round-trip coverage was skipped in the full suite (a prior Phase 9 isolated round trip is documented above).
 - Ruff 0.17.0 checks `app`, `tests`, and `scripts`; mypy 2.4.0 checks 55 application source files. `.venv\Scripts\pip-audit.exe --local` reported no known advisories in the project environment; the local project package is not published to PyPI and was not audited as a published distribution. A separate PATH-resolved global Python audit (not the project venv) reported advisories in 12 unrelated global-environment packages; those packages were not modified.
 - `git diff --check` passed. README/docs link validation checked 56 local Markdown links and heading anchors; all resolved. Both CLI version entry points still report `0.7.0-dev`.
-- GitHub Actions result for the Phase 11 commit and final remote head will be recorded after the branch push.
+- Phase 11 implementation commit `698f58c2ae19d2efe04d68cc50d852ee59606522` is pushed to `origin/chore/repository-cleanup`; [GitHub Actions run 39184405944](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39184405944) passed on Windows/Python 3.12. The branch remote points to this commit and `origin/main` remains at `12b755003ae8c462eee3b01b60b8c506e76bb8d5`.
 
 ### Security and release limitations
 
