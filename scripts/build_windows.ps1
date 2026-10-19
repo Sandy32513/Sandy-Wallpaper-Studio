@@ -76,6 +76,14 @@ try {
     if ($appVersion -ne $metadataVersionMatch.Groups[1].Value) {
         throw "pyproject.toml and app.constants disagree on the application version."
     }
+    $distributionVersion = (& $PythonPath -c "from importlib.metadata import version; print(version('sandy-wallpaper-studio'))").Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not read the installed sandy-wallpaper-studio distribution version."
+    }
+    $normalizedVersion = (& $PythonPath -c "from packaging.version import Version; print(Version('$appVersion'))").Trim()
+    if ($LASTEXITCODE -ne 0 -or $distributionVersion -ne $normalizedVersion) {
+        throw "Installed package metadata '$distributionVersion' does not match normalized project version '$normalizedVersion'."
+    }
     $versionMatch = [regex]::Match($appVersion, '^[vV]?(\d+)\.(\d+)\.(\d+)(?:-[A-Za-z0-9.-]+)?$')
     if (-not $versionMatch.Success) {
         throw "APP_VERSION '$appVersion' cannot be encoded as Windows numeric version metadata."
@@ -237,6 +245,7 @@ VSVersionInfo(
     }
     $manifest = [ordered]@{
         app_version = $appVersion
+        distribution_version = $distributionVersion
         file_version = $numericVersion
         pyinstaller_version = $pyinstallerVersion
         python_version = ($pythonInfo.version -join ".")
@@ -244,6 +253,7 @@ VSVersionInfo(
         build_mode = "onedir, windowed, unsigned"
         executable_path = $executablePath
         executable_bytes = $executable.Length
+        executable_sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $executablePath).Hash
         bundle_bytes = (Get-ChildItem -LiteralPath $bundlePath -File -Recurse | Measure-Object -Property Length -Sum).Sum
         qt_core = $qtCore.FullName
         qt_windows_platform_plugin = $qtPlatform.FullName
@@ -258,8 +268,10 @@ VSVersionInfo(
 
     Write-Host "Build complete"
     Write-Host "APP_VERSION: $appVersion"
+    Write-Host "Distribution version: $distributionVersion"
     Write-Host "PyInstaller: $pyinstallerVersion"
     Write-Host "Executable: $executablePath ($($executable.Length) bytes)"
+    Write-Host "Executable SHA-256: $($manifest.executable_sha256)"
     Write-Host "Bundle size: $($manifest.bundle_bytes) bytes"
     Write-Host "Manifest: $manifestPath"
     Write-Host "Packaged GUI first-run and shutdown smoke test passed."

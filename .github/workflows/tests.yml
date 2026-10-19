@@ -52,3 +52,27 @@ jobs:
       - name: Run test suite
         run: |
           python -m pytest -v
+
+  package-validation:
+    name: Package Smoke (Windows / Python 3.12)
+    needs: test
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install runtime and pinned packaging dependencies
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install -e ".[packaging]"
+
+      - name: Build and smoke-test the internal bundle
+        run: |
+          .\scripts\build_windows.ps1 -PythonPath "$PWD\.venv\Scripts\python.exe" -SkipDependencyInstall -SkipPreBuildChecks

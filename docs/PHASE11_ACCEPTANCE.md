@@ -57,6 +57,19 @@ This follow-up is recorded on `chore/repository-cleanup` from the then-current `
 
 The Phase 12 follow-up commits, branch push, and exact GitHub Actions result are recorded in [Project Status](PROJECT_STATUS.md); this document keeps manual acceptance gates distinct from local results.
 
+## Follow-up regression and packaging audit — 2026-10-19
+
+This later local run supersedes the earlier 405/407 regression count above. It includes added coverage for failed settings persistence, proxy environment isolation, Windows registry and wallpaper API error handling through fakes, rotation keyboard focus order, and application/package version agreement.
+
+| Gate | Current evidence |
+|---|---|
+| Regression | `QT_QPA_PLATFORM=offscreen .venv\\Scripts\\python.exe -m pytest -q -rs`: 409 passed, 2 skipped, 0 failed (411 collected; exit 0). Skips: symlink creation is denied by this Windows profile; the real Recycle Bin integration is opt-in. |
+| Static and dependency checks | Ruff passed; mypy passed for 55 application files; `pip check` reported no broken requirements; `pip-audit --local` found no known advisories (the local project distribution is not on PyPI). |
+| Version and entry points | App and console commands report `V1.0.0`; installed distribution metadata normalizes to `1.0.0`; `packaging.version.Version` accepts the normalized version. |
+| Added acceptance safeguards | Fake API tests verify exact registry value/type restoration and SystemParametersInfo error handling without changing the live wallpaper. Settings-apply failure retains existing usage/history. Proxy variables do not affect the download session. QTest verifies automatic-rotation keyboard focus order. |
+| Manual acceptance | Native wallpaper application, physical keyboard/Narrator review, Windows 10, and a clean-machine test remain **NOT RUN**. The prompt requires explicit approval before the live wallpaper change; none was given. |
+| Release state | Phase 11 remains **PARTIALLY COMPLETE**. Phase 12 is local packaging validation only; no installer, tag, signature, or public release is created. Current branch work is confined to `chore/repository-cleanup`; `main` is not updated by this work. |
+
 ## Verification command index
 
 Commands below ran against isolated fixtures or the repository virtual environment unless a row says otherwise. The Windows-rendered UI captures and native-shell cleanup procedure used temporary data.

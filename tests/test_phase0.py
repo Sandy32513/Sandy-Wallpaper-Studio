@@ -10,6 +10,7 @@ import json
 import logging
 from pathlib import Path
 
+from app import __version__
 from app.config import Config
 from app.constants import (
     APP_NAME,
@@ -32,6 +33,7 @@ class TestConstants:
     def test_app_identity(self) -> None:
         assert APP_NAME == "Sandy Wallpaper Studio"
         assert APP_VERSION == "V1.0.0"
+        assert __version__ == APP_VERSION
 
     def test_resolution_classes_ordered(self) -> None:
         """8K > 5K > 4K must be defined and have correct minimums."""

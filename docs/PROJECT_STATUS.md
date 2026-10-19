@@ -2,14 +2,15 @@
 
 **Current development phase: Phase 12 - PACKAGING VALIDATION ONLY; Phase 11 remains PARTIALLY COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 405 passed / 2 skipped / 0 failed (407 collected; exit 0)**
-**Remote main at this follow-up start: `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`**
-**Working branch: main**
+**Latest full test run: 409 passed / 2 skipped / 0 failed (411 collected; exit 0)**
+**Audit starting branch/commit: `main` / `e585a874499ac8b533201fda7e8746d5fbf5dda4`**
+**Remote cleanup branch at audit start: `d8f0fd9d4a49353ab10c9d49a0348a05563f4be5`**
+**Task branch: `chore/repository-cleanup`**
 **Phase 11 starting baseline: 12b755003ae8c462eee3b01b60b8c506e76bb8d5**
 
-This document is the implementation-status reference for the repository. The Phase 11/12 follow-up below supersedes older test counts and the DNS residual finding in the historical Phase 11 record.
+This document is the implementation-status reference for the repository. The dated Phase 11/12 follow-ups supersede older test counts and the DNS residual finding in the historical Phase 11 record.
 
-Phases 0-10 are complete. Historical Phase 11 results are recorded below. The finalization work from `chore/repository-cleanup` has been fast-forwarded onto `main`. The current source version is `V1.0.0`; the most recent locally validated Windows bundle is `V0.1.0`, and has not been rebuilt for the current version. Earlier `0.7.0-dev` build and acceptance records are historical.
+Phases 0-10 are complete. Historical Phase 11 results are recorded below. This audit began from a clean local `main` at `e585a874`. The remote cleanup branch at `d8f0fd9` was verified as an ancestor, then only the local `chore/repository-cleanup` branch was fast-forwarded to `e585a874` before work began. `main` was not changed. The source version is `V1.0.0`; a matching Windows bundle was locally rebuilt and smoke-tested from the clean `e585a874` source. Earlier `V0.1.0` and `0.7.0-dev` records are historical.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -261,18 +262,18 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 - `git diff --check` passed. README/docs link validation checked 58 local Markdown links and heading anchors; all resolved. Both CLI version entry points still report `0.7.0-dev`.
 - Phase 11 implementation commit `698f58c2ae19d2efe04d68cc50d852ee59606522` and documentation commit `b2e8474faa26aabab287d222c437af46cbbeaa7a` are present on `origin/main` and the development branch. [GitHub Actions run 39184857853](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39184857853) passed for the exact main SHA `b2e8474faa26aabab287d222c437af46cbbeaa7a` on Windows/Python 3.12 at that checkpoint. Later main history reached `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`, the baseline for the Phase 11/12 follow-up. The follow-up work remains on `chore/repository-cleanup`; it does not update `main`. No pull request was created. These changes did not create a versioned release, tag, or installer.
 
-### Security and release limitations
+### Security and release limitations at the Phase 11 checkpoint
 
-- **Low — manual desktop/platform evidence:** no native wallpaper change or physical-input/screen-reader run was performed; Windows 10 and clean-machine acceptance remain unverified. At this Phase 11 checkpoint the app was version `0.7.0-dev`; the current `V0.1.0` build is still not a public release.
+- **Low — manual desktop/platform evidence:** no native wallpaper change or physical-input/screen-reader run was performed; Windows 10 and clean-machine acceptance remain unverified. At the historical Phase 11 checkpoint the app was version `0.7.0-dev`; the subsequent `V0.1.0` build was also local validation output only.
 
 ## Phase 12 — Windows executable packaging
 **Status: PARTIALLY COMPLETE — local packaging validation only.** The reproducible PyInstaller 6.22.3 Windows x64 `onedir` bundle is built to an ignored output path and smoke-tested on Windows 11 in a temporary profile whose path contains spaces. The packaged smoke imports a generated supported PNG through `ImportService`, then uses a fresh process to verify the image record/file, metadata, SHA-256, pHash/SciPy, generated thumbnail, saved setting, and SQLite integrity. It also checks version resources, Qt GUI startup/title/shutdown, sanitized PATH, first-run files, and temporary-profile cleanup. Exact artifact size, package versions, and smoke manifest are recorded in [Packaging](PACKAGING.md).
 
 No installer, signing, release tag, or public distribution was created. Clean Windows 10/11 machine or VM acceptance remains **NOT RUN**. Native wallpaper, physical-input, and Narrator checks remain **NOT RUN** as recorded in [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
 
-## Phase 12 packaging follow-up — 2026-10-19
+## Previous Phase 12 packaging follow-up snapshot — 2026-10-19
 
-The packaged import and fresh-process persistence checks are in commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`; the evidence/documentation update is commit `30c02804daf5e0a6910f157eeb466f7383c26d46`. Both were pushed to `origin/chore/repository-cleanup`. [GitHub Actions run 39292154877](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39292154877) passed for the exact `30c02804daf5e0a6910f157eeb466f7383c26d46` SHA on Windows/Python 3.12: 406 passed, 1 skipped; entry points, Ruff, mypy, and pytest all passed. `origin/main` remains at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; no Phase 12 changes were pushed there.
+The packaged import and fresh-process persistence checks are in commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`; the evidence/documentation update is commit `30c02804daf5e0a6910f157eeb466f7383c26d46`. Both were pushed to `origin/chore/repository-cleanup`. [GitHub Actions run 39292154877](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39292154877) passed for the exact `30c02804daf5e0a6910f157eeb466f7383c26d46` SHA on Windows/Python 3.12: 406 passed, 1 skipped; entry points, Ruff, mypy, and pytest all passed. At that earlier snapshot `origin/main` remained at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`.
 
 ## Previous version identifier update — `V0.1.0` — 2026-10-19
 
@@ -280,7 +281,7 @@ The application and package version sources were synchronized to `V0.1.0` (setup
 
 ## Version update to `V1.0.0` — 2026-10-19
 
-The application and package version sources now use `V1.0.0` (setuptools normalizes package metadata to `1.0.0`). The previous `V0.1.0` bundle remains the latest local validation artifact; a `V1.0.0` bundle has not been built or smoke-tested. This update creates no Git tag or public release.
+The application and package version sources use `V1.0.0` (setuptools normalizes package metadata to `1.0.0`). The initial `V1.0.0` bundle was built from clean source commit `e585a874499ac8b533201fda7e8746d5fbf5dda4` and passed the isolated packaged smoke; artifact details and SHA-256 are in [Packaging](PACKAGING.md). The bundle is unsigned internal validation output. This version update creates no Git tag or public release.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

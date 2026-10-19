@@ -149,9 +149,19 @@ def test_main_window_pages_and_dialogs_render_at_target_sizes(
     QTest.keyClick(settings_button, Qt.Key.Key_Space)
     qapp.processEvents()
     assert window._stack.currentWidget() is window._views["settings"]
-    rotation_view = window._views["settings"].tabs.widget(4)
+    settings = window._views["settings"]
+    settings.tabs.setCurrentIndex(4)
+    qapp.processEvents()
+    rotation_view = settings.tabs.widget(4)
     assert rotation_view._enabled.accessibleName() == "Enable automatic rotation"
     assert rotation_view._apply_button.accessibleName() == "Save or start automatic rotation"
+    rotation_view._enabled.setFocus()
+    QTest.keyClick(rotation_view._enabled, Qt.Key.Key_Tab)
+    qapp.processEvents()
+    assert rotation_view._interval.hasFocus()
+    QTest.keyClick(rotation_view._interval, Qt.Key.Key_Tab)
+    qapp.processEvents()
+    assert rotation_view._random.hasFocus()
 
     report = duplicates._report
     assert report is not None and report.completed and report.exact_groups

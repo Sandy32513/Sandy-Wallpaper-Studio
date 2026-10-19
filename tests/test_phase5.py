@@ -26,6 +26,7 @@ from app.database.wallpaper_repository import WallpaperRepository
 from app.services.wallpaper_service import (
     MonitorInfo,
     WallpaperNotFoundError,
+    WallpaperServiceError,
     WallpaperValidationError,
     WindowsWallpaperService,
 )
@@ -266,6 +267,42 @@ class TestSetSelectedWallpaper:
     def test_apply_nonexistent_id_raises_error(self, engine: WindowsWallpaperService) -> None:
         with pytest.raises(WallpaperNotFoundError, match="not found in database"):
             engine.set_selected_wallpaper(99999)
+
+    def test_failed_apply_preserves_existing_usage_and_history(
+        self,
+        engine: WindowsWallpaperService,
+        wallpaper_repo: WallpaperRepository,
+        history_repo: HistoryRepository,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        first_image = _create_test_image(tmp_path / "already-applied.jpg")
+        second_image = _create_test_image(tmp_path / "failed-apply.jpg")
+        first_id = wallpaper_repo.add(
+            Wallpaper(filename=first_image.name, path=str(first_image.resolve()), width=1920, height=1080)
+        )
+        second_id = wallpaper_repo.add(
+            Wallpaper(filename=second_image.name, path=str(second_image.resolve()), width=1920, height=1080)
+        )
+
+        engine.set_selected_wallpaper(first_id)
+        history_before = history_repo.get_recent()
+        stack_before = list(engine._history_stack)
+
+        def fail_apply(*_args: object, **_kwargs: object) -> bool:
+            raise WallpaperServiceError("native wallpaper apply failed")
+
+        monkeypatch.setattr(engine, "set_wallpaper", fail_apply)
+        with pytest.raises(WallpaperServiceError, match="native wallpaper apply failed"):
+            engine.set_selected_wallpaper(second_id)
+
+        assert history_repo.get_recent() == history_before
+        assert engine._history_stack == stack_before
+        first_after = wallpaper_repo.get_by_id(first_id)
+        second_after = wallpaper_repo.get_by_id(second_id)
+        assert first_after is not None and first_after.usage_count == 1
+        assert second_after is not None and second_after.usage_count == 0
+        assert second_after.last_used is None
 
     def test_apply_by_file_path(
         self,

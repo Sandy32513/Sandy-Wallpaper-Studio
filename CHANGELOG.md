@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Packaging and interactive Windows acceptance procedures in `docs/PACKAGING.md` and `docs/WINDOWS_ACCEPTANCE.md`.
 
 #### Scope
-- The initial local bundle used `0.7.0-dev`; the latest validation build is `V0.1.0`. The current source version is `V1.0.0`; no matching bundle, installer, signing, release tag, or public download has been produced. Clean-machine and Windows 10 acceptance remain open.
+- The initial local bundle used `0.7.0-dev`; `V0.1.0` is a previous validation build. The current source and latest local validation bundle are `V1.0.0`. No installer, signing, release tag, or public download has been produced. Clean-machine and Windows 10 acceptance remain open.
 
 ### Previous version identifier update (`V0.1.0`)
 - Synchronized the application version string and Python project metadata to `V0.1.0`.
@@ -46,8 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Version identifier update (`V1.0.0`)
 - Synchronized the application version string and Python project metadata to `V1.0.0`.
 - Setuptools normalizes distribution metadata to `1.0.0`; the Windows build script derives file-version metadata `1.0.0.0` and preserves the `V` product-version prefix.
-- The `V0.1.0` Windows validation bundle remains the latest built artifact; a `V1.0.0` bundle has not been built or smoke-tested.
-- This source version update does not create a Git tag or publish a release.
+- Built and smoke-tested an unsigned Windows x64 `onedir` validation bundle at `V1.0.0`; exact source commit and artifact evidence are in `docs/PACKAGING.md`.
+- The local validation bundle is not signed or published. No Git tag, installer, or public release was created.
 
 ### Phase 10 - Settings & Operational Features
 

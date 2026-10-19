@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import socket
+from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
@@ -10,6 +11,7 @@ import requests
 
 from app.services.download_service import (
     DownloadError,
+    DownloadService,
     PublicAddressHTTPSAdapter,
     _resolve_public_address,
 )
@@ -148,3 +150,25 @@ def test_adapter_fails_closed_for_invalid_urls_proxies_and_disabled_tls(
         adapter.get_connection_with_tls_context(public, verify=False, proxies={})
     resolver.assert_not_called()
     adapter.close()
+
+
+def test_download_session_ignores_proxy_environment_variables(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+        monkeypatch.setenv(name, "http://proxy.example:8080")
+
+    service = DownloadService(tmp_path / "downloads", tmp_path / "temp")
+    try:
+        assert service._session.trust_env is False
+        settings = service._session.merge_environment_settings(
+            "https://images.example/wallpaper.png",
+            {},
+            True,
+            None,
+            None,
+        )
+        assert settings["proxies"] == {}
+    finally:
+        service._session.close()
