@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Verified
 - Full regression: 387 passed, 2 skipped (389 collected); Ruff and mypy passed. Project-venv `pip-audit --local` found no known advisories in installed packages (the local project package is not on PyPI). Benchmark results and inspected Windows Qt sizes are in `docs/PHASE11_PERFORMANCE.md` and `docs/PROJECT_STATUS.md`.
-- The project version remains `0.7.0-dev`; Phase 11 commits are on `main`, but no Phase 11 release tag, executable, installer, or product release was created.
+- At the Phase 11 checkpoint, the project version was `0.7.0-dev`; Phase 11 commits are on `main`, but no Phase 11 release tag, installer, or product release was created.
 
 #### Remaining acceptance gates
 - Real desktop wallpaper application, physical keyboard/Narrator review, Windows 10, and clean-machine acceptance have not been completed.
@@ -35,7 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Packaging and interactive Windows acceptance procedures in `docs/PACKAGING.md` and `docs/WINDOWS_ACCEPTANCE.md`.
 
 #### Scope
-- Local bundle remains `0.7.0-dev`; no installer, signing, release tag, or public download is produced. Clean-machine and Windows 10 acceptance remain open.
+- The initial local bundle used `0.7.0-dev`; the current version identifier is `V0.1.0`. No installer, signing, release tag, or public download is produced. Clean-machine and Windows 10 acceptance remain open.
+
+### Version identifier update
+- Synchronized the application version string and Python project metadata to `V0.1.0`.
+- Windows file-version metadata uses the numeric version `0.1.0.0`; the product version retains the requested `V` prefix.
+- This version change does not create a Git tag or publish a release.
 
 ### Phase 10 - Settings & Operational Features
 

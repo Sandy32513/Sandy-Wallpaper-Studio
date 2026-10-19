@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-Phase 12 is a **packaging validation track**, not a public release. The application is still `0.7.0-dev`. The default configuration builds an unsigned Windows x64 `onedir` bundle with a windowed GUI. There is no installer, release tag, public download, or signing certificate in this phase.
+Phase 12 is a **packaging validation track**, not a public release. The current application version identifier is `V0.1.0`. The default configuration builds an unsigned Windows x64 `onedir` bundle with a windowed GUI. There is no installer, release tag, public download, or signing certificate in this phase.
 
 The Phase 11 decision remains **PARTIALLY COMPLETE** because real wallpaper application, physical-input/screen-reader review, and Windows 10 verification have not been completed. A successful build does not change that decision.
 
@@ -13,8 +13,8 @@ The Phase 11 decision remains **PARTIALLY COMPLETE** because real wallpaper appl
 | Build host | Windows x64, Python 3.12 virtual environment |
 | Application runtime | Python runtime and declared application dependencies are bundled; end users do not need Python installed |
 | Entry point | `app/__main__.py`, equivalent to `python -m app`; the project console entry point is `sandy-wallpaper-studio = app.main:main` |
-| Version | `APP_VERSION` in `app/constants.py`, checked against `pyproject.toml`; currently `0.7.0-dev` |
-| Windows file version | Numeric tuple derived from the product version; development suffix stays in the ProductVersion string |
+| Version | `APP_VERSION` in `app/constants.py`, checked against `pyproject.toml`; currently `V0.1.0` |
+| Windows file version | Numeric tuple derived from the product version (`0.1.0.0`); the ProductVersion string retains the `V` prefix |
 | GUI / Qt | PySide6, with the Qt Windows platform plug-in included by the PyInstaller Qt hook and checked by the build script |
 | Image handling | Pillow, ImageHash, and their declared dependencies; the application uses runtime image validation rather than bundled wallpaper data |
 | SQLite | Python's SQLite runtime initializes the existing schema in the user's app-data root on first launch and applies the application's existing migrations to an existing database |
@@ -47,7 +47,7 @@ build\phase 12\dist\SandyWallpaperStudio\SandyWallpaperStudio.exe
 
 The space in the output path is intentional and is exercised by the smoke test. Keep the executable beside its `_internal` bundle directory; do not copy out the EXE by itself. The generated build folder is ignored by Git. If it already contains output owned by this build script, the next run preserves that folder under a timestamped sibling before creating a new build. Unmarked existing output is left untouched and causes the script to stop.
 
-## Observed local validation build
+## Previous local validation build (`0.7.0-dev`)
 
 The 2026-10-19 Windows 11 x64 validation build completed with Python 3.12.10 and PyInstaller 6.22.3 from clean source commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`. ProductVersion is `0.7.0-dev`; FileVersion is `0.7.0.0`. The EXE is 11,263,152 bytes and its SHA-256 is `EE77C3AECDE0ACCC2E52454FA1F4B0393A27C1B7787A0DB7E172D3D208FAE339`; the full `onedir` bundle is 245,950,472 bytes. Local output is at `build\phase 12\dist\SandyWallpaperStudio\SandyWallpaperStudio.exe`; the ignored build manifest records `source_tree_dirty: false`.
 

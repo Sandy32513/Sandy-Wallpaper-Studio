@@ -139,7 +139,7 @@ class Sidebar(QFrame):
         layout.addStretch()
 
         # Version label at the bottom
-        ver = QLabel(f"v{APP_VERSION}")
+        ver = QLabel(APP_VERSION)
         ver.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ver.setStyleSheet(f"color: {ds.TEXT_DISABLED}; font-size: {ds.FONT_SIZE_XS}px; padding: 8px;")
         layout.addWidget(ver)

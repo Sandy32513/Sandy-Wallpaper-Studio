@@ -49,10 +49,10 @@ Validated, atomic JSON preferences; operational Settings tabs for library/import
 # Phase 11 — Release Hardening
 **PARTIALLY COMPLETE — evidence and remaining limitations are recorded in [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md) and [Project Status](PROJECT_STATUS.md).**
 
-Regression, synthetic scale, error-path, dependency, Windows-rendered Qt, and DNS-pinning checks have been run. The app remains `0.7.0-dev`; native wallpaper application and screen-reader/physical-input review remain unverified. The isolated Recycle Bin round-trip passed with a temporary file under system Python; the project venv lacks the optional `pywin32` helper.
+Regression, synthetic scale, error-path, dependency, Windows-rendered Qt, and DNS-pinning checks have been run. At the Phase 11 checkpoint the app used `0.7.0-dev`; its current version identifier is `V0.1.0`. Native wallpaper application and screen-reader/physical-input review remain unverified. The isolated Recycle Bin round-trip passed with a temporary file under system Python; the project venv lacks the optional `pywin32` helper.
 
 # Phase 12 — Executable Packaging
-**PARTIALLY COMPLETE — local packaging validation only.** A reproducible Windows x64 PyInstaller `onedir` build has version resources, keeps user data outside the bundle, and passed isolated GUI and first-run checks on Windows 11. The packaged test imports a supported PNG with `ImportService`, then a fresh process verifies the imported record, thumbnail, database, and saved setting. The unsigned `0.7.0-dev` bundle is internal validation output, not a public product release. Clean Windows 10/11 machine acceptance remains NOT RUN. See [Packaging](PACKAGING.md) and [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
+**PARTIALLY COMPLETE — local packaging validation only.** A reproducible Windows x64 PyInstaller `onedir` build has version resources, keeps user data outside the bundle, and passed isolated GUI and first-run checks on Windows 11. The packaged test imports a supported PNG with `ImportService`, then a fresh process verifies the imported record, thumbnail, database, and saved setting. The current unsigned `V0.1.0` bundle is internal validation output, not a public product release. Clean Windows 10/11 machine acceptance remains NOT RUN. See [Packaging](PACKAGING.md) and [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
 
 # Phase 13 — Windows Installer
 Installer, uninstaller, shortcuts, application-data handling, upgrade path, clean installation testing and release documentation.

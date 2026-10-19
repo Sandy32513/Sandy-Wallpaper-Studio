@@ -76,7 +76,7 @@ try {
     if ($appVersion -ne $metadataVersionMatch.Groups[1].Value) {
         throw "pyproject.toml and app.constants disagree on the application version."
     }
-    $versionMatch = [regex]::Match($appVersion, '^(\d+)\.(\d+)\.(\d+)(?:-[A-Za-z0-9.-]+)?$')
+    $versionMatch = [regex]::Match($appVersion, '^[vV]?(\d+)\.(\d+)\.(\d+)(?:-[A-Za-z0-9.-]+)?$')
     if (-not $versionMatch.Success) {
         throw "APP_VERSION '$appVersion' cannot be encoded as Windows numeric version metadata."
     }

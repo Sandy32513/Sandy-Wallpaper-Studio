@@ -70,7 +70,7 @@ def _parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         prog="sandy-wallpaper-studio",
-        description=f"{APP_NAME} v{APP_VERSION} — Professional Wallpaper Manager",
+        description=f"{APP_NAME} {APP_VERSION} — Professional Wallpaper Manager",
     )
     parser.add_argument(
         "--version",
@@ -234,7 +234,7 @@ def main() -> int:
         backup_count=config.get("log_backup_count", 3),
     )
     logger.info("=" * 60)
-    logger.info("%s v%s — Starting", APP_NAME, APP_VERSION)
+    logger.info("%s %s — Starting", APP_NAME, APP_VERSION)
     logger.info("=" * 60)
     logger.info("Library root: %s", config.config_dir)
     logger.info("Database: %s", config.database_path)
@@ -310,7 +310,7 @@ def main() -> int:
     wp_svc = WindowsWallpaperService(db=db, wallpaper_repo=wp_repo)
     monitors = wp_svc.detect_monitors()
 
-    print(f"\n  {APP_NAME} v{APP_VERSION}")
+    print(f"\n  {APP_NAME} {APP_VERSION}")
     print(f"  Library:     {config.config_dir}")
     print(f"  Database:    {config.database_path}")
     print(f"  Categories:  {cat_count}")

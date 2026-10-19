@@ -9,7 +9,7 @@
 
 This document is the implementation-status reference for the repository. The Phase 11/12 follow-up below supersedes older test counts and the DNS residual finding in the historical Phase 11 record.
 
-Phases 0-10 are complete. Historical Phase 11 results are recorded below. The current finalization follow-up began with `origin/main` and `origin/chore/repository-cleanup` at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; work remains on `chore/repository-cleanup`, not `main`. The application version remains `0.7.0-dev`.
+Phases 0-10 are complete. Historical Phase 11 results are recorded below. The current finalization follow-up began with `origin/main` and `origin/chore/repository-cleanup` at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; work remains on `chore/repository-cleanup`, not `main`. The application version is now `V0.1.0`; earlier 0.7.0-dev build and acceptance records are historical.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -263,7 +263,7 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 
 ### Security and release limitations
 
-- **Low — manual desktop/platform evidence:** no native wallpaper change or physical-input/screen-reader run was performed; Windows 10 and clean-machine acceptance remain unverified. The app remains a development build (`0.7.0-dev`), and the local executable is not a public release.
+- **Low — manual desktop/platform evidence:** no native wallpaper change or physical-input/screen-reader run was performed; Windows 10 and clean-machine acceptance remain unverified. At this Phase 11 checkpoint the app was version `0.7.0-dev`; the current `V0.1.0` build is still not a public release.
 
 ## Phase 12 — Windows executable packaging
 **Status: PARTIALLY COMPLETE — local packaging validation only.** The reproducible PyInstaller 6.22.3 Windows x64 `onedir` bundle is built to an ignored output path and smoke-tested on Windows 11 in a temporary profile whose path contains spaces. The packaged smoke imports a generated supported PNG through `ImportService`, then uses a fresh process to verify the image record/file, metadata, SHA-256, pHash/SciPy, generated thumbnail, saved setting, and SQLite integrity. It also checks version resources, Qt GUI startup/title/shutdown, sanitized PATH, first-run files, and temporary-profile cleanup. Exact artifact size, package versions, and smoke manifest are recorded in [Packaging](PACKAGING.md).
@@ -273,6 +273,10 @@ No installer, signing, release tag, or public distribution was created. Clean Wi
 ## Phase 12 packaging follow-up — 2026-10-19
 
 The packaged import and fresh-process persistence checks are in commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`; the evidence/documentation update is commit `30c02804daf5e0a6910f157eeb466f7383c26d46`. Both were pushed to `origin/chore/repository-cleanup`. [GitHub Actions run 39292154877](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39292154877) passed for the exact `30c02804daf5e0a6910f157eeb466f7383c26d46` SHA on Windows/Python 3.12: 406 passed, 1 skipped; entry points, Ruff, mypy, and pytest all passed. `origin/main` remains at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; no Phase 12 changes were pushed there.
+
+## Version identifier update — 2026-10-19
+
+The application and package version sources are synchronized to `V0.1.0`. This updates the application version identifier; it does not create a Git tag or publish a release. The existing `0.7.0-dev` executable record in [Packaging](PACKAGING.md) predates the version change.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

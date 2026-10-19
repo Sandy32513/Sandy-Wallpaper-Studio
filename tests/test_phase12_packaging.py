@@ -36,7 +36,7 @@ def test_windowed_version_action_reports_the_version_in_a_native_dialog(
         action(parser, argparse.Namespace(), None)
 
     assert error.value.code == 0
-    assert messages and str(messages[0][1]).endswith("0.7.0-dev")
+    assert messages and str(messages[0][1]).endswith("V0.1.0")
 
 
 def test_windowed_logging_keeps_file_diagnostics_without_console(

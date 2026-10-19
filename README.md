@@ -61,13 +61,13 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Interface | PySide6 / Qt for Python |
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
-| Project maturity | Development build; local Windows packaging validation only |
+| Project maturity | `V0.1.0` version identifier; local Windows validation build only |
 | Latest implemented milestone | Phase 12 - isolated PyInstaller bundle validation (no public release) |
 | Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 hardening pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification, but desktop and accessibility acceptance gates remain open. Phase 12 has a local Windows `onedir` build; its isolated smoke imports a supported PNG, checks its database record and saved settings in a fresh process, then starts and closes the GUI. The app remains `0.7.0-dev`, unsigned, and not a public release. Windows 10 and clean-machine acceptance are unverified. This follow-up is on `chore/repository-cleanup`; it does not change `main`. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 11 hardening pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification, but desktop and accessibility acceptance gates remain open. The current application version is `V0.1.0`. Phase 12 has a local Windows `onedir` build; its isolated smoke imports a supported PNG, checks its database record and saved settings in a fresh process, then starts and closes the GUI. The build is unsigned and is not a public release. Windows 10 and clean-machine acceptance are unverified. This follow-up is on `chore/repository-cleanup`; it does not change `main`. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
