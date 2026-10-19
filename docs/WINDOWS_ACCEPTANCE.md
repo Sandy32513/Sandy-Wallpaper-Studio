@@ -4,7 +4,11 @@ These checks are separate from CI. A green automated suite or a Windows-rendered
 
 ## Native wallpaper API — opt-in
 
-**Status: NOT RUN in this validation.** Running the procedure below changes the wallpaper on the active Windows desktop for a short time. Do not run it unless the person using that desktop explicitly approves the change.
+**Status: PASS — native API apply/restore, 2026-10-20.** The opt-in procedure below was run after explicit user approval on Microsoft Windows 11 Enterprise, version 10.0.26300 (build 26300), with Python 3.12.10.
+
+`.\.venv\Scripts\python.exe scripts/manual_wallpaper_acceptance.py` exited 0. Windows accepted the generated test image through `SystemParametersInfoW`; the test observed its path as the active wallpaper. The script restored the original wallpaper path and exact captured registry values/types, verified both, and removed the generated PNG. Its diagnostic log remains in the local `%TEMP%\sws-wallpaper-acceptance-*` directory.
+
+This verifies the Windows API call and restoration path. No visual screenshot was captured, and independent per-monitor assignment was not exercised. Rerunning the procedure changes the active desktop briefly and still requires explicit approval.
 
 From the repository root, using the project Python 3.12 environment:
 

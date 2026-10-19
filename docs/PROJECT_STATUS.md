@@ -270,7 +270,7 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 ## Phase 12 — Windows executable packaging
 **Status: PARTIALLY COMPLETE — local packaging validation only.** The reproducible PyInstaller 6.22.3 Windows x64 `onedir` bundle is built to an ignored output path and smoke-tested on Windows 11 in a temporary profile whose path contains spaces. The packaged smoke imports a generated supported PNG through `ImportService`, then uses a fresh process to verify the image record/file, metadata, SHA-256, pHash/SciPy, generated thumbnail, saved setting, and SQLite integrity. It also checks version resources, Qt GUI startup/title/shutdown, sanitized PATH, first-run files, and temporary-profile cleanup. Exact artifact size, package versions, and smoke manifest are recorded in [Packaging](PACKAGING.md).
 
-No installer, signing, release tag, or public distribution was created. Clean Windows 10/11 machine or VM acceptance remains **NOT RUN**. Native wallpaper, physical-input, and Narrator checks remain **NOT RUN** as recorded in [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
+No installer, signing, release tag, or public distribution was created. Clean Windows 10/11 machine or VM acceptance remains **NOT RUN**. The native wallpaper API apply/restore test passed on Windows 11 Enterprise build 26300 on 2026-10-20; physical-input and Narrator checks remain **NOT RUN**. See [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
 
 ## Previous Phase 12 packaging follow-up snapshot — 2026-10-19
 
@@ -294,8 +294,8 @@ The implementation and regression changes are committed on `chore/repository-cle
 | Static and dependency | Ruff passed. Mypy passed across 55 app files. `pip check` found no broken requirements. `pip-audit --local` found no known advisories; the local project package is not on PyPI. |
 | Version | App and console entry points report `V1.0.0`; installed project metadata is `1.0.0`; executable ProductVersion is `V1.0.0`, FileVersion `1.0.0.0`. |
 | Windows package | Python 3.12.10 x64, PyInstaller 6.22.3, Windows 11 Enterprise build 26300. Unsigned onedir EXE: 11,263,131 bytes; bundle: 245,950,451 bytes; SHA-256 and smoke evidence are in [Packaging](PACKAGING.md). The isolated import, persistence, SQLite, Qt startup/shutdown smoke passed. |
-| Documentation and workflow | Local audit on 2026-10-20: 82 local Markdown links/fragments across 16 files, with no broken references. CI has a dependent Windows package smoke job; run 39302273031 passed both jobs for exact main SHA `9aed7f3`, and it does not upload or publish an artifact. |
-| Manual acceptance | Live wallpaper API, physical keyboard/Narrator, Windows 10, and clean-machine tests remain **NOT RUN**. Phase 11 remains **PARTIALLY COMPLETE**. |
+| Documentation and workflow | Local audit on 2026-10-20: 84 local Markdown links/fragments across 16 files, with no broken references. CI has a dependent Windows package smoke job; run 39302273031 passed both jobs for exact main SHA `9aed7f3`, and it does not upload or publish an artifact. |
+| Manual acceptance | Native wallpaper API apply/restore passed on Windows 11 Enterprise build 26300 (2026-10-20); no visual screenshot or independent per-monitor test was captured. Physical keyboard/Narrator, Windows 10, and clean-machine tests remain **NOT RUN**. Phase 11 remains **PARTIALLY COMPLETE**. |
 | Release boundary | Existing repository tags are `v0.7.0` and `v0.9.0`; no `v1.0.0` tag, installer, signature, or public release was created. The tested commit had been explicitly promoted to `main` before this follow-up; the current docs/ignore changes are scoped to `chore/repository-cleanup`. |
 
 ## Development Discipline

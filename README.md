@@ -70,7 +70,7 @@ It is aimed at Windows users who want a more organized desktop-image library and
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 release hardening remains **partially complete** because actual desktop wallpaper application, physical keyboard/Narrator review, and Windows 10 acceptance have not been completed. The current application and package source version is `V1.0.0`. A matching unsigned Windows x64 `onedir` bundle was built and smoke-tested locally on Windows 11 from clean commit `725b7a9`; it is internal validation output, not a public release. Clean-machine acceptance remains unverified. Discover, Categories, and Downloads remain placeholder destinations. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md).
+Phases 0-10 are complete. Phase 11 release hardening remains **partially complete** because physical keyboard/Narrator review, Windows 10 acceptance, and clean-machine acceptance remain open. The native Windows wallpaper API apply/restore test passed on Windows 11 on 2026-10-20; see [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md) for its scope and limits. The current application and package source version is `V1.0.0`. A matching unsigned Windows x64 `onedir` bundle was built and smoke-tested locally on Windows 11 from clean commit `725b7a9`; it is internal validation output, not a public release. Discover, Categories, and Downloads remain placeholder destinations. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md).
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -85,7 +85,7 @@ Phases 0-10 are complete. Phase 11 release hardening remains **partially complet
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
 | Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
 | Settings and attribution export | Complete | Operational preferences and stored-metadata CSV export |
-| Release hardening | Partially complete | DNS pinning is implemented; native wallpaper, physical-input/Narrator, and Windows 10 acceptance remain open |
+| Release hardening | Partially complete | DNS pinning and native wallpaper API apply/restore are verified; physical-input/Narrator, Windows 10, and clean-machine acceptance remain open |
 | Windows packaging | Local validation passed | Unsigned `V1.0.0` Phase 12 `onedir` bundle passed isolated smoke; clean-machine validation is open and it is not published |
 | Installer | Planned | Phase 13; no installer is available |
 
