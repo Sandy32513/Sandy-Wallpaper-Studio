@@ -13,7 +13,7 @@ The Phase 11 decision remains **PARTIALLY COMPLETE** because real wallpaper appl
 | Build host | Windows x64, Python 3.12 virtual environment |
 | Application runtime | Python runtime and declared application dependencies are bundled; end users do not need Python installed |
 | Entry point | `app/__main__.py`, equivalent to `python -m app`; the project console entry point is `sandy-wallpaper-studio = app.main:main` |
-| Version | `APP_VERSION` in `app/constants.py`, checked against `pyproject.toml`; currently `V0.1.0` |
+| Version | `APP_VERSION` in `app/constants.py` and `pyproject.toml` are `V0.1.0`; setuptools normalizes package metadata to `0.1.0` |
 | Windows file version | Numeric tuple derived from the product version (`0.1.0.0`); the ProductVersion string retains the `V` prefix |
 | GUI / Qt | PySide6, with the Qt Windows platform plug-in included by the PyInstaller Qt hook and checked by the build script |
 | Image handling | Pillow, ImageHash, and their declared dependencies; the application uses runtime image validation rather than bundled wallpaper data |
@@ -52,6 +52,12 @@ The space in the output path is intentional and is exercised by the smoke test. 
 The 2026-10-19 Windows 11 x64 validation build completed with Python 3.12.10 and PyInstaller 6.22.3 from clean source commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`. ProductVersion is `0.7.0-dev`; FileVersion is `0.7.0.0`. The EXE is 11,263,152 bytes and its SHA-256 is `EE77C3AECDE0ACCC2E52454FA1F4B0393A27C1B7787A0DB7E172D3D208FAE339`; the full `onedir` bundle is 245,950,472 bytes. Local output is at `build\phase 12\dist\SandyWallpaperStudio\SandyWallpaperStudio.exe`; the ignored build manifest records `source_tree_dirty: false`.
 
 The isolated packaged smoke passed `--version`, a supported PNG import through `ImportService`, and a second process that reopened the database and settings and verified the imported file, metadata, SHA-256, pHash, thumbnail, persisted theme, and SQLite integrity. The GUI then opened and closed with that record in its isolated profile. The smoke also checked Qt runtime files, version resources, a path containing spaces, and a sanitized `PATH` without the project venv. The build manifest and `validation-result.json` record the local run. This is local Windows 11 evidence only.
+
+## Current `V0.1.0` validation build
+
+The 2026-10-19 Windows 11 x64 rebuild used Python 3.12.10 and PyInstaller 6.22.3 from clean source commit `57907841f7d23ec1d97e8d7559584ca429abe7a6`. ProductVersion is `V0.1.0`; FileVersion is `0.1.0.0`. The EXE is 11,263,131 bytes with SHA-256 `7280EA3B4C45E508F536595BA91A36F6C7DDBDB08C05CDFDBC3A2DBB9F33EB05`; the full `onedir` bundle is 245,950,451 bytes. The ignored build manifest records `source_tree_dirty: false`.
+
+The `V0.1.0` isolated smoke passed `--version`, `ImportService` PNG import, fresh-process settings and database verification, GUI startup/shutdown, path-with-spaces and sanitized-PATH checks. Its manifest reports `PASS`, SQLite integrity `ok`, and the window title `Sandy Wallpaper Studio — V0.1.0`. The unsigned bundle remains local validation output, not a public release.
 
 ## Validate the packaged GUI
 

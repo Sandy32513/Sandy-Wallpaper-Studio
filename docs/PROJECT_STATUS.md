@@ -276,7 +276,7 @@ The packaged import and fresh-process persistence checks are in commit `7f1ccbc6
 
 ## Version identifier update — 2026-10-19
 
-The application and package version sources are synchronized to `V0.1.0`. This updates the application version identifier; it does not create a Git tag or publish a release. The existing `0.7.0-dev` executable record in [Packaging](PACKAGING.md) predates the version change.
+The application and package version sources are synchronized to `V0.1.0` (setuptools normalizes the package metadata to `0.1.0`). The Windows bundle was rebuilt from clean source commit `57907841f7d23ec1d97e8d7559584ca429abe7a6`; its isolated smoke passed with ProductVersion `V0.1.0` and FileVersion `0.1.0.0`. Artifact size, SHA-256, and smoke results are recorded in [Packaging](PACKAGING.md). This version change does not create a Git tag or publish a release.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

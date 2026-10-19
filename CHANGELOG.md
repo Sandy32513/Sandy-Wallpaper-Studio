@@ -39,7 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Version identifier update
 - Synchronized the application version string and Python project metadata to `V0.1.0`.
-- Windows file-version metadata uses the numeric version `0.1.0.0`; the product version retains the requested `V` prefix.
+- Setuptools normalizes distribution metadata to `0.1.0`; Windows file-version metadata uses `0.1.0.0`, while the product version retains the requested `V` prefix.
+- Rebuilt and smoke-tested the unsigned Windows bundle at `V0.1.0`; artifact details are in `docs/PACKAGING.md`.
 - This version change does not create a Git tag or publish a release.
 
 ### Phase 10 - Settings & Operational Features
