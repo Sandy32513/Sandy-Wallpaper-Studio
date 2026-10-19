@@ -5,6 +5,8 @@ from __future__ import annotations
 from PySide6.QtCore import QObject, QRunnable, QSize, Qt, Signal
 from PySide6.QtGui import QImage, QImageReader
 
+from app.utils.image_utils import validate_image_dimensions
+
 
 class ImagePreviewSignals(QObject):
     loaded = Signal(int, QImage)
@@ -31,12 +33,16 @@ class ImagePreviewTask(QRunnable):
         reader = QImageReader(self._path)
         reader.setAutoTransform(True)
         source_size = reader.size()
-        if source_size.isValid():
-            reader.setScaledSize(
-                source_size.scaled(
-                    self._max_size,
-                    Qt.AspectRatioMode.KeepAspectRatio,
+        try:
+            validate_image_dimensions((source_size.width(), source_size.height()))
+            if source_size.isValid():
+                reader.setScaledSize(
+                    source_size.scaled(
+                        self._max_size,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                    )
                 )
-            )
-        image = reader.read()
+            image = reader.read()
+        except (OSError, ValueError):
+            image = QImage()
         self._signals.loaded.emit(self._item_id, image)

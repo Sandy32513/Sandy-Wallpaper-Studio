@@ -14,9 +14,24 @@ from pathlib import Path
 
 from PIL import Image
 
-from app.constants import SUPPORTED_FORMATS
+from app.constants import MAX_IMAGE_PIXELS, SUPPORTED_FORMATS
 
 logger = logging.getLogger(__name__)
+
+
+class ImageDimensionLimitError(ValueError):
+    """An image exceeds the decoded-pixel budget supported by the application."""
+
+
+def validate_image_dimensions(size: tuple[int, int]) -> None:
+    """Reject invalid or excessive dimensions before decoding pixel data."""
+    width, height = size
+    if width <= 0 or height <= 0:
+        raise ValueError("Image dimensions must be positive.")
+    if width * height > MAX_IMAGE_PIXELS:
+        raise ImageDimensionLimitError(
+            f"Image exceeds the supported {MAX_IMAGE_PIXELS // 1_000_000} MP pixel limit."
+        )
 
 
 def thumbnail_cache_path(
@@ -89,17 +104,23 @@ def validate_image_file(file_path: Path) -> tuple[bool, str]:
     # 4. Image integrity
     try:
         with Image.open(path) as img:
+            validate_image_dimensions(img.size)
             img.verify()
+    except ImageDimensionLimitError as exc:
+        return False, str(exc)
     except Exception as exc:
         return False, f"Corrupt or invalid image: {exc}"
 
     # 5. Can actually read pixels
     try:
         with Image.open(path) as img:
+            validate_image_dimensions(img.size)
             img.load()  # Forces full decode
             width, height = img.size
             if width <= 0 or height <= 0:
                 return False, f"Invalid dimensions: {width}×{height}"
+    except ImageDimensionLimitError as exc:
+        return False, str(exc)
     except Exception as exc:
         return False, f"Cannot decode image: {exc}"
 
@@ -149,6 +170,7 @@ def create_thumbnail(
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with Image.open(source_path) as img:
+            validate_image_dimensions(img.size)
             thumbnail: Image.Image = img
             thumbnail.thumbnail(size, Image.Resampling.LANCZOS)
             # Save as JPEG for consistent thumbnails

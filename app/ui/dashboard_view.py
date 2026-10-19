@@ -6,8 +6,9 @@ and recently used wallpapers.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional
+from typing import Optional, override
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -120,10 +121,10 @@ class DashboardView(QWidget):
         outer.addWidget(title_bar)
 
         # ---- Main scroll area ----
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet(f"background-color: {ds.BG_DEEP}; border: none;")
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll.setStyleSheet(f"background-color: {ds.BG_DEEP}; border: none;")
 
         content = QWidget()
         content.setStyleSheet(f"background-color: {ds.BG_DEEP};")
@@ -136,8 +137,8 @@ class DashboardView(QWidget):
         monitors = self._wp_svc.detect_monitors()
         current_wallpaper = self._wp_svc.get_current_wallpaper()
 
-        stats_grid = QGridLayout()
-        stats_grid.setSpacing(ds.SPACE_MD)
+        self._stats_grid = QGridLayout()
+        self._stats_grid.setSpacing(ds.SPACE_MD)
         stat_cards = [
             ("Total Wallpapers", str(stats.total_wallpapers), "▦", True),
             ("Favorites",        str(stats.total_favorites),  "♥", False),
@@ -146,24 +147,26 @@ class DashboardView(QWidget):
             ("Monitors",         str(len(monitors)),           "⊞", False),
             ("Resolution",       monitors[0].resolution if monitors else "—", "⧉", False),
         ]
-        for i, (label, value, icon, accent) in enumerate(stat_cards):
-            stat_card = StatCard(label=label, value=value, icon=icon, accent=accent)
-            stats_grid.addWidget(stat_card, i // 3, i % 3)
-        content_layout.addLayout(stats_grid)
+        self._stat_widgets = [
+            StatCard(label=label, value=value, icon=icon, accent=accent)
+            for label, value, icon, accent in stat_cards
+        ]
+        content_layout.addLayout(self._stats_grid)
 
         # ---- Quick actions ----
         actions_label = QLabel("Quick Actions")
         actions_label.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; font-weight: 600; background: transparent;")
         content_layout.addWidget(actions_label)
 
-        actions_row = QHBoxLayout()
-        actions_row.setSpacing(ds.SPACE_MD)
+        self._actions_grid = QGridLayout()
+        self._actions_grid.setSpacing(ds.SPACE_MD)
         quick_actions = [
             ("⊕  Import Folder",     "library"),
             ("⚄  Random Wallpaper",  "_random"),
             ("↺  Restore Previous",  "_restore"),
             ("▦  Browse Library",    "library"),
         ]
+        self._action_buttons = []
         for label, target in quick_actions:
             btn = QPushButton(label)
             btn.setFixedHeight(42)
@@ -171,8 +174,8 @@ class DashboardView(QWidget):
             if "Random" in label:
                 btn.setObjectName("accent")
             btn.clicked.connect(lambda checked, t=target: self._quick_action(t))
-            actions_row.addWidget(btn)
-        content_layout.addLayout(actions_row)
+            self._action_buttons.append(btn)
+        content_layout.addLayout(self._actions_grid)
 
         # ---- Current wallpaper status ----
         if current_wallpaper:
@@ -184,13 +187,13 @@ class DashboardView(QWidget):
         monitor_label.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; font-weight: 600; background: transparent;")
         content_layout.addWidget(monitor_label)
 
-        mon_row = QHBoxLayout()
-        mon_row.setSpacing(ds.SPACE_MD)
+        self._monitor_grid = QGridLayout()
+        self._monitor_grid.setSpacing(ds.SPACE_MD)
+        self._monitor_cards = []
         for mon in monitors:
             monitor_card = self._make_monitor_card(mon)
-            mon_row.addWidget(monitor_card)
-        mon_row.addStretch()
-        content_layout.addLayout(mon_row)
+            self._monitor_cards.append(monitor_card)
+        content_layout.addLayout(self._monitor_grid)
 
         # ---- Recent wallpapers ----
         recent = self._wp_repo.get_recently_used(limit=8)
@@ -199,20 +202,49 @@ class DashboardView(QWidget):
             recent_label.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; font-weight: 600; background: transparent;")
             content_layout.addWidget(recent_label)
 
-            recent_row = QHBoxLayout()
-            recent_row.setSpacing(ds.SPACE_MD)
+            self._recent_grid = QGridLayout()
+            self._recent_grid.setSpacing(ds.SPACE_MD)
+            self._recent_cards = []
             for wp in recent:
                 wallpaper_card = WallpaperCard(wallpaper=wp, thumbnail_path=self._thumbnail_path(wp))
                 wallpaper_card.set_wallpaper_requested.connect(self._apply_wallpaper)
                 wallpaper_card.detail_requested.connect(self._show_detail)
                 wallpaper_card.favorite_toggled.connect(self._on_fav_toggle)
-                recent_row.addWidget(wallpaper_card)
-            recent_row.addStretch()
-            content_layout.addLayout(recent_row)
+                self._recent_cards.append(wallpaper_card)
+            content_layout.addLayout(self._recent_grid)
 
         content_layout.addStretch()
-        scroll.setWidget(content)
-        outer.addWidget(scroll)
+        self._scroll.setWidget(content)
+        outer.addWidget(self._scroll)
+        self._reflow_responsive_grids()
+
+    @override
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._reflow_responsive_grids()
+
+    def _reflow_responsive_grids(self) -> None:
+        if not hasattr(self, "_stats_grid"):
+            return
+        content_width = max(
+            1, self._scroll.viewport().width() - 2 * ds.SPACE_2XL
+        )
+        stat_columns = 3 if content_width >= 1050 else 2 if content_width >= 500 else 1
+        action_columns = 4 if content_width >= 1000 else 2 if content_width >= 480 else 1
+        monitor_columns = max(1, content_width // (200 + ds.SPACE_MD))
+        recent_columns = max(1, min(4, content_width // (ds.CARD_WIDTH + ds.SPACE_MD)))
+        self._place_grid(self._stats_grid, self._stat_widgets, stat_columns)
+        self._place_grid(self._actions_grid, self._action_buttons, action_columns)
+        self._place_grid(self._monitor_grid, self._monitor_cards, monitor_columns)
+        if hasattr(self, "_recent_grid"):
+            self._place_grid(self._recent_grid, self._recent_cards, recent_columns)
+
+    @staticmethod
+    def _place_grid(layout: QGridLayout, widgets: Sequence[QWidget], columns: int) -> None:
+        while layout.count():
+            layout.takeAt(0)
+        for index, widget in enumerate(widgets):
+            layout.addWidget(widget, index // columns, index % columns)
 
     def _make_section(self, title: str, value: str) -> QFrame:
         frame = QFrame()
@@ -233,6 +265,8 @@ class DashboardView(QWidget):
         v = QLabel(value)
         v.setStyleSheet(f"color: {ds.TEXT_PRIMARY}; font-size: {ds.FONT_SIZE_SM}px; background: transparent;")
         v.setWordWrap(True)
+        v.setToolTip(value)
+        v.setText(value.replace("\\", "\\\u200b").replace("/", "/\u200b"))
         layout.addWidget(v)
         return frame
 

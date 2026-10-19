@@ -13,6 +13,9 @@ APP_VERSION = "0.7.0-dev"
 APP_AUTHOR = "Sandy"
 APP_DESCRIPTION = "Professional 4K/5K/8K Wallpaper Management for Windows"
 
+# Bound decoded image memory while retaining support for 8K wallpaper formats.
+MAX_IMAGE_PIXELS = 40_000_000
+
 # ============================================================
 # Resolution Definitions
 # ============================================================

@@ -6,14 +6,13 @@ resolution filter, orientation filter, source filter, and a favorites toggle.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, override
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
-    QHBoxLayout,
-    QLabel,
+    QGridLayout,
     QLineEdit,
     QPushButton,
     QWidget,
@@ -67,7 +66,7 @@ class SearchFilterBar(QFrame):
         self._debounce.timeout.connect(self._emit_search)
 
         self.setObjectName("SearchFilterBar")
-        self.setFixedHeight(52)
+        self._layout_mode = ""
         self.setStyleSheet(f"""
             QFrame#SearchFilterBar {{
                 background-color: {ds.BG_SURFACE};
@@ -78,82 +77,61 @@ class SearchFilterBar(QFrame):
         self._build_ui()
 
     def _build_ui(self) -> None:
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(ds.SPACE_LG, 0, ds.SPACE_LG, 0)
-        layout.setSpacing(ds.SPACE_SM)
+        self._layout = QGridLayout(self)
+        self._layout.setContentsMargins(ds.SPACE_LG, ds.SPACE_SM, ds.SPACE_LG, ds.SPACE_SM)
+        self._layout.setHorizontalSpacing(ds.SPACE_SM)
+        self._layout.setVerticalSpacing(ds.SPACE_SM)
 
-        # ---- Search input ----
         self._search_input = QLineEdit()
-        self._search_input.setPlaceholderText("  🔍  Search wallpapers…")
+        self._search_input.setPlaceholderText("Search wallpapers…")
+        self._search_input.setAccessibleName("Search wallpapers")
+        self._search_input.setToolTip("Search wallpaper titles, filenames, and metadata")
         self._search_input.setFixedHeight(34)
-        self._search_input.setMinimumWidth(240)
+        self._search_input.setMinimumWidth(160)
         self._search_input.textChanged.connect(lambda: self._debounce.start())
-        layout.addWidget(self._search_input)
-
-        layout.addSpacing(ds.SPACE_SM)
-
-        # ---- Category filter ----
-        layout.addWidget(self._make_label("Category"))
         self._cat_combo = self._make_combo(
             [("All Categories", "")]
             + [(c, c) for c in self._categories]
         )
+        self._cat_combo.setAccessibleName("Filter by category")
+        self._cat_combo.setToolTip("Filter by category")
         self._cat_combo.currentIndexChanged.connect(self._emit_search)
-        layout.addWidget(self._cat_combo)
-
-        # ---- Resolution filter ----
-        layout.addWidget(self._make_label("Resolution"))
         self._res_combo = self._make_combo(self._RESOLUTION_OPTIONS)
+        self._res_combo.setAccessibleName("Filter by resolution")
+        self._res_combo.setToolTip("Filter by resolution")
         self._res_combo.currentIndexChanged.connect(self._emit_search)
-        layout.addWidget(self._res_combo)
-
-        # ---- Orientation filter ----
-        layout.addWidget(self._make_label("Orientation"))
         self._orient_combo = self._make_combo([
             ("Any", ""),
             ("Landscape", "landscape"),
             ("Portrait", "portrait"),
         ])
+        self._orient_combo.setAccessibleName("Filter by orientation")
+        self._orient_combo.setToolTip("Filter by orientation")
         self._orient_combo.currentIndexChanged.connect(self._emit_search)
-        layout.addWidget(self._orient_combo)
-
-        # ---- Sort ----
-        layout.addWidget(self._make_label("Sort"))
         self._sort_combo = self._make_combo(self._SORT_OPTIONS)
+        self._sort_combo.setAccessibleName("Sort wallpapers")
+        self._sort_combo.setToolTip("Sort wallpapers")
         self._sort_combo.currentIndexChanged.connect(self._emit_search)
-        layout.addWidget(self._sort_combo)
-
-        layout.addStretch()
-
-        # ---- Favorites toggle ----
         self._fav_btn = QPushButton("♥  Favorites")
         self._fav_btn.setCheckable(True)
+        self._fav_btn.setAccessibleName("Show favorite wallpapers only")
         self._fav_btn.setFixedHeight(34)
         self._fav_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._fav_btn.setStyleSheet(self._fav_off_style())
         self._fav_btn.clicked.connect(self._on_fav_toggle)
-        layout.addWidget(self._fav_btn)
-
-        # ---- Random ----
-        rand_btn = QPushButton("⚄  Random")
-        rand_btn.setFixedHeight(34)
-        rand_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        rand_btn.setToolTip("Apply a random wallpaper from the library")
-        rand_btn.clicked.connect(self.random_requested.emit)
-        layout.addWidget(rand_btn)
-
-        # ---- Import ----
-        import_btn = QPushButton("⊕  Import Folder")
-        import_btn.setFixedHeight(34)
-        import_btn.setObjectName("accent")
-        import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        import_btn.clicked.connect(self.import_requested.emit)
-        layout.addWidget(import_btn)
-
-    def _make_label(self, text: str) -> QLabel:
-        lbl = QLabel(text)
-        lbl.setStyleSheet(f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_XS}px;")
-        return lbl
+        self._random_btn = QPushButton("⚄  Random")
+        self._random_btn.setAccessibleName("Apply a random wallpaper")
+        self._random_btn.setFixedHeight(34)
+        self._random_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._random_btn.setToolTip("Apply a random wallpaper from the library")
+        self._random_btn.clicked.connect(self.random_requested.emit)
+        self._import_btn = QPushButton("⊕  Import Folder")
+        self._import_btn.setAccessibleName("Import a wallpaper folder")
+        self._import_btn.setFixedHeight(34)
+        self._import_btn.setObjectName("accent")
+        self._import_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._import_btn.clicked.connect(self.import_requested.emit)
+        self._apply_layout_mode()
 
     def _make_combo(self, items: list[tuple[str, str]]) -> QComboBox:
         combo = QComboBox()
@@ -161,6 +139,59 @@ class SearchFilterBar(QFrame):
         for label, data in items:
             combo.addItem(label, userData=data)
         return combo
+
+    @override
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._apply_layout_mode()
+
+    def _apply_layout_mode(self) -> None:
+        width = self.width()
+        mode = "wide" if width >= 1200 else "medium" if width >= 760 else "compact"
+        if mode == self._layout_mode:
+            return
+        self._layout_mode = mode
+        while self._layout.count():
+            self._layout.takeAt(0)
+        controls = (
+            self._search_input, self._cat_combo, self._res_combo,
+            self._orient_combo, self._sort_combo, self._fav_btn,
+            self._random_btn, self._import_btn,
+        )
+        for control in controls:
+            control.setMinimumWidth(0 if control is not self._search_input else 160)
+
+        if mode == "wide":
+            self.setFixedHeight(52)
+            self._layout.addWidget(self._search_input, 0, 0, 1, 2)
+            for col, combo in enumerate(controls[1:5], start=2):
+                self._layout.addWidget(combo, 0, col)
+            for col, button in enumerate(controls[5:], start=6):
+                self._layout.addWidget(button, 0, col)
+            self._layout.setColumnStretch(0, 1)
+            self._layout.setColumnStretch(1, 1)
+        elif mode == "medium":
+            self.setFixedHeight(92)
+            self._layout.addWidget(self._search_input, 0, 0, 1, 2)
+            for col, button in enumerate(controls[5:], start=2):
+                self._layout.addWidget(button, 0, col)
+            for col, combo in enumerate(controls[1:5]):
+                self._layout.addWidget(combo, 1, col)
+            self._layout.setColumnStretch(0, 1)
+            self._layout.setColumnStretch(1, 1)
+        else:
+            self.setFixedHeight(132)
+            self._layout.addWidget(self._search_input, 0, 0, 1, 3)
+            self._layout.addWidget(self._fav_btn, 0, 3)
+            for col, widget in enumerate(controls[1:4]):
+                self._layout.addWidget(widget, 1, col)
+            self._layout.addWidget(self._sort_combo, 2, 0, 1, 2)
+            self._layout.addWidget(self._random_btn, 2, 2)
+            self._layout.addWidget(self._import_btn, 2, 3)
+            self._layout.setColumnStretch(0, 1)
+            self._layout.setColumnStretch(1, 1)
+            self._layout.setColumnStretch(2, 1)
+            self._layout.setColumnStretch(3, 1)
 
     def _on_fav_toggle(self) -> None:
         if self._fav_btn.isChecked():

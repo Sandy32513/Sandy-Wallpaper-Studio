@@ -1,14 +1,14 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 10 - COMPLETE**
+**Current development phase: Phase 11 - PARTIALLY COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 377 passed / 2 skipped / 0 failed (379 collected)**
+**Latest full test run: 387 passed / 2 skipped / 0 failed (389 collected)**
 **Branch: chore/repository-cleanup**
-**Phase 9 starting baseline: 69dea77 (origin/main)**
+**Phase 11 starting baseline: 12b755003ae8c462eee3b01b60b8c506e76bb8d5**
 
 This document is the implementation-status reference for the repository.
 
-Phase 8 and Phase 9 are complete in the existing release history. Phase 10 is complete on `chore/repository-cleanup`, based on a378d4f (tag v0.9.0), and remains separate from `main`.
+Phases 0-10 are complete. The Phase 11 hardening review is recorded below. At the start of this work, `origin/main` and `origin/chore/repository-cleanup` both pointed to `12b7550`; local `main` was stale at `2dac973`. Phase 11 work stays on `chore/repository-cleanup`; it is not merged to `main`. The application and package metadata remain `0.7.0-dev`.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -238,6 +238,30 @@ Changing the configured library root does not move or reindex image files and do
 
   These are Qt widget captures, not physical keyboard/mouse testing. The functional Qt tests exercised Settings tab navigation, save, cancel, invalid-path recovery, reset confirmation, and preservation of rotation preferences.
 - No production database, user wallpaper, credentials, personal logs, or live desktop wallpaper were used for Phase 10 tests or captures.
+
+## Phase 11 - Release Hardening
+**Status: PARTIALLY COMPLETE — detailed gate evidence is in [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md).**
+
+Phase 11 established an application-wide 40,000,000-pixel image ceiling and applied it before image decoding in the Pillow validation/hash/thumbnail paths and the Qt detail, card, and comparison preview paths. The ceiling accepts 8192x4320 (8K UHD/DCI) dimensions. Download URLs now require direct HTTPS on port 443, reject credentials, known local hostnames and non-global IP literals, and do not follow redirects. DNS names are not resolved and pinned to an approved public address; DNS rebinding/private-address resolution remains a moderate residual security finding.
+
+Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favorites header/grid, Dashboard cards/actions, and detail dialog. These layouts now adapt to available width; detail actions wrap, its preview scales to the viewport, and image dimensions are checked before Qt decodes them. Screenshots were captured and inspected from an isolated synthetic library and are retained only in pytest's temporary folder.
+
+### Phase 11 validation record
+
+- Baseline on the unchanged checkout: 377 passed, 2 skipped (379 collected); Ruff and mypy passed. The two skips are optional Windows Recycle Bin integration tests.
+- Final full suite: 387 passed, 2 skipped, 0 failed (389 collected; 59.96 seconds; exit code 0; `QT_QPA_PLATFORM=offscreen python -m pytest -q`). An initial run found that the URL error text had dropped the existing “Invalid URL” prefix; the wording was restored and the full run then passed.
+- Focused Phase 11 regression and Windows Qt capture tests: 10 passed. The tests reject oversized headers before decode, enforce direct HTTPS/no redirects, verify partial-download cleanup, exercise sidebar keyboard activation and accessible names, and assert that Library/Favorites have no horizontal scroll at 800x600.
+- Windows-rendered Qt capture sizes requested/achieved: 1280x800 / 1280x800; 1024x768 / 1024x768; 800x600 / 800x600; 1440x900 / 1440x844 (the screen work area constrained the last height). Dialog captures include detail (800x592 client), import progress, comparison, and Recycle Bin confirmation. The QTest path activates Settings by Space and checks rotation control accessible names. Physical mouse/keyboard spot checks and screen-reader testing were unavailable.
+- Large-library and performance measurements: 100, 500, 1,000 and 5,000 synthetic records completed. At 5,000, the scan took 90.129 seconds, processed 55.48 records/second, and peaked at 239.05 MiB working set. Accuracy, issues and cancellation timings are recorded in [Phase 11 Performance](PHASE11_PERFORMANCE.md).
+- Platform: Microsoft Windows 11 Enterprise, build 26300, Python 3.12.10 x64. The app was launched against temporary test data. No live wallpaper change, live provider request, or real user library operation was performed. Native wallpaper application was therefore not revalidated in this phase; optional Recycle Bin round-trip coverage was skipped in the full suite (a prior Phase 9 isolated round trip is documented above).
+- Ruff 0.17.0 checks `app`, `tests`, and `scripts`; mypy 2.4.0 checks 55 application source files. `.venv\Scripts\pip-audit.exe --local` reported no known advisories in the project environment; the local project package is not published to PyPI and was not audited as a published distribution. A separate PATH-resolved global Python audit (not the project venv) reported advisories in 12 unrelated global-environment packages; those packages were not modified.
+- `git diff --check` passed. README/docs link validation checked 56 local Markdown links and heading anchors; all resolved. Both CLI version entry points still report `0.7.0-dev`.
+- GitHub Actions result for the Phase 11 commit and final remote head will be recorded after the branch push.
+
+### Security and release limitations
+
+- **Moderate — DNS rebinding/private-address resolution:** a syntactically public HTTPS hostname can resolve to a private address because requests are not pinned to a vetted IP. Redirects, URL credentials, local host suffixes, explicit nonstandard ports, and non-global IP literals are rejected. No production use of a live arbitrary URL was tested.
+- **Low — desktop integration evidence:** no native wallpaper change or screen-reader run was performed in this hardening pass. Phase 12 packaging and Phase 13 installer work remain out of scope. The app remains a development build (`0.7.0-dev`) and is not presented as a production release.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

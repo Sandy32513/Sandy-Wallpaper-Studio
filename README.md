@@ -9,7 +9,7 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or later"></a>
   <a href="https://www.qt.io/qt-for-python"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt&logoColor=white" alt="GUI framework: PySide6"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
-  <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2010%20complete-6f42c1" alt="Phase 10 is implemented and validated; see the QA record"></a>
+  <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2011%20hardening%20review-6f42c1" alt="Phase 11 hardening evidence and remaining limitations are documented"></a>
 </p>
 
 <p align="center">
@@ -61,12 +61,12 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 10 - Settings & Operational Features (complete) |
+| Latest implemented milestone | Phase 11 - Release Hardening (review and QA recorded; release remains a development build) |
 | Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0-10 are complete. Phase 10 adds validated settings, operational controls wired to their services, background thumbnail maintenance, a library integrity check, and safe CSV attribution export. See [Project Status](docs/PROJECT_STATUS.md) for the completion matrix and current QA evidence. Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 11 adds release-hardening safeguards, responsive small-window layouts, and reproducible QA records. This checkout remains version `0.7.0-dev`; it is not a packaged release. See [Project Status](docs/PROJECT_STATUS.md) and the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md) for evidence and remaining limitations. Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -81,7 +81,8 @@ Phases 0-10 are complete. Phase 10 adds validated settings, operational controls
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
 | Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
 | Settings and attribution export | Complete | Operational preferences and stored-metadata CSV export |
-| Release hardening and packaging | Planned | Phases 11–13; no installer is claimed to be available |
+| Release hardening | QA recorded; see remaining limitations | Phase 11; no release tag or package was produced |
+| Packaging and installer | Planned | Phases 12–13; no installer is available |
 
 For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATUS.md) and [Roadmap](docs/ROADMAP.md). Historical test counts in those documents are not a guarantee of the current machine's result.
 
@@ -104,6 +105,7 @@ For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATU
 - Classify common resolution tiers and aspect ratios.
 - Generate and cache thumbnails.
 - Run non-destructive library integrity checks for missing files and stale thumbnails.
+- Enforce a 40-megapixel source-image ceiling before image decode, hashing, or Qt previews; this accepts 8K UHD and DCI dimensions while rejecting larger inputs.
 
 ### Duplicate Manager
 
@@ -122,7 +124,7 @@ The provider layer integrates with the official Wikimedia Commons MediaWiki API 
 
 - Text/category-assisted source search and minimum-dimension filters.
 - Image dimensions, download/source URLs, author, license name and license URL when supplied by the provider.
-- Streaming downloads with a configurable size limit, content-type checks, retry/backoff and cancellation hooks.
+- Streaming downloads with a configurable size limit, content-type checks, retry/backoff and cancellation hooks. Image downloads require direct HTTPS on port 443, reject credentials and redirects, and check dimensions before decoding.
 - Temporary-file handling before a completed download is moved to its destination.
 - Filename sanitization and prevention of silent overwrites.
 
@@ -319,7 +321,7 @@ Backend capabilities do not imply that each workflow is wired into a finished GU
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers, and shared image utilities. Phase 10 adds validated JSON settings, `SettingsView`, safe attribution CSV export, configurable source/download construction, and background library/cache maintenance. Rotation and duplicate review remain dedicated service/UI workflows.
+The project separates presentation, application services, data access, providers, and shared image utilities. Phase 10 adds validated JSON settings, `SettingsView`, safe attribution CSV export, configurable source/download construction, and background library/cache maintenance. Phase 11 adds image-dimension and download URL checks, responsive Dashboard/Library/Favorites layouts, and hardened previews. Rotation and duplicate review remain dedicated service/UI workflows.
 
 ```text
 app/
@@ -362,8 +364,10 @@ app/
 
 tests/                          # Phase-based automated tests
 docs/
-├── PROJECT_STATUS.md           # Phase status and exit-gate notes
-└── ROADMAP.md                  # Planned phase deliverables
+├── PHASE11_ACCEPTANCE.md       # Release-hardening acceptance matrix
+├── PHASE11_PERFORMANCE.md     # Synthetic scan benchmark record
+├── PROJECT_STATUS.md          # Phase status and exit-gate notes
+└── ROADMAP.md                 # Planned phase deliverables
 ```
 
 ### Request and data flow
@@ -383,7 +387,7 @@ The diagram is a logical overview: not every provider/service workflow is curren
 
 ## Configuration and local data
 
-Settings are stored as JSON at `settings.json` in the application data root. Writes use a same-directory temporary file and atomic replacement. Invalid settings are rejected individually so valid values in the same file survive; unknown keys are ignored. Existing rotation interval settings are migrated into the current minute-based setting. No database migration is required for Phase 10.
+Settings are stored as JSON at `settings.json` in the application data root. Writes use a same-directory temporary file and atomic replacement. Invalid settings are rejected individually so valid values in the same file survive; unknown keys are ignored. Existing rotation interval settings are migrated into the current minute-based setting. Phase 11 adds no settings-schema or SQLite migration.
 
 | Data | Default location |
 |---|---|
@@ -402,6 +406,8 @@ The startup `--library` argument changes the application data root. The Settings
 
 - Download size is checked using response metadata and again while streaming (default limit: 100 MB in the download service).
 - HTTP status, content type, supported image format, and decoded image integrity are checked before a completed download is published.
+- Source images above 40,000,000 pixels are rejected before Pillow or Qt decodes them. This includes detail, card, and comparison previews; 8K images within the pixel budget remain supported.
+- Downloads accept direct HTTPS URLs using the standard port, reject user information, known local hostnames and non-global IP literals, and do not follow redirects. DNS names are not pinned to a vetted IP address, so DNS rebinding/private-address resolution is not fully prevented.
 - Downloads use temporary files and exclusive finalization; partial or invalid files are not treated as completed downloads.
 - Existing target filenames are not silently overwritten by the download service.
 - Destination filenames and subdirectory names are sanitized.
@@ -422,7 +428,7 @@ Wikimedia Commons items can carry different licenses and attribution requirement
 
 ## Testing
 
-The test suite contains phase-based coverage through Phase 10. The current verified result is recorded below and in [Project Status](docs/PROJECT_STATUS.md).
+The test suite contains phase-based coverage through Phase 11. The current verified result is recorded in [Project Status](docs/PROJECT_STATUS.md), and the reproducible large-library results are in [Phase 11 Performance](docs/PHASE11_PERFORMANCE.md).
 
 From the repository root, with development dependencies installed:
 
@@ -437,6 +443,21 @@ python -m pytest tests/test_phase7.py -v
 python -m pytest tests/test_phase8.py -v
 python -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py -v
 python -m pytest tests/test_phase10.py -v
+python -m pytest tests/test_phase11.py tests/test_phase11_ui.py -v
+```
+
+Run the isolated synthetic duplicate-scan benchmark (100, 500, 1,000 and 5,000 records):
+
+```powershell
+python scripts/phase11_benchmark.py --sizes 100 500 1000 5000
+```
+
+For Windows-rendered UI captures, run the UI test with Qt's Windows platform plugin:
+
+```powershell
+$env:QT_QPA_PLATFORM = "windows"
+python -m pytest tests/test_phase11_ui.py -q -s
+Remove-Item Env:QT_QPA_PLATFORM
 ```
 
 For GUI tests on a headless CI environment, Qt may need the offscreen platform plugin. If needed and supported in the environment, run:
@@ -452,16 +473,18 @@ Reset the environment variable after use with:
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-The Phase 10 QA record is based on the commands actually run for this checkout; see [Project Status](docs/PROJECT_STATUS.md). Its tests use temporary synthetic data and mocked network boundaries. No production library or desktop wallpaper was used.
+The Phase 11 QA record uses isolated temporary images/databases and mocked network boundaries. Qt captures use `QWidget.grab()` on Windows; they verify rendered widgets but do not constitute physical-input or screen-reader certification. No production library or desktop wallpaper was used.
 
 Optional quality tools are configured in `pyproject.toml`:
 
 ```powershell
-python -m ruff check app tests
+python -m ruff check app tests scripts
 python -m mypy app
 ```
 
-The recorded checks were run for Phase 8, Phase 9, and Phase 10 finalization. Install the development extras before rerunning them in a new environment.
+The latest Phase 11 checks and exact commit CI status are recorded in [Project Status](docs/PROJECT_STATUS.md). Install the development extras before rerunning them in a new environment.
+
+The [GitHub Actions Tests workflow](.github/workflows/tests.yml) runs on Windows with Python 3.12. It installs `.[dev]`, checks both application version entry points, runs Ruff across `app`, `tests`, and `scripts`, runs mypy on `app`, and executes the full pytest suite with Qt's offscreen platform. Review the current branch and commit result in [GitHub Actions](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml).
 
 ## Roadmap
 
@@ -478,7 +501,7 @@ The recorded checks were run for Phase 8, Phase 9, and Phase 10 finalization. In
 | 8 | Automatic wallpaper rotation | Complete |
 | 9 | Dedicated Duplicate Manager UI | Complete; confirmed Windows Recycle Bin cleanup |
 | 10 | Settings, attribution export and operational features | Complete |
-| 11 | QA, compatibility and release hardening | Planned |
+| 11 | QA, compatibility and release hardening | Partially complete; see evidence and limitations |
 | 12 | PyInstaller packaging | Planned |
 | 13 | Windows installer | Planned |
 

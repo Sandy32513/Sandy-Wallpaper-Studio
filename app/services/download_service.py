@@ -13,6 +13,7 @@ Handles downloading wallpaper images with:
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import logging
 import math
 import os
@@ -21,6 +22,7 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
 
 import requests
 from PIL import Image
@@ -34,11 +36,41 @@ from app.constants import (
     SUPPORTED_FORMATS,
 )
 from app.sources.base import WallpaperSearchResult
+from app.utils.image_utils import ImageDimensionLimitError, validate_image_dimensions
 
 logger = logging.getLogger(__name__)
 
 # Callback type: (bytes_downloaded, total_bytes) -> None
 ProgressCallback = Callable[[int, int], None]
+
+
+def _is_safe_download_url(url: str) -> bool:
+    """Accept direct HTTPS URLs without credentials or obvious local targets."""
+    if not isinstance(url, str) or any(ord(char) < 32 or char.isspace() for char in url):
+        return False
+    try:
+        parsed = urlsplit(url)
+        hostname = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return False
+    if (
+        parsed.scheme.lower() != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or port not in (None, 443)
+    ):
+        return False
+
+    normalized_host = hostname.rstrip(".").lower()
+    if normalized_host == "localhost" or normalized_host.endswith((".localhost", ".local", ".internal")):
+        return False
+    try:
+        address = ipaddress.ip_address(normalized_host)
+    except ValueError:
+        return True
+    return address.is_global
 
 
 class DownloadError(Exception):
@@ -160,9 +192,11 @@ class DownloadService:
         if not url:
             return DownloadResult(success=False, error_message="No download URL provided.")
 
-        # Validate URL scheme
-        if not url.startswith(("https://", "http://")):
-            return DownloadResult(success=False, error_message="Invalid URL scheme; HTTP or HTTPS is required.")
+        if not _is_safe_download_url(url):
+            return DownloadResult(
+                success=False,
+                error_message="Invalid URL: a direct public HTTPS URL is required.",
+            )
 
         # Determine target filename
         filename = self._sanitize_filename(result)
@@ -240,9 +274,16 @@ class DownloadService:
         cancelled: Optional[Callable[[], bool]],
     ) -> DownloadResult:
         """Perform the actual download with streaming."""
-        resp = self._session.get(url, stream=True, timeout=self._timeout)
+        resp = self._session.get(
+            url,
+            stream=True,
+            timeout=self._timeout,
+            allow_redirects=False,
+        )
         tmp_path: Path | None = None
         try:
+            if getattr(resp, "is_redirect", False):
+                raise DownloadError("Redirected image URLs are not accepted; use the direct HTTPS URL.")
             resp.raise_for_status()
             try:
                 content_length = int(resp.headers.get("content-length", 0))
@@ -283,6 +324,10 @@ class DownloadService:
                 with Image.open(tmp_path) as image:
                     if image.format and image.format.lower() not in {"jpeg", "png", "webp"}:
                         raise DownloadError("Downloaded image format is not supported.")
+                    try:
+                        validate_image_dimensions(image.size)
+                    except ImageDimensionLimitError as exc:
+                        raise DownloadError(str(exc)) from exc
                     image.verify()
             except DownloadError:
                 raise

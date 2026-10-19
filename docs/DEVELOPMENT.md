@@ -60,7 +60,7 @@ python -m app --help
 
 ## 3. Testing Workflows
 
-The suite covers Phases 0 through 10. Use the latest test count recorded in [Project Status](PROJECT_STATUS.md); milestone counts change as regression coverage grows.
+The suite covers Phases 0 through 11. Use the latest test count recorded in [Project Status](PROJECT_STATUS.md); milestone counts change as regression coverage grows.
 
 ### Running All Tests
 ```powershell
@@ -80,7 +80,30 @@ python -m pytest tests/test_phase7.py  # Phase 7: Favorites & History
 python -m pytest tests/test_phase8.py  # Phase 8: Automatic Rotation
 python -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py  # Phase 9: Duplicate Manager
 python -m pytest tests/test_phase10.py  # Phase 10: Settings & Operational Features
+python -m pytest tests/test_phase11.py tests/test_phase11_ui.py  # Phase 11: hardening and UI QA
 ```
+
+### Synthetic large-library benchmark
+
+Run the duplicate scanner against isolated generated images (never the user's library):
+
+```powershell
+python scripts/phase11_benchmark.py --sizes 100 500 1000 5000
+```
+
+The command reports measured results as JSON. See [Phase 11 Performance](PHASE11_PERFORMANCE.md) for the Windows run record and caveats.
+
+### Windows-rendered UI inspection
+
+The normal suite uses the offscreen Qt platform in CI. To capture the main pages and dialogs using Windows Qt rendering on a desktop session:
+
+```powershell
+$env:QT_QPA_PLATFORM = "windows"
+python -m pytest tests/test_phase11_ui.py -q -s
+Remove-Item Env:QT_QPA_PLATFORM
+```
+
+The test writes screenshots beneath pytest's temporary directory. Its captures use `QWidget.grab()` and do not replace physical-input or screen-reader testing.
 
 ### Running in Headless Mode (CI Simulation)
 PySide6 tests require an offscreen display platform when running without a physical monitor:
@@ -101,13 +124,28 @@ python -m pytest --cov=app --cov-report=term-missing
 ### Ruff Linting
 Check code quality against configured standards:
 ```powershell
-python -m ruff check app tests
+python -m ruff check app tests scripts
 ```
 
 To automatically resolve import ordering and safe fixes:
 ```powershell
-python -m ruff check --fix app tests
+python -m ruff check --fix app tests scripts
 ```
+
+### Mypy
+
+```powershell
+python -m mypy app
+```
+
+### Optional dependency advisory check
+
+```powershell
+python -m pip install pip-audit
+pip-audit --local
+```
+
+This checks packages resolved in the active environment; this repository does not commit a dependency lock file.
 
 ---
 

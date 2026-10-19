@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import override
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
     QGridLayout,
-    QHBoxLayout,
     QLabel,
     QMessageBox,
     QPushButton,
@@ -76,6 +76,9 @@ class FavoritesView(QWidget):
 
         self._cards: list[WallpaperCard] = []
         self._current_wallpapers: list[Wallpaper] = []
+        self._empty_widget: QWidget | None = None
+        self._grid_columns = _GRID_COLS
+        self._header_mode = ""
 
         self._build_ui()
         self.refresh()
@@ -110,16 +113,17 @@ class FavoritesView(QWidget):
 
     def _make_header_bar(self) -> QWidget:
         bar = QWidget()
-        bar.setFixedHeight(64)
+        self._header_bar = bar
         bar.setStyleSheet(f"""
             QWidget {{
                 background-color: {ds.BG_SURFACE};
                 border-bottom: 1px solid {ds.BG_BORDER};
             }}
         """)
-        h = QHBoxLayout(bar)
-        h.setContentsMargins(ds.SPACE_XL, 0, ds.SPACE_XL, 0)
-        h.setSpacing(ds.SPACE_MD)
+        self._header_layout = QGridLayout(bar)
+        self._header_layout.setContentsMargins(ds.SPACE_XL, ds.SPACE_SM, ds.SPACE_XL, ds.SPACE_SM)
+        self._header_layout.setHorizontalSpacing(ds.SPACE_MD)
+        self._header_layout.setVerticalSpacing(ds.SPACE_SM)
 
         # Title
         title_lbl = QLabel("♥  Favorites")
@@ -129,7 +133,7 @@ class FavoritesView(QWidget):
             font-weight: 700;
             background: transparent;
         """)
-        h.addWidget(title_lbl)
+        self._title_lbl = title_lbl
 
         # Count badge
         self._count_badge = QLabel("0")
@@ -142,55 +146,49 @@ class FavoritesView(QWidget):
             padding: 2px 10px;
             border: 1px solid {ds.BG_BORDER};
         """)
-        h.addWidget(self._count_badge)
-
-        h.addStretch()
-
-        # Category filter combo
-        cat_lbl = QLabel("Category:")
-        cat_lbl.setStyleSheet(
+        self._category_label = QLabel("Category:")
+        self._category_label.setStyleSheet(
             f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; background: transparent;"
         )
-        h.addWidget(cat_lbl)
+        self._sort_label = QLabel("Sort:")
+        self._sort_label.setStyleSheet(
+            f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; background: transparent;"
+        )
 
+        # Category filter combo
         self._cat_combo = QComboBox()
         self._cat_combo.setFixedHeight(34)
         self._cat_combo.setMinimumWidth(140)
+        self._cat_combo.setAccessibleName("Filter favorites by category")
+        self._cat_combo.setToolTip("Filter favorites by category")
         self._cat_combo.addItem("All Categories", "")
         for cat in self._cat_repo.get_all():
             self._cat_combo.addItem(cat.name, cat.name)
         self._cat_combo.currentIndexChanged.connect(self._on_filter_changed)
-        h.addWidget(self._cat_combo)
-
-        # Sort order combo
-        sort_lbl = QLabel("Sort:")
-        sort_lbl.setStyleSheet(
-            f"color: {ds.TEXT_SECONDARY}; font-size: {ds.FONT_SIZE_SM}px; background: transparent;"
-        )
-        h.addWidget(sort_lbl)
-
         self._sort_combo = QComboBox()
         self._sort_combo.setFixedHeight(34)
         self._sort_combo.setMinimumWidth(150)
+        self._sort_combo.setAccessibleName("Sort favorite wallpapers")
+        self._sort_combo.setToolTip("Sort favorite wallpapers")
         self._sort_combo.addItem("Newest Added", "download_date DESC")
         self._sort_combo.addItem("Oldest Added", "download_date ASC")
         self._sort_combo.addItem("Title (A–Z)", "title ASC")
         self._sort_combo.addItem("Resolution (High-Low)", "width DESC")
         self._sort_combo.addItem("Most Used", "usage_count DESC")
         self._sort_combo.currentIndexChanged.connect(self._on_filter_changed)
-        h.addWidget(self._sort_combo)
 
         # Random favorite button
         self._btn_random = QPushButton("⚄  Random Favorite")
+        self._btn_random.setAccessibleName("Apply a random favorite wallpaper")
         self._btn_random.setObjectName("accent")
         self._btn_random.setFixedHeight(34)
         self._btn_random.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_random.setToolTip("Apply a random wallpaper from your favorites to the desktop")
         self._btn_random.clicked.connect(self._on_random_favorite)
-        h.addWidget(self._btn_random)
 
         # Clear all favorites button
         self._btn_clear = QPushButton("🗑  Clear Favorites")
+        self._btn_clear.setAccessibleName("Clear all favorites")
         self._btn_clear.setFixedHeight(34)
         self._btn_clear.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_clear.setToolTip("Remove all wallpapers from favorites")
@@ -209,9 +207,73 @@ class FavoritesView(QWidget):
             }}
         """)
         self._btn_clear.clicked.connect(self._on_clear_favorites)
-        h.addWidget(self._btn_clear)
-
+        self._apply_header_layout()
         return bar
+
+    @override
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._apply_responsive_layout)
+
+    def _apply_responsive_layout(self) -> None:
+        if not hasattr(self, "_header_layout"):
+            return
+        self._apply_header_layout()
+        viewport_width = self._scroll.viewport().width()
+        margins = self._grid_layout.contentsMargins()
+        usable_width = max(1, viewport_width - margins.left() - margins.right())
+        spacing = self._grid_layout.horizontalSpacing()
+        columns = max(1, min(_GRID_COLS, (usable_width + spacing) // (ds.CARD_WIDTH + spacing)))
+        if columns != self._grid_columns:
+            self._grid_columns = columns
+            self._reflow_cards()
+
+    def _apply_header_layout(self) -> None:
+        width = self._header_bar.width()
+        mode = "wide" if width >= 1120 else "medium" if width >= 760 else "compact"
+        if mode == self._header_mode:
+            return
+        self._header_mode = mode
+        self._header_bar.setFixedHeight({"wide": 64, "medium": 96, "compact": 138}[mode])
+        while self._header_layout.count():
+            self._header_layout.takeAt(0)
+        if mode == "wide":
+            self._category_label.show()
+            self._sort_label.show()
+            self._header_layout.addWidget(self._title_lbl, 0, 0)
+            self._header_layout.addWidget(self._count_badge, 0, 1)
+            self._header_layout.addWidget(self._category_label, 0, 2)
+            self._header_layout.addWidget(self._cat_combo, 0, 3)
+            self._header_layout.addWidget(self._sort_label, 0, 4)
+            self._header_layout.addWidget(self._sort_combo, 0, 5)
+            self._header_layout.addWidget(self._btn_random, 0, 6)
+            self._header_layout.addWidget(self._btn_clear, 0, 7)
+            self._header_layout.setColumnStretch(3, 1)
+            self._header_layout.setColumnStretch(5, 1)
+        elif mode == "medium":
+            self._category_label.hide()
+            self._sort_label.hide()
+            self._header_layout.addWidget(self._title_lbl, 0, 0)
+            self._header_layout.addWidget(self._count_badge, 0, 1)
+            self._header_layout.addWidget(self._btn_random, 0, 2)
+            self._header_layout.addWidget(self._btn_clear, 0, 3)
+            self._header_layout.addWidget(self._cat_combo, 1, 0, 1, 2)
+            self._header_layout.addWidget(self._sort_combo, 1, 2, 1, 2)
+            self._header_layout.setColumnStretch(0, 1)
+            self._header_layout.setColumnStretch(1, 1)
+            self._header_layout.setColumnStretch(2, 1)
+            self._header_layout.setColumnStretch(3, 1)
+        else:
+            self._category_label.hide()
+            self._sort_label.hide()
+            self._header_layout.addWidget(self._title_lbl, 0, 0, 1, 3)
+            self._header_layout.addWidget(self._count_badge, 0, 3)
+            self._header_layout.addWidget(self._cat_combo, 1, 0, 1, 2)
+            self._header_layout.addWidget(self._sort_combo, 1, 2, 1, 2)
+            self._header_layout.addWidget(self._btn_random, 2, 0, 1, 2)
+            self._header_layout.addWidget(self._btn_clear, 2, 2, 1, 2)
+            for column in range(4):
+                self._header_layout.setColumnStretch(column, 1)
 
     # ------------------------------------------------------------------
     # Data Loading & Rendering
@@ -248,6 +310,7 @@ class FavoritesView(QWidget):
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()
+        self._empty_widget = None
 
         if not wallpapers:
             self._show_empty_state()
@@ -262,13 +325,25 @@ class FavoritesView(QWidget):
             card.set_wallpaper_requested.connect(self._on_apply_wallpaper)
             card.detail_requested.connect(self._on_show_detail)
             card.favorite_toggled.connect(self._on_fav_toggle)
-            row = idx // _GRID_COLS
-            col = idx % _GRID_COLS
+            row = idx // self._grid_columns
+            col = idx % self._grid_columns
             self._grid_layout.addWidget(card, row, col)
             self._cards.append(card)
 
+    def _reflow_cards(self) -> None:
+        while self._grid_layout.count():
+            self._grid_layout.takeAt(0)
+        if self._cards:
+            for index, card in enumerate(self._cards):
+                self._grid_layout.addWidget(
+                    card, index // self._grid_columns, index % self._grid_columns
+                )
+        elif self._empty_widget is not None:
+            self._grid_layout.addWidget(self._empty_widget, 0, 0, 1, self._grid_columns)
+
     def _show_empty_state(self) -> None:
         container = QWidget()
+        self._empty_widget = container
         container.setStyleSheet("background: transparent;")
         box = QVBoxLayout(container)
         box.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -314,7 +389,7 @@ class FavoritesView(QWidget):
         btn.clicked.connect(lambda: self.navigate_to.emit("library"))
         box.addWidget(btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self._grid_layout.addWidget(container, 0, 0, 1, _GRID_COLS)
+        self._grid_layout.addWidget(container, 0, 0, 1, self._grid_columns)
 
     # ------------------------------------------------------------------
     # Actions & Signal Handlers

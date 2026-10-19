@@ -37,6 +37,7 @@ from app.database.database import Database
 from app.database.history_repository import HistoryRepository
 from app.database.models import Wallpaper, WallpaperHistory
 from app.database.wallpaper_repository import WallpaperRepository
+from app.utils.image_utils import validate_image_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +216,7 @@ class WindowsWallpaperService:
 
         try:
             with Image.open(path) as img:
+                validate_image_dimensions(img.size)
                 img.verify()
         except Exception as exc:
             raise WallpaperValidationError(f"Image decode failed or file is corrupt: {exc}") from exc

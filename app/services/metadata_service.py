@@ -22,6 +22,7 @@ from app.constants import (
     RESOLUTION_CLASSES,
     SUPPORTED_FORMATS,
 )
+from app.utils.image_utils import ImageDimensionLimitError, validate_image_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,10 @@ class MetadataService:
         # 3. File integrity + decode validation
         try:
             with Image.open(path) as img:
+                validate_image_dimensions(img.size)
                 img.verify()  # Checks for corruption
+        except ImageDimensionLimitError as exc:
+            raise ImageValidationError(str(exc)) from exc
         except Exception as exc:
             raise ImageValidationError(f"Corrupt or invalid image: {exc}") from exc
 
@@ -121,6 +125,9 @@ class MetadataService:
         try:
             with Image.open(path) as img:
                 width, height = img.size
+                validate_image_dimensions((width, height))
+        except ImageDimensionLimitError as exc:
+            raise ImageValidationError(str(exc)) from exc
         except Exception as exc:
             raise ImageValidationError(f"Cannot read image dimensions: {exc}") from exc
 

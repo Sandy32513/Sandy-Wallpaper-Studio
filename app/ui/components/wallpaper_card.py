@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QObject, QSize, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QImage, QMouseEvent, QPainter, QPixmap
+from PySide6.QtGui import QColor, QFont, QImageReader, QMouseEvent, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 
 from app.database.models import Wallpaper
 from app.ui import design_system as ds
+from app.utils.image_utils import validate_image_dimensions
 
 
 # ============================================================
@@ -59,7 +60,10 @@ class ThumbnailLoader(QObject):
     def run(self) -> None:
         """Load image, scale to fill, emit result."""
         try:
-            img = QImage(self._path)
+            reader = QImageReader(self._path)
+            source_size = reader.size()
+            validate_image_dimensions((source_size.width(), source_size.height()))
+            img = reader.read()
             if img.isNull():
                 self.loaded.emit(self._wid, _placeholder_pixmap(self._width, self._height, error=True))
                 return

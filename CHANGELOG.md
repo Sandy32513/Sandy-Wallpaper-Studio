@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - 2026-10-19
 
+### Phase 11 - Release Hardening (QA recorded)
+
+#### Added
+- A 40,000,000-pixel image ceiling enforced before Pillow decode/hash/thumbnail work and before Qt detail, card, and comparison previews decode source images. Valid 8K UHD/DCI dimensions remain within the ceiling.
+- Direct HTTPS download URL validation, rejection of URL credentials, nonstandard explicit ports, known local targets, and redirects.
+- Reproducible synthetic duplicate-scan benchmark results at 100, 500, 1,000, and 5,000 records, with elapsed time, throughput, peak Windows working set, classification correctness, and cancellation latency recorded in `docs/PHASE11_PERFORMANCE.md`.
+- Phase 11 security, UI, Windows, documentation, and release-readiness evidence in `docs/PHASE11_ACCEPTANCE.md` and `docs/PROJECT_STATUS.md`.
+
+#### Fixed
+- Responsive search/filter controls and wallpaper grids in Library and Favorites, plus Dashboard statistic/action cards, to prevent clipping and horizontal overflow at 800x600.
+- Wallpaper detail dialogs now fit the host window/work area, wrap actions at compact sizes, resize previews to the available viewport, and show an accessible message for images exceeding the pixel ceiling.
+- Added accessible names for filter controls and detail-dialog actions.
+
+#### Verified
+- Full regression: 387 passed, 2 skipped (389 collected); Ruff and mypy passed. Project-venv `pip-audit --local` found no known advisories in installed packages (the local project package is not on PyPI). Benchmark results and inspected Windows Qt sizes are in `docs/PHASE11_PERFORMANCE.md` and `docs/PROJECT_STATUS.md`.
+- The project version remains `0.7.0-dev`; no Phase 11 release tag, executable, installer, or main-branch merge is created.
+
+#### Remaining security limitation
+- DNS hostnames are not pinned to a vetted public IP address. URL checks reject obvious local targets and redirects, but do not eliminate DNS rebinding or a public hostname resolving to a private address.
+
 ### Phase 10 - Settings & Operational Features
 
 #### Added

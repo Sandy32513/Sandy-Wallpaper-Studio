@@ -47,7 +47,9 @@ Read-only exact and near-match scans, explicit retained-file and cleanup-target 
 Validated, atomic JSON preferences; operational Settings tabs for library/import, Wikimedia, downloads, duplicate thresholds, thumbnails, logging, display style, and rotation; background integrity and cancellable thumbnail maintenance; safe attribution CSV export. Phase 10 acceptance and regression evidence are recorded in [Project Status](PROJECT_STATUS.md), and the settings schema is documented in [Configuration](CONFIGURATION.md).
 
 # Phase 11 — Release Hardening
-Regression testing, performance testing, large-library testing, error recovery, security review, accessibility review, Windows compatibility and documentation audit.
+**PARTIALLY COMPLETE — evidence and remaining limitations are recorded in [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md) and [Project Status](PROJECT_STATUS.md).**
+
+Regression, synthetic scale, error-path, dependency, and Windows-rendered Qt checks have been run. The application remains `0.7.0-dev`; native wallpaper application, physical-input/screen-reader verification, and release branch promotion are not claimed as completed release gates.
 
 # Phase 12 — Executable Packaging
 PyInstaller build, Windows executable, version metadata, build validation and clean-machine testing.

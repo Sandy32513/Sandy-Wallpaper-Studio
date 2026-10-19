@@ -11,9 +11,9 @@ Main content view showing the wallpaper grid with:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, override
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -88,6 +88,7 @@ class LibraryView(QWidget):
         self._current_filters: dict = {}
         self._current_wallpapers: list[Wallpaper] = []
         self._cards: list[WallpaperCard] = []
+        self._grid_columns = _GRID_COLS
 
         self._build_ui()
         self._refresh()
@@ -286,10 +287,35 @@ class LibraryView(QWidget):
             card.detail_requested.connect(self._show_detail)
             card.favorite_toggled.connect(self._on_fav_toggle)
 
-            row = (start_idx + i) // _GRID_COLS
-            col = (start_idx + i) % _GRID_COLS
+            index = start_idx + i
+            row = index // self._grid_columns
+            col = index % self._grid_columns
             self._grid_layout.addWidget(card, row, col)
             self._cards.append(card)
+
+    @override
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._update_grid_columns)
+
+    def _update_grid_columns(self) -> None:
+        viewport_width = self._scroll.viewport().width()
+        margins = self._grid_layout.contentsMargins()
+        usable_width = max(1, viewport_width - margins.left() - margins.right())
+        card_width = ds.CARD_WIDTH
+        spacing = self._grid_layout.horizontalSpacing()
+        columns = max(1, min(_GRID_COLS, (usable_width + spacing) // (card_width + spacing)))
+        if columns != self._grid_columns:
+            self._grid_columns = columns
+            self._reflow_cards()
+
+    def _reflow_cards(self) -> None:
+        while self._grid_layout.count():
+            self._grid_layout.takeAt(0)
+        for index, card in enumerate(self._cards):
+            self._grid_layout.addWidget(
+                card, index // self._grid_columns, index % self._grid_columns
+            )
 
     def _clear_grid(self) -> None:
         for card in self._cards:

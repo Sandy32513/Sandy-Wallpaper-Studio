@@ -2,7 +2,7 @@
 
 Sandy Wallpaper Studio stores user preferences in `settings.json` under the application data root. By default the root is `%USERPROFILE%\Pictures\SandyWallpaperStudio`; `python -m app --library <folder>` selects a different data root. The Settings page's **Library root** is a separate value: it defines the boundary used by duplicate cleanup and does not move images, reindex database rows, or change the database path.
 
-Settings are global to the application. They are not per-library profiles. JSON is written through a temporary file in the same directory and atomically replaced. A malformed file falls back to defaults; an invalid individual value is ignored while valid settings are retained. Unknown keys are ignored. The current settings schema is version 2. Older files without a schema version are accepted; legacy human-readable rotation intervals are migrated to minutes when they can be parsed. No SQLite migration is needed for Phase 10.
+Settings are global to the application. They are not per-library profiles. JSON is written through a temporary file in the same directory and atomically replaced. A malformed file falls back to defaults; an invalid individual value is ignored while valid settings are retained. Unknown keys are ignored. The current settings schema is version 2. Older files without a schema version are accepted; legacy human-readable rotation intervals are migrated to minutes when they can be parsed. Phase 11 requires no settings or SQLite migration.
 
 ## Settings page
 
@@ -33,6 +33,8 @@ Settings are global to the application. They are not per-library profiles. JSON 
 The **Rotation** tab preserves Phase 8 controls: enablement, interval (1-10080 minutes), random or library-order selection, category filters, and minimum width/height (0-32768 px). Rotation applies only to indexed local files while the app is running.
 
 The Settings page's Save action validates and persists operational controls as one atomic update. Cancel discards unsaved edits. Reset asks for confirmation and resets the controls shown on the operational tabs; rotation preferences are managed and saved separately in the Rotation tab. Logging changes apply immediately. Source/download factories and imports use the saved values on the next operation; active duplicate scans keep their captured threshold.
+
+Image processing and Qt previews reject source images above 40,000,000 pixels before decoding. This accommodates 8K UHD and DCI images while bounding per-image decode work; it is not a promise that every 40 MP file fits available memory. Downloads require a direct HTTPS URL on the standard port and do not follow redirects. Obvious local hostnames and non-global IP literals are rejected. DNS names are not resolved and pinned to an approved public address, so local-address DNS resolution and DNS rebinding are residual network risks.
 
 ## Attribution export
 

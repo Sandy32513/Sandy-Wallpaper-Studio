@@ -14,6 +14,8 @@ from pathlib import Path
 import imagehash
 from PIL import Image
 
+from app.utils.image_utils import validate_image_dimensions
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +48,7 @@ def compute_phash(file_path: Path) -> str:
     """
     try:
         with Image.open(file_path) as img:
+            validate_image_dimensions(img.size)
             ph = imagehash.phash(img)
             return str(ph)
     except Exception as exc:
@@ -64,6 +67,7 @@ def compute_dhash(file_path: Path) -> str:
     """
     try:
         with Image.open(file_path) as img:
+            validate_image_dimensions(img.size)
             dh = imagehash.dhash(img)
             return str(dh)
     except Exception as exc:
@@ -82,6 +86,7 @@ def compute_ahash(file_path: Path) -> str:
     """
     try:
         with Image.open(file_path) as img:
+            validate_image_dimensions(img.size)
             ah = imagehash.average_hash(img)
             return str(ah)
     except Exception as exc:

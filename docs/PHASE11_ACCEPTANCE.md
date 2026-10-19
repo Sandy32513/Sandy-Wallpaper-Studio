@@ -1,0 +1,42 @@
+# Phase 11 Acceptance Matrix — Release Hardening
+
+This matrix was opened against the unchanged checkout before Phase 11 implementation.
+It records current evidence and states limitations explicitly; a passing test suite alone
+does not close a gate.
+
+## Baseline
+
+- Repository: `C:\Users\SANDY_1\Downloads\TEST_V0\sandy-wallpaper-studio`
+- Platform/runtime: Windows, Python 3.12.10, 64-bit venv
+- Branch/commit: `chore/repository-cleanup`, `12b755003ae8c462eee3b01b60b8c506e76bb8d5`
+- Working tree: clean before Phase 11 changes
+- `origin/main` and `origin/chore/repository-cleanup`: both resolve to the baseline commit;
+  local `main` is stale at `2dac973` and is not the working branch.
+- Baseline regression: `377 passed, 2 skipped` (379 collected; 109.23 seconds). The skips
+  are opt-in real Windows Recycle Bin integration tests.
+- Baseline Ruff: passed with Ruff 0.17.0.
+- Baseline mypy: passed with mypy 2.4.0 after installing the already-declared dev checker
+  into the existing ignored `.venv`; no tracked environment files changed.
+- Package entry points: `python -m app --version` and the installed console script both
+  report `0.7.0-dev`.
+- CI workflow: Windows/Python 3.12; installs `.[dev]`, checks both version entry points,
+  Ruff, mypy, and pytest. The previously verified baseline Actions run is historical and
+  does not certify a Phase 11 commit.
+
+## Acceptance areas
+
+| Area and requirement | Current implementation | Baseline evidence | Gap, risk, and impact | Corrective action and regression test | Final verification evidence |
+|---|---|---|---|---|---|
+| Regression testing — preserve Phases 0–10 workflows and run current full suite plus static checks. | Phase-based suites through Phase 11; Windows offscreen Qt CI; Ruff and mypy. | Baseline: 377 passed / 2 skipped; Ruff and mypy passed. | First final run found a Phase 2 error-message compatibility assertion after 386 passed and 2 skips; corrected the message without changing URL rejection. | Full rerun after the message correction; focused Phase 11 Windows/offscreen runs; no assertions were disabled. | Final full suite: 387 passed, 2 skipped, 0 failed (389 collected, 59.96 s, exit 0); Ruff and mypy pass. Focused Phase 11 tests passed (10 tests) on Windows and offscreen Qt. |
+| Performance testing — measure expensive local work reproducibly without unsupported claims. | Duplicate scan revalidates current files, computes SHA-256/pHash, uses a BK-tree, reports progress, and caps near-match edges. | No historical throughput/memory benchmark was available. | No before/after scanner comparison or promised performance SLA is claimed. | Reproducible temp-library benchmark reports elapsed time, throughput, Windows peak working set, accuracy and cancellation latency. | 100/500/1,000/5,000 records measured; 5,000 took 90.129 s at 55.48 records/s and 239.05 MiB peak working set. See [Performance Record](PHASE11_PERFORMANCE.md). |
+| Large-library testing — exercise increasing isolated libraries and preserve correctness, cancellation, and controlled results. | Scanner processes records sequentially, reports progress, supports cancellation, pages DB reads and caps near-match edges. | Existing group pagination tests; no pre-Phase-11 scale measurements. | The large run has one 8K image, not 5,000 worst-case 8K files; no broad hardware matrix. | Synthetic exact/near duplicates, mixed PNG/JPEG/WebP, corrupt image, missing path and one 8192x4320 image. | All four requested sizes completed; each found expected exact and near groups and reported invalid/missing records; cancellation returned within 6.6–23.2 ms. |
+| Error recovery — expected config, database, file, network, worker, export, and cleanup failures must fail safely. | Atomic settings/export paths; download size/temp-file checks; worker error signals; transaction-aware repositories; guarded Recycle Bin cleanup. | Phase 0–10 regressions include configuration, database, network, export, worker and cleanup paths. | Disk-full and every physical permission/device/API failure combination were not simulated in this pass. Native wallpaper application was not invoked. | Added oversized-header, URL/redirect, partial-download cleanup, UI preview and compact-window regression checks; reran the existing suite. | Phase 11 tests passed; full suite passed 387/389 with two optional Recycle Bin integration skips. |
+| Security — bound untrusted image/network/filesystem inputs and preserve cleanup boundaries. | 40 MP checks across Pillow and Qt previews; download byte cap, direct HTTPS/no redirects, sanitized names, path containment, parameterized repositories, reparse/hard-link cleanup guards and formula-safe CSV. | Initial code review found image decode had no application pixel ceiling and download URLs had no explicit no-redirect policy. | Moderate residual: DNS hostname resolution is not pinned, so DNS rebinding or private-address resolution is not fully prevented. | Added pre-decode pixel checks and mocked URL/redirect/partial-file tests; audited resolved venv packages with PyPA pip-audit. | No high-severity issue identified in inspected scope. `pip-audit --local` on the project venv reported no known package advisories; local project distribution was skipped because it is not on PyPI. |
+| Accessibility and UI/UX — inspect labels, focus, keyboard path, errors, scrolling and responsive layouts. | PySide6 Obsidian theme; accessible names on search/favorite/detail controls; responsive Dashboard, Library, Favorites and detail dialog. | Windows screenshots exposed Library/Favorites horizontal clipping and detail action overflow at 800x600. | Screen-reader support and physical-input spot checks were not available; captures do not certify them. | Applied width-aware grids/toolbars and detail action wrapping; QTest exercises navigation by click/Space, verifies rotation names, captures pages/dialogs. | Windows Qt captures inspected at 1280x800, 1024x768, 800x600 and 1440x844 (1440x900 request clamped by work area); Library/Favorites have no horizontal range at 800x600. |
+| Windows compatibility — validate path, Qt, native APIs, cleanup, and runtime behavior on Windows 10/11. | Windows-native wallpaper setting and Recycle Bin APIs; code/CI target Windows. | This phase ran on Windows 11 Enterprise build 26300 with Python 3.12.10 x64. | Native wallpaper change was not run; current opt-in Recycle Bin integration tests were skipped (prior Phase 9 isolated round trip passed). | Ran full suite, static checks, Windows Qt UI capture, and launched against temporary data without changing the user's wallpaper/library. | Windows runtime and Qt rendering checks passed; native wallpaper apply remains explicitly unverified in this phase. |
+| Documentation audit — align README, status, roadmap, changelog, configuration, privacy, and CI guidance with verified behavior. | README describes implemented features and placeholder destinations; Phase 11 security/performance docs added; CI Ruff includes scripts. | Phase 10/version/main-branch statements and Phase 11 status were stale. | GitHub Actions for the current commit must still be observed after push. | Updated README, changelog, status, roadmap, configuration, privacy and development guide; checked commands and local links/anchors. | 56 local Markdown links/anchors resolve; both version commands report `0.7.0-dev`; `git diff --check` passes. Exact-commit CI is pending branch push. |
+| Release readiness — all applicable gates backed by current evidence; no automatic main merge or packaging. | Development workflow; version is `0.7.0-dev`; Phase 12/13 remain planned. | At baseline, local branch and origin/main/origin/chore all pointed to 12b7550; local main was stale. | No Phase 11 remote commit or exact-commit CI conclusion yet. Moderate DNS and native desktop verification limitations remain. | Review diff/secrets/artifacts, rerun tests, commit and fast-forward push only `chore/repository-cleanup`, verify remote SHA and exact-commit CI; do not merge to main or build package/installer. | Commit, remote SHA, CI status and final working tree will be filled after push. |
+
+## Final phase decision
+
+**Current decision: PARTIALLY COMPLETE.** Core regression, scale, security boundary, Windows Qt visual, and documentation work has evidence. Branch push and exact-commit CI are still required to close the Git/CI gate. The residual DNS and native desktop limitations are non-blocking for this development branch but should be addressed or explicitly accepted before a packaged public release.

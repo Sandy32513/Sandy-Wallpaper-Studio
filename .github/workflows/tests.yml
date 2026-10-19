@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Ruff linter
         run: |
-          python -m ruff check app tests
+          python -m ruff check app tests scripts
 
       - name: Run mypy
         run: |
