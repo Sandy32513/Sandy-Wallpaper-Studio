@@ -34,7 +34,7 @@ The **Rotation** tab preserves Phase 8 controls: enablement, interval (1-10080 m
 
 The Settings page's Save action validates and persists operational controls as one atomic update. Cancel discards unsaved edits. Reset asks for confirmation and resets the controls shown on the operational tabs; rotation preferences are managed and saved separately in the Rotation tab. Logging changes apply immediately. Source/download factories and imports use the saved values on the next operation; active duplicate scans keep their captured threshold.
 
-Image processing and Qt previews reject source images above 40,000,000 pixels before decoding. This accommodates 8K UHD and DCI images while bounding per-image decode work; it is not a promise that every 40 MP file fits available memory. Downloads require a direct HTTPS URL on the standard port and do not follow redirects. Obvious local hostnames and non-global IP literals are rejected. DNS names are not resolved and pinned to an approved public address, so local-address DNS resolution and DNS rebinding are residual network risks.
+Image processing and Qt previews reject source images above 40,000,000 pixels before decoding. This accommodates 8K UHD and DCI images while bounding per-image decode work; it is not a promise that every 40 MP file fits available memory. Downloads require a direct HTTPS URL on the standard port and do not follow redirects. Every DNS answer is checked for global routability; the connection uses a pinned public IP while TLS verification and HTTP Host retain the requested hostname. Proxy environment variables are ignored and explicit proxies are rejected for this download service. See [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md) for tests and remaining manual gates.
 
 ## Attribution export
 

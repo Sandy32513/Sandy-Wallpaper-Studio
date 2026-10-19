@@ -17,15 +17,18 @@ import ipaddress
 import logging
 import math
 import os
+import socket
 import tempfile
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 from urllib.parse import urlsplit
 
 import requests
 from PIL import Image
+from requests.adapters import HTTPAdapter
+from requests.utils import select_proxy
 
 from app.config import Config
 from app.constants import (
@@ -76,6 +79,99 @@ def _is_safe_download_url(url: str) -> bool:
 class DownloadError(Exception):
     """Raised when a download fails after all retries."""
     pass
+
+
+def _resolve_public_address(hostname: str, port: int) -> str:
+    """Resolve once and select a globally routable address for the pinned socket."""
+    try:
+        literal = ipaddress.ip_address(hostname)
+    except ValueError:
+        literal = None
+
+    if literal is not None:
+        addresses = [literal]
+    else:
+        try:
+            records = socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
+            address_texts = [record[4][0] for record in records]
+            if any(not isinstance(address, str) for address in address_texts):
+                raise ValueError("Resolver returned a non-text address.")
+            addresses = [
+                ipaddress.ip_address(address.split("%", 1)[0])
+                for address in address_texts
+                if isinstance(address, str)
+            ]
+        except (OSError, IndexError, TypeError, ValueError) as exc:
+            raise DownloadError("The download host could not be resolved safely.") from exc
+
+    if not addresses or any(
+        not address.is_global
+        or address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_reserved
+        or address.is_multicast
+        or address.is_unspecified
+        for address in addresses
+    ):
+        raise DownloadError("The download host resolved to a non-public network address.")
+
+    first = addresses[0]
+    if isinstance(first, ipaddress.IPv6Address) and first.ipv4_mapped is not None:
+        first = first.ipv4_mapped
+    return first.compressed
+
+
+class PublicAddressHTTPSAdapter(HTTPAdapter):
+    """Bind HTTPS sockets to vetted DNS answers while retaining hostname TLS checks."""
+
+    def get_connection_with_tls_context(
+        self,
+        request: requests.PreparedRequest,
+        verify: bool | str | None,
+        proxies: Mapping[str, str] | None = None,
+        cert: tuple[str, str] | str | None = None,
+    ):
+        url = request.url
+        if not url:
+            raise DownloadError("Invalid URL: a direct public HTTPS URL is required.")
+        proxy = select_proxy(url, proxies)
+        if proxy:
+            raise DownloadError("HTTPS proxies are not supported for pinned image downloads.")
+        if verify is False:
+            raise DownloadError("TLS certificate verification cannot be disabled.")
+
+        parsed = urlsplit(url)
+        hostname_value = parsed.hostname
+        if not isinstance(hostname_value, str) or not hostname_value:
+            raise DownloadError("Invalid URL: a direct public HTTPS URL is required.")
+        hostname = hostname_value
+        port = parsed.port or 443
+        if not _is_safe_download_url(url):
+            raise DownloadError("Invalid URL: a direct public HTTPS URL is required.")
+
+        pinned_address = _resolve_public_address(hostname, port)
+        tls_hostname = hostname.rstrip(".").encode("idna").decode("ascii").lower()
+        host_header = f"[{hostname}]" if ":" in hostname else hostname
+        if port != 443:
+            host_header = f"{host_header}:{port}"
+        request.headers["Host"] = host_header
+
+        verify_setting = True if verify is None else verify
+        host_params, pool_kwargs = self.build_connection_pool_key_attributes(
+            request,
+            verify_setting,
+            cert,
+        )
+        host_params["host"] = pinned_address
+        host_params["port"] = port
+        extended_pool_kwargs = cast(dict[str, Any], dict(pool_kwargs))
+        extended_pool_kwargs["server_hostname"] = tls_hostname
+        extended_pool_kwargs["assert_hostname"] = tls_hostname
+        return self.poolmanager.connection_from_host(
+            **host_params,
+            pool_kwargs=extended_pool_kwargs,
+        )
 
 
 class DownloadResult:
@@ -136,6 +232,9 @@ class DownloadService:
         self._max_concurrent = max_concurrent
         self._semaphore = threading.BoundedSemaphore(max_concurrent)
         self._session = requests.Session()
+        # Environment proxies can resolve the hostname on a different machine, defeating pinning.
+        self._session.trust_env = False
+        self._session.mount("https://", PublicAddressHTTPSAdapter())
         self._session.headers.update({
             "User-Agent": "SandyWallpaperStudio/1.0",
         })

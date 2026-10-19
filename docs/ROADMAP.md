@@ -49,10 +49,10 @@ Validated, atomic JSON preferences; operational Settings tabs for library/import
 # Phase 11 — Release Hardening
 **PARTIALLY COMPLETE — evidence and remaining limitations are recorded in [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md) and [Project Status](PROJECT_STATUS.md).**
 
-Regression, synthetic scale, error-path, dependency, and Windows-rendered Qt checks have been run. The Phase 11 commits are present on `origin/main` and `origin/chore/repository-cleanup`, but this is not a versioned product release. The application remains `0.7.0-dev`; DNS address pinning, native wallpaper application, and screen-reader/physical-input review remain unverified in the current environment. The isolated Recycle Bin round-trip passed with a temporary file under system Python; the project venv lacks the optional `pywin32` helper.
+Regression, synthetic scale, error-path, dependency, Windows-rendered Qt, and DNS-pinning checks have been run. The app remains `0.7.0-dev`; native wallpaper application and screen-reader/physical-input review remain unverified. The isolated Recycle Bin round-trip passed with a temporary file under system Python; the project venv lacks the optional `pywin32` helper.
 
 # Phase 12 — Executable Packaging
-PyInstaller build, Windows executable, version metadata, build validation and clean-machine testing.
+**PARTIALLY COMPLETE — local packaging validation only.** A reproducible Windows x64 PyInstaller `onedir` build has version resources, keeps user data outside the bundle, and passed isolated GUI, first-run profile, image/hash/thumbnail, settings, and SQLite smoke checks on Windows 11. The unsigned `0.7.0-dev` bundle is internal validation output, not a public product release. Clean Windows 10/11 machine acceptance remains NOT RUN. See [Packaging](PACKAGING.md) and [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
 
 # Phase 13 — Windows Installer
 Installer, uninstaller, shortcuts, application-data handling, upgrade path, clean installation testing and release documentation.

@@ -35,11 +35,12 @@ def setup_logging(
             root_logger.removeHandler(handler)
             handler.close()
 
-    console_handler = logging.StreamHandler(sys.stderr)
-    console_handler._sandy_app_handler = True  # type: ignore[attr-defined]
-    console_handler.setLevel(logging.WARNING if not debug else logging.DEBUG)
-    console_handler.setFormatter(logging.Formatter(fmt, datefmt=date_fmt))
-    root_logger.addHandler(console_handler)
+    if sys.stderr is not None:
+        console_handler = logging.StreamHandler(sys.stderr)
+        console_handler._sandy_app_handler = True  # type: ignore[attr-defined]
+        console_handler.setLevel(logging.WARNING if not debug else logging.DEBUG)
+        console_handler.setFormatter(logging.Formatter(fmt, datefmt=date_fmt))
+        root_logger.addHandler(console_handler)
 
     file_active = False
     if file_enabled:

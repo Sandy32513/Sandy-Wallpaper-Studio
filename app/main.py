@@ -7,9 +7,13 @@ and launches the application.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
+import tempfile
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from app.config import Config
 from app.constants import (
@@ -21,6 +25,33 @@ from app.constants import (
 from app.utils.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+def _report_command_message(message: str, *, error: bool = False) -> None:
+    """Report a CLI result in a console or a windowed Windows build."""
+    if sys.stdout is not None:
+        stream = sys.stderr if error and sys.stderr is not None else sys.stdout
+        print(message, file=stream)
+    elif sys.platform == "win32":
+        import ctypes
+
+        flags = 0x10 if error else 0x40
+        ctypes.windll.user32.MessageBoxW(None, message, APP_NAME, flags)  # type: ignore[attr-defined]
+
+
+class _VersionAction(argparse.Action):
+    """Show the version in the console or a native dialog for windowed builds."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
+        message = f"{APP_NAME} {APP_VERSION}"
+        _report_command_message(message)
+        parser.exit()
 
 
 def _ensure_directory_structure(config: Config) -> None:
@@ -44,8 +75,9 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--version",
-        action="version",
-        version=f"{APP_NAME} {APP_VERSION}",
+        action=_VersionAction,
+        nargs=0,
+        help="Show the application version.",
     )
     parser.add_argument(
         "--debug",
@@ -58,6 +90,7 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Override the library root directory.",
     )
+    parser.add_argument("--validate-runtime", action="store_true", help=argparse.SUPPRESS)
 
     # --- Future CLI commands (Phase 33) ---
     parser.add_argument("--download", action="store_true", help="(Planned) Download wallpapers.")
@@ -69,6 +102,75 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--stats", action="store_true", help="(Planned) Show library statistics.")
 
     return parser.parse_args()
+
+
+def _validate_packaged_runtime(config: Config, db: Any) -> int:
+    """Exercise image processing and persistence dependencies in a frozen build."""
+    from PIL import Image
+
+    from app.services.metadata_service import MetadataService
+    from app.utils.hashing import compute_phash, compute_sha256
+    from app.utils.image_utils import create_thumbnail
+
+    image_path: Path | None = None
+    thumbnail_path: Path | None = None
+    try:
+        config.temp_dir.mkdir(parents=True, exist_ok=True)
+        config.cache_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            dir=config.temp_dir,
+            prefix="sws-runtime-check-",
+            suffix=".png",
+            delete=False,
+        ) as temporary_image:
+            image_path = Path(temporary_image.name)
+
+        with Image.new("RGB", (256, 192), (48, 96, 144)) as image:
+            image.save(image_path, format="PNG")
+
+        metadata = MetadataService().extract(image_path)
+        sha256 = compute_sha256(image_path)
+        phash = compute_phash(image_path)
+        if not metadata.sha256 or len(sha256) != 64 or len(phash) != 16:
+            raise RuntimeError("Image metadata, SHA-256, or pHash validation failed.")
+
+        thumbnail_path = config.cache_dir / f"sws-runtime-check-{image_path.stem}.jpg"
+        if not create_thumbnail(image_path, thumbnail_path, size=(128, 96)):
+            raise RuntimeError("Thumbnail generation failed.")
+        with Image.open(thumbnail_path) as thumbnail:
+            thumbnail.verify()
+
+        settings_path = config.config_dir / "settings.json"
+        persisted_settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        if persisted_settings.get("config_schema_version") != 2:
+            raise RuntimeError("Persisted settings schema validation failed.")
+        integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
+        if integrity != "ok":
+            raise RuntimeError(f"SQLite integrity validation failed: {integrity}")
+
+        db.close()
+        _report_command_message(
+            f"{APP_NAME} {APP_VERSION}\n"
+            "Runtime check passed: PNG import, metadata, SHA-256, pHash, "
+            "thumbnail, settings, and SQLite integrity."
+        )
+        return 0
+    except Exception as exc:
+        logger.exception("Packaged runtime validation failed.")
+        try:
+            db.close()
+        except Exception:
+            logger.exception("Could not close the database after runtime validation failure.")
+        _report_command_message(
+            f"{APP_NAME} runtime check failed: {type(exc).__name__}: {exc}",
+            error=True,
+        )
+        return 1
+    finally:
+        if image_path is not None:
+            image_path.unlink(missing_ok=True)
+        if thumbnail_path is not None:
+            thumbnail_path.unlink(missing_ok=True)
 
 
 def main() -> int:
@@ -123,6 +225,9 @@ def main() -> int:
 
     logger.info("%s initialized successfully.", APP_NAME)
 
+    if getattr(args, "validate_runtime", False):
+        return _validate_packaged_runtime(config, db)
+
     # -------------------------------------------------------
     # Phase 6: Launch PySide6 Desktop GUI
     # -------------------------------------------------------
@@ -147,8 +252,11 @@ def main() -> int:
             logger.info("%s — shutdown.", APP_NAME)
             return exit_code
 
-        except Exception as exc:
-            logger.error("GUI launch failed: %s", exc)
+        except Exception:
+            logger.exception("GUI launch failed.")
+            if sys.stdout is None:
+                db.close()
+                return 1
             # Fallback to console report
             gui_mode = False
 

@@ -25,6 +25,8 @@ does not close a gate.
 
 ## Acceptance areas
 
+The table below records the original Phase 11 implementation snapshot. The dated follow-up after the table is the current status and supersedes its DNS and packaging statements.
+
 | Area and requirement | Current implementation | Baseline evidence | Gap, risk, and impact | Corrective action and regression test | Final verification evidence |
 |---|---|---|---|---|---|
 | Regression testing — preserve Phases 0–10 workflows and run current full suite plus static checks. | Phase-based suites through Phase 11; Windows offscreen Qt CI; Ruff and mypy. | Baseline: 377 passed / 2 skipped; Ruff and mypy passed. | First final run found a Phase 2 error-message compatibility assertion after 386 passed and 2 skips; corrected the message without changing URL rejection. | Full rerun after the message correction; current full suite on the repository venv; no assertions were disabled. | Current run: 387 passed, 2 skipped, 0 failed (389 collected, 53.83 s, exit 0); `python -m ruff check .` and `python -m mypy app` pass. The skips are the symlink-creation restriction and opt-in Recycle Bin integration; Phase 11 focused Windows/offscreen runs previously passed (10 tests). |
@@ -39,7 +41,21 @@ does not close a gate.
 
 ## Final phase decision
 
-**Current decision: PARTIALLY COMPLETE.** Core regression, scale, security boundary, Windows Qt visual, and documentation work has evidence. The implementation commit is pushed and its exact-commit CI passed. DNS address pinning, native wallpaper application, and physical-input/screen-reader review remain open and should be addressed or explicitly accepted before a packaged public release.
+**Current decision: PARTIALLY COMPLETE.** The follow-up below supersedes the earlier DNS finding: direct HTTPS downloads now reject any non-public DNS answer and pin the socket to a validated public address while retaining the original TLS hostname. Native wallpaper application, physical-input/screen-reader review, Windows 10, and clean-machine acceptance remain open. Phase 12 is packaging validation only; no product release has been created.
+
+## Finalization follow-up — 2026-10-19
+
+This follow-up is recorded on `chore/repository-cleanup` from the then-current `b30acc26867c01b7ddbaa846b7cc4caebbe178e8` baseline. It includes direct-DNS pinning, packaging diagnostics, and documentation. It does not claim a live network download or actual desktop wallpaper change.
+
+| Gate | Evidence and result |
+|---|---|
+| DNS transport security | 13 tests cover public IPv4/IPv6 selection, private/loopback/link-local/reserved/multicast answers, mixed public/private responses, pinned socket destination, TLS hostname and certificate verification, and a changed-answer rebinding attempt. The adapter fails closed on proxies and disabled TLS verification. No production network request was made. |
+| Regression/static/dependency | Latest full local run: 405 passed, 2 skipped (407 collected); Ruff passed; mypy passed for 55 application source files; `pip-audit --local` found no known vulnerabilities in installed packages. Skips: profile cannot create symlinks; real Recycle Bin integration is opt-in. |
+| Packaging | Windows 11 x64, Python 3.12.10, PyInstaller 6.22.3. An unsigned `onedir` bundle was built under a path with spaces. Its isolated profile smoke test checks version metadata, GUI first run/shutdown, config schema, database integrity, and the packaged PNG metadata/SHA-256/pHash/thumbnail runtime path. The EXE is 11,262,095 bytes (SHA-256 `AE46FD110514FC4EF8548D0CA6EDC063E24653FFF1F1F15F6EA6DF9E24A3557E`); total bundle 245,949,415 bytes. See [Packaging](PACKAGING.md). |
+| Manual acceptance | The actual Windows wallpaper API test was not run. No Narrator/physical-input review, separate Windows 10 run, or clean-machine/VM install was performed. See [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md). |
+| Release state | Version remains `0.7.0-dev`. The local bundle is ignored build output; no installer, signature, tag, or public download was produced. The follow-up is not pushed to `main`. |
+
+The exact follow-up commit, branch push, and its GitHub Actions result are reported in the task completion record; this document keeps the observed manual/CI gates distinct from local results.
 
 ## Verification command index
 

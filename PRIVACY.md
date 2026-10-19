@@ -19,7 +19,7 @@ The current external wallpaper source is Wikimedia Commons through its official 
 
 Network requests can include search terms entered by the user, API requests for wallpaper metadata, and requests required to download selected wallpaper files.
 
-Image download URLs must use direct HTTPS on the standard port; the downloader rejects URL credentials, known local hostnames and non-global IP literals, and does not follow redirects. DNS hostnames are not pinned to a vetted IP address, so this policy does not eliminate DNS rebinding or a hostname resolving to a private network address.
+Image download URLs must use direct HTTPS on the standard port; the downloader rejects URL credentials, non-public DNS answers, and redirects. It resolves and vets DNS answers per request, connects to a pinned public address, and verifies TLS against the original hostname. Proxy environment variables are ignored and explicit proxies are rejected by this service. No live arbitrary-URL request was performed as part of the local security tests.
 
 The application does not intentionally upload the user's local wallpaper library to Wikimedia Commons.
 

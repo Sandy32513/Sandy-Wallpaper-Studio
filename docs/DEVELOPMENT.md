@@ -60,7 +60,7 @@ python -m app --help
 
 ## 3. Testing Workflows
 
-The suite covers Phases 0 through 11. Use the latest test count recorded in [Project Status](PROJECT_STATUS.md); milestone counts change as regression coverage grows.
+The suite covers Phases 0 through 12 packaging support. Use the latest test count recorded in [Project Status](PROJECT_STATUS.md); milestone counts change as regression coverage grows.
 
 ### Running All Tests
 ```powershell
@@ -146,6 +146,17 @@ pip-audit --local
 ```
 
 This checks packages resolved in the active environment; this repository does not commit a dependency lock file.
+
+### Windows executable validation
+
+On Windows x64 with Python 3.12, install the packaging extra and run the reproducible build and isolated bundle smoke test:
+
+```powershell
+python -m pip install -e ".[dev,packaging]"
+.\scripts\build_windows.ps1
+```
+
+The output is an unsigned internal validation bundle, not a product release. See [Packaging](PACKAGING.md) and [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md) for manual gates and limitations.
 
 ---
 

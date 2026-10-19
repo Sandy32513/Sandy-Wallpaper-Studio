@@ -1,15 +1,15 @@
 # Project Status — Sandy Wallpaper Studio
 
-**Current development phase: Phase 11 - PARTIALLY COMPLETE**
+**Current development phase: Phase 12 - PACKAGING VALIDATION ONLY; Phase 11 remains PARTIALLY COMPLETE**
 **Status date: 2026-10-19**
-**Latest full test run: 387 passed / 2 skipped / 0 failed (389 collected; 53.83 seconds; exit 0)**
-**Remote main at finalization audit start: `b2e8474`**
+**Latest full test run: 405 passed / 2 skipped / 0 failed (407 collected; exit 0)**
+**Remote main at this follow-up start: `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`**
 **Working branch: chore/repository-cleanup**
 **Phase 11 starting baseline: 12b755003ae8c462eee3b01b60b8c506e76bb8d5**
 
-This document is the implementation-status reference for the repository.
+This document is the implementation-status reference for the repository. The Phase 11/12 follow-up below supersedes older test counts and the DNS residual finding in the historical Phase 11 record.
 
-Phases 0-10 are complete. The Phase 11 hardening review is recorded below. At the start of this work, `origin/main` and `origin/chore/repository-cleanup` both pointed to `12b7550`; local `main` was at `2dac973`. Phase 11 was developed on `chore/repository-cleanup` and later fast-forward-pushed to `main`. At the start of this finalization audit, both remote branches contained `b2e8474faa26aabab287d222c437af46cbbeaa7a`; local `main` remains 14 commits behind and is not the working branch. This finalization follow-up is recorded on the development branch only; `main` remains at `b2e8474`. The application and package metadata remain `0.7.0-dev`.
+Phases 0-10 are complete. Historical Phase 11 results are recorded below. The current finalization follow-up began with `origin/main` and `origin/chore/repository-cleanup` at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; work remains on `chore/repository-cleanup`, not `main`. The application version remains `0.7.0-dev`.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -243,11 +243,11 @@ Changing the configured library root does not move or reindex image files and do
 ## Phase 11 - Release Hardening
 **Status: PARTIALLY COMPLETE — detailed gate evidence is in [Phase 11 Acceptance](PHASE11_ACCEPTANCE.md).**
 
-Phase 11 established an application-wide 40,000,000-pixel image ceiling and applied it before image decoding in the Pillow validation/hash/thumbnail paths and the Qt detail, card, and comparison preview paths. The ceiling accepts 8192x4320 (8K UHD/DCI) dimensions. Download URLs now require direct HTTPS on port 443, reject credentials, known local hostnames and non-global IP literals, and do not follow redirects. DNS names are not resolved and pinned to an approved public address; DNS rebinding/private-address resolution remains a moderate residual security finding.
+Phase 11 established an application-wide 40,000,000-pixel image ceiling and applied it before image decoding in the Pillow validation/hash/thumbnail paths and the Qt detail, card, and comparison preview paths. The ceiling accepts 8192x4320 (8K UHD/DCI) dimensions. In the finalization follow-up, downloads require direct HTTPS on port 443, reject credentials, known local hostnames and non-global IP literals, and do not follow redirects. Every DNS answer is vetted and the socket connects to the pinned public address; the original hostname remains the TLS SNI/certificate identity and HTTP Host. Proxy environment settings are ignored, and explicit proxies are rejected.
 
 Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favorites header/grid, Dashboard cards/actions, and detail dialog. These layouts now adapt to available width; detail actions wrap, its preview scales to the viewport, and image dimensions are checked before Qt decodes them. Screenshots were captured and inspected from an isolated synthetic library and are retained only in pytest's temporary folder.
 
-### Phase 11 validation record
+### Phase 11 historical validation record (before finalization follow-up)
 
 - Baseline on the unchanged checkout: 377 passed, 2 skipped (379 collected); Ruff and mypy passed.
 - A preliminary `python -m pytest` resolved to system Python instead of the project venv and was intentionally interrupted during collection (exit 1); it was not treated as a failed test run. The completed venv run below is the authoritative result.
@@ -263,8 +263,12 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 
 ### Security and release limitations
 
-- **Moderate — DNS rebinding/private-address resolution:** a syntactically public HTTPS hostname can resolve to a private address because requests are not pinned to a vetted IP. Redirects, URL credentials, local host suffixes, explicit nonstandard ports, and non-global IP literals are rejected. No production use of a live arbitrary URL was tested.
-- **Low — desktop integration evidence:** no native wallpaper change or screen-reader run was performed in this hardening pass. Phase 12 packaging and Phase 13 installer work remain out of scope. The app remains a development build (`0.7.0-dev`) and is not presented as a production release.
+- **Low — manual desktop/platform evidence:** no native wallpaper change or physical-input/screen-reader run was performed; Windows 10 and clean-machine acceptance remain unverified. The app remains a development build (`0.7.0-dev`), and the local executable is not a public release.
+
+## Phase 12 — Windows executable packaging
+**Status: PARTIALLY COMPLETE — local packaging validation only.** The reproducible PyInstaller 6.22.3 Windows x64 `onedir` bundle is built to an ignored output path and smoke-tested on Windows 11 in a temporary profile whose path contains spaces. The packaged diagnostic exercises image decode/metadata, SHA-256, pHash/SciPy, thumbnail generation, settings schema, and SQLite integrity; the smoke script also checks version resources, Qt GUI startup/title/shutdown, sanitized PATH, first-run files, and cleanup. Exact artifact size, package versions, and smoke manifest are recorded in [Packaging](PACKAGING.md).
+
+No installer, signing, release tag, or public distribution was created. Clean Windows 10/11 machine or VM acceptance remains **NOT RUN**. Native wallpaper, physical-input, and Narrator checks remain **NOT RUN** as recorded in [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

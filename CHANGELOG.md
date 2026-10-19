@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added
 - A 40,000,000-pixel image ceiling enforced before Pillow decode/hash/thumbnail work and before Qt detail, card, and comparison previews decode source images. Valid 8K UHD/DCI dimensions remain within the ceiling.
 - Direct HTTPS download URL validation, rejection of URL credentials, nonstandard explicit ports, known local targets, and redirects.
+- DNS rebinding defense for downloads: resolve and reject any non-global DNS answer, connect to a vetted IP address, and retain the original hostname for TLS SNI/certificate validation and HTTP Host; environment proxies are disabled.
 - Reproducible synthetic duplicate-scan benchmark results at 100, 500, 1,000, and 5,000 records, with elapsed time, throughput, peak Windows working set, classification correctness, and cancellation latency recorded in `docs/PHASE11_PERFORMANCE.md`.
 - Phase 11 security, UI, Windows, documentation, and release-readiness evidence in `docs/PHASE11_ACCEPTANCE.md` and `docs/PROJECT_STATUS.md`.
 
@@ -24,8 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full regression: 387 passed, 2 skipped (389 collected); Ruff and mypy passed. Project-venv `pip-audit --local` found no known advisories in installed packages (the local project package is not on PyPI). Benchmark results and inspected Windows Qt sizes are in `docs/PHASE11_PERFORMANCE.md` and `docs/PROJECT_STATUS.md`.
 - The project version remains `0.7.0-dev`; Phase 11 commits are on `main`, but no Phase 11 release tag, executable, installer, or product release was created.
 
-#### Remaining security limitation
-- DNS hostnames are not pinned to a vetted public IP address. URL checks reject obvious local targets and redirects, but do not eliminate DNS rebinding or a public hostname resolving to a private address.
+#### Remaining acceptance gates
+- Real desktop wallpaper application, physical keyboard/Narrator review, Windows 10, and clean-machine acceptance have not been completed.
+
+### Phase 12 - Packaging validation (not a release)
+
+#### Added
+- Reproducible unsigned Windows x64 PyInstaller `onedir` build, isolated path-with-spaces smoke test, version-resource checks, first-run profile/database validation, and packaged image/hash/thumbnail runtime diagnostic.
+- Packaging and interactive Windows acceptance procedures in `docs/PACKAGING.md` and `docs/WINDOWS_ACCEPTANCE.md`.
+
+#### Scope
+- Local bundle remains `0.7.0-dev`; no installer, signing, release tag, or public download is produced. Clean-machine and Windows 10 acceptance remain open.
 
 ### Phase 10 - Settings & Operational Features
 

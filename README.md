@@ -61,13 +61,13 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Interface | PySide6 / Qt for Python |
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
-| Project maturity | Development build; not a packaged release |
-| Latest implemented milestone | Phase 11 - Release Hardening (review and QA recorded; release remains a development build) |
+| Project maturity | Development build; local Windows packaging validation only |
+| Latest implemented milestone | Phase 12 - PyInstaller bundle validation (no public release) |
 | Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 adds release-hardening safeguards, responsive small-window layouts, and reproducible QA records. The Phase 11 implementation commits are on `main` and `chore/repository-cleanup`; this final QA/documentation follow-up stays on the development branch. The current version remains `0.7.0-dev`, and the repository has not produced a packaged release. Native wallpaper application, screen-reader/physical-input review, and DNS address pinning remain open hardening items. See [Project Status](docs/PROJECT_STATUS.md) and the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md) for evidence. Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 11 hardening now pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification. Phase 12 has a local Windows `onedir` build and isolated packaged smoke test; the app is still `0.7.0-dev`, unsigned, and not a public release. Real desktop wallpaper, physical keyboard/Narrator, Windows 10, and clean-machine acceptance remain open. This follow-up is on `chore/repository-cleanup`; it does not change `main`. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -414,7 +414,7 @@ The startup `--library` argument changes the application data root. The Settings
 - Download size is checked using response metadata and again while streaming (default limit: 100 MB in the download service).
 - HTTP status, content type, supported image format, and decoded image integrity are checked before a completed download is published.
 - Source images above 40,000,000 pixels are rejected before Pillow or Qt decodes them. This includes detail, card, and comparison previews; 8K images within the pixel budget remain supported.
-- Downloads accept direct HTTPS URLs using the standard port, reject user information, known local hostnames and non-global IP literals, and do not follow redirects. DNS names are not pinned to a vetted IP address, so DNS rebinding/private-address resolution is not fully prevented.
+- Downloads accept direct HTTPS URLs using the standard port, reject user information, local/non-global DNS answers, and do not follow redirects. DNS answers are checked and pinned to the socket destination per request while TLS SNI and certificate checks retain the requested hostname. Proxy use is disabled for this download boundary.
 - Downloads use temporary files and exclusive finalization; partial or invalid files are not treated as completed downloads.
 - Existing target filenames are not silently overwritten by the download service.
 - Destination filenames and subdirectory names are sanitized.
@@ -435,9 +435,9 @@ Wikimedia Commons items can carry different licenses and attribution requirement
 
 ## Testing
 
-The test suite contains phase-based coverage through Phase 11. The current verified result is recorded in [Project Status](docs/PROJECT_STATUS.md), and the reproducible large-library results are in [Phase 11 Performance](docs/PHASE11_PERFORMANCE.md).
+The test suite contains phase-based coverage through Phase 12 packaging support. The current verified result is recorded in [Project Status](docs/PROJECT_STATUS.md), and the reproducible large-library results are in [Phase 11 Performance](docs/PHASE11_PERFORMANCE.md).
 
-The latest local full run on Windows 11 with the project virtual environment (Python 3.12.10, pytest 9.1.1) completed with **387 passed, 2 skipped, 0 failed** (389 collected; 53.83 seconds). The symlink-safety test skipped because this Windows profile disallows symlink creation; the Recycle Bin integration is opt-in and was disabled in the full run. Enabling it in the project venv also skipped because `pywin32` is not installed there. The isolated real Recycle Bin round-trip passed separately under system Python with `pywin32`, restoring and byte-checking its temporary fixture. The exact main-branch commit passed GitHub Actions; details and remaining manual verification are in [Project Status](docs/PROJECT_STATUS.md).
+The latest local full run on Windows 11 with the project virtual environment (Python 3.12.10, pytest 9.1.1) completed with **405 passed, 2 skipped, 0 failed** (407 collected; 43.22 seconds). The symlink-safety test skipped because this Windows profile disallows symlink creation; the Recycle Bin integration is opt-in and was disabled in the full run. Enabling it in the project venv also skipped because `pywin32` is not installed there. The isolated real Recycle Bin round-trip passed separately under system Python with `pywin32`, restoring and byte-checking its temporary fixture. The exact CI status for this follow-up commit is recorded with its Git status; remaining interactive checks are listed in [Project Status](docs/PROJECT_STATUS.md).
 
 From the repository root, with development dependencies installed:
 
@@ -511,10 +511,10 @@ The [GitHub Actions Tests workflow](.github/workflows/tests.yml) runs on Windows
 | 9 | Dedicated Duplicate Manager UI | Complete; confirmed Windows Recycle Bin cleanup |
 | 10 | Settings, attribution export and operational features | Complete |
 | 11 | QA, compatibility and release hardening | Partially complete; see evidence and limitations |
-| 12 | PyInstaller packaging | Planned |
+| 12 | PyInstaller packaging | Local `onedir` bundle built and smoke-tested; clean-machine/Windows 10 acceptance remains open |
 | 13 | Windows installer | Planned |
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed sequential roadmap and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for phase exit-gate records. Installer delivery and packaged executables remain future work.
+The local Windows build is internal validation output, not a downloadable product. To reproduce it on Windows x64 with Python 3.12, install `.[dev,packaging]` and run `./scripts/build_windows.ps1`; see [Packaging](docs/PACKAGING.md). Installer delivery and public distribution remain future work. See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for phase records.
 
 ## Troubleshooting
 
@@ -591,6 +591,8 @@ Wallpaper files are third-party content. Their individual licenses may differ; p
 - **Roadmap:** [docs/ROADMAP.md](docs/ROADMAP.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Development guide:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- **Windows packaging validation:** [docs/PACKAGING.md](docs/PACKAGING.md)
+- **Manual Windows acceptance:** [docs/WINDOWS_ACCEPTANCE.md](docs/WINDOWS_ACCEPTANCE.md)
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 - **Privacy:** [PRIVACY.md](PRIVACY.md)
