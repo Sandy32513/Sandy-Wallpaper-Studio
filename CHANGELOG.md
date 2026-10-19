@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Phase 12 - Packaging validation (not a release)
 
 #### Added
-- Reproducible unsigned Windows x64 PyInstaller `onedir` build, isolated path-with-spaces smoke test, version-resource checks, first-run profile/database validation, and packaged image/hash/thumbnail runtime diagnostic.
+- Reproducible unsigned Windows x64 PyInstaller `onedir` build, isolated path-with-spaces smoke test, version-resource checks, and a packaged PNG import/settings-persistence check across separate processes before GUI startup/shutdown.
 - Packaging and interactive Windows acceptance procedures in `docs/PACKAGING.md` and `docs/WINDOWS_ACCEPTANCE.md`.
 
 #### Scope

@@ -5,11 +5,11 @@
 > A Windows desktop wallpaper library built with Python and PySide6, combining local collection management, image validation, duplicate detection, Wikimedia Commons metadata, and native desktop wallpaper controls.
 
 <p align="center">
-  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio"><img src="https://img.shields.io/badge/target-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Target platform: Windows 10 and Windows 11; Phase 11 was exercised on Windows 11"></a>
+  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio"><img src="https://img.shields.io/badge/target-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Target platform: Windows 10 and Windows 11; validation so far used Windows 11"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or later"></a>
   <a href="https://www.qt.io/qt-for-python"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt&logoColor=white" alt="GUI framework: PySide6"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
-  <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2011%20hardening%20review-6f42c1" alt="Phase 11 hardening evidence and remaining limitations are documented"></a>
+  <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2012%20packaging%20validation-6f42c1" alt="Phase 12 packaging validation and remaining Phase 11 acceptance gates are documented"></a>
   <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml"><img src="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml/badge.svg?branch=main" alt="GitHub Actions tests on main"></a>
 </p>
 
@@ -56,18 +56,18 @@ It is aimed at Windows users who want a more organized desktop-image library and
 
 | | Details |
 |---|---|
-| Target platform | Windows 10 / Windows 11; this Phase 11 pass ran on Windows 11 |
+| Target platform | Windows 10 / Windows 11; validation to date ran on Windows 11 |
 | Python | 3.12 or later |
 | Interface | PySide6 / Qt for Python |
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
 | Project maturity | Development build; local Windows packaging validation only |
-| Latest implemented milestone | Phase 12 - PyInstaller bundle validation (no public release) |
+| Latest implemented milestone | Phase 12 - isolated PyInstaller bundle validation (no public release) |
 | Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 hardening now pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification. Phase 12 has a local Windows `onedir` build and isolated packaged smoke test; the app is still `0.7.0-dev`, unsigned, and not a public release. Real desktop wallpaper, physical keyboard/Narrator, Windows 10, and clean-machine acceptance remain open. This follow-up is on `chore/repository-cleanup`; it does not change `main`. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 11 hardening pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification, but desktop and accessibility acceptance gates remain open. Phase 12 has a local Windows `onedir` build; its isolated smoke imports a supported PNG, checks its database record and saved settings in a fresh process, then starts and closes the GUI. The app remains `0.7.0-dev`, unsigned, and not a public release. Windows 10 and clean-machine acceptance are unverified. This follow-up is on `chore/repository-cleanup`; it does not change `main`. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|
@@ -82,8 +82,9 @@ Phases 0-10 are complete. Phase 11 hardening now pins direct HTTPS downloads to 
 | Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
 | Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
 | Settings and attribution export | Complete | Operational preferences and stored-metadata CSV export |
-| Release hardening | QA recorded; see remaining limitations | Phase 11 is on `main`; no release tag, package, or installer was produced |
-| Packaging and installer | Planned | Phases 12–13; no installer is available |
+| Release hardening | Partially complete | DNS pinning is implemented; native wallpaper, physical-input/Narrator, and Windows 10 acceptance remain open |
+| Windows packaging | Local validation passed | Unsigned Phase 12 `onedir` bundle passed isolated smoke; it is not published or a product release |
+| Installer | Planned | Phase 13; no installer is available |
 
 For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATUS.md) and [Roadmap](docs/ROADMAP.md). Historical test counts in those documents are not a guarantee of the current machine's result.
 
@@ -437,7 +438,7 @@ Wikimedia Commons items can carry different licenses and attribution requirement
 
 The test suite contains phase-based coverage through Phase 12 packaging support. The current verified result is recorded in [Project Status](docs/PROJECT_STATUS.md), and the reproducible large-library results are in [Phase 11 Performance](docs/PHASE11_PERFORMANCE.md).
 
-The latest local full run on Windows 11 with the project virtual environment (Python 3.12.10, pytest 9.1.1) completed with **405 passed, 2 skipped, 0 failed** (407 collected; 43.22 seconds). The symlink-safety test skipped because this Windows profile disallows symlink creation; the Recycle Bin integration is opt-in and was disabled in the full run. Enabling it in the project venv also skipped because `pywin32` is not installed there. The isolated real Recycle Bin round-trip passed separately under system Python with `pywin32`, restoring and byte-checking its temporary fixture. The exact CI status for this follow-up commit is recorded with its Git status; remaining interactive checks are listed in [Project Status](docs/PROJECT_STATUS.md).
+The latest local full run on Windows 11 with the project virtual environment (Python 3.12.10, pytest 9.1.1) completed with **405 passed, 2 skipped, 0 failed** (407 collected; 44.01 seconds). The symlink-safety test skipped because this Windows profile disallows symlink creation; the Recycle Bin integration is opt-in and was disabled in the full run. Enabling it in the project venv also skipped because `pywin32` is not installed there. The isolated real Recycle Bin round-trip passed separately under system Python with `pywin32`, restoring and byte-checking its temporary fixture. The Phase 12 commit is covered by the Windows build and isolated bundle smoke; the branch CI result is recorded in [Project Status](docs/PROJECT_STATUS.md). Remaining interactive checks are listed there as well.
 
 From the repository root, with development dependencies installed:
 
@@ -511,7 +512,7 @@ The [GitHub Actions Tests workflow](.github/workflows/tests.yml) runs on Windows
 | 9 | Dedicated Duplicate Manager UI | Complete; confirmed Windows Recycle Bin cleanup |
 | 10 | Settings, attribution export and operational features | Complete |
 | 11 | QA, compatibility and release hardening | Partially complete; see evidence and limitations |
-| 12 | PyInstaller packaging | Local `onedir` bundle built and smoke-tested; clean-machine/Windows 10 acceptance remains open |
+| 12 | PyInstaller packaging | Local `onedir` bundle and fresh-process import/settings smoke passed; clean-machine/Windows 10 acceptance remains open |
 | 13 | Windows installer | Planned |
 
 The local Windows build is internal validation output, not a downloadable product. To reproduce it on Windows x64 with Python 3.12, install `.[dev,packaging]` and run `./scripts/build_windows.ps1`; see [Packaging](docs/PACKAGING.md). Installer delivery and public distribution remain future work. See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for phase records.
