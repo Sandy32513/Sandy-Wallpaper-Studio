@@ -70,7 +70,7 @@ It is aimed at Windows users who want a more organized desktop-image library and
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 release hardening remains **partially complete** because actual desktop wallpaper application, physical keyboard/Narrator review, and Windows 10 acceptance have not been completed. The current application and package source version is `V1.0.0`. A matching unsigned Windows x64 `onedir` bundle was built and smoke-tested locally on Windows 11 from commit `e585a874`; it is internal validation output, not a public release. Clean-machine acceptance remains unverified. Discover, Categories, and Downloads remain placeholder destinations. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md).
+Phases 0-10 are complete. Phase 11 release hardening remains **partially complete** because actual desktop wallpaper application, physical keyboard/Narrator review, and Windows 10 acceptance have not been completed. The current application and package source version is `V1.0.0`. A matching unsigned Windows x64 `onedir` bundle was built and smoke-tested locally on Windows 11 from clean commit `725b7a9`; it is internal validation output, not a public release. Clean-machine acceptance remains unverified. Discover, Categories, and Downloads remain placeholder destinations. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md).
 
 | Area | Current status | Notes |
 |---|---|---|

@@ -10,7 +10,7 @@
 
 This document is the implementation-status reference for the repository. The dated Phase 11/12 follow-ups supersede older test counts and the DNS residual finding in the historical Phase 11 record.
 
-Phases 0-10 are complete. Historical Phase 11 results are recorded below. This audit began from a clean local `main` at `e585a874`. The remote cleanup branch at `d8f0fd9` was verified as an ancestor, then only the local `chore/repository-cleanup` branch was fast-forwarded to `e585a874` before work began. `main` was not changed. The source version is `V1.0.0`; a matching Windows bundle was locally rebuilt and smoke-tested from the clean `e585a874` source. Earlier `V0.1.0` and `0.7.0-dev` records are historical.
+Phases 0-10 are complete. Historical Phase 11 results are recorded below. This audit began from a clean local `main` at `e585a874`. The remote cleanup branch at `d8f0fd9` was verified as an ancestor, then only the local `chore/repository-cleanup` branch was fast-forwarded to `e585a874` before work began. `main` was not changed. The source version is `V1.0.0`; the current local validation bundle was rebuilt and smoke-tested from clean commit `725b7a9`. Earlier `V0.1.0` and `0.7.0-dev` records are historical.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -282,6 +282,20 @@ The application and package version sources were synchronized to `V0.1.0` (setup
 ## Version update to `V1.0.0` — 2026-10-19
 
 The application and package version sources use `V1.0.0` (setuptools normalizes package metadata to `1.0.0`). The initial `V1.0.0` bundle was built from clean source commit `e585a874499ac8b533201fda7e8746d5fbf5dda4` and passed the isolated packaged smoke; artifact details and SHA-256 are in [Packaging](PACKAGING.md). The bundle is unsigned internal validation output. This version update creates no Git tag or public release.
+
+## Current Phase 11/12 audit — 2026-10-19
+
+The audit changes are committed on `chore/repository-cleanup` as `725b7a9b14987ce556406e1f34440fab59fd92da`; this does not modify `main`. The package was rebuilt after that commit from a clean working tree. Remote branch heads and CI status are recorded after the push below.
+
+| Gate | Current evidence |
+|---|---|
+| Regression | Full local run: 409 passed, 2 skipped, 0 failed (411 collected, 43.10 seconds, exit 0). Skips: this Windows profile blocks symlink creation; the actual Recycle Bin test is opt-in. |
+| Static and dependency | Ruff passed. Mypy passed across 55 app files. `pip check` found no broken requirements. `pip-audit --local` found no known advisories; the local project package is not on PyPI. |
+| Version | App and console entry points report `V1.0.0`; installed project metadata is `1.0.0`; executable ProductVersion is `V1.0.0`, FileVersion `1.0.0.0`. |
+| Windows package | Python 3.12.10 x64, PyInstaller 6.22.3, Windows 11 Enterprise build 26300. Unsigned onedir EXE: 11,263,131 bytes; bundle: 245,950,451 bytes; SHA-256 and smoke evidence are in [Packaging](PACKAGING.md). The isolated import, persistence, SQLite, Qt startup/shutdown smoke passed. |
+| Documentation and workflow | 79 local Markdown links/fragments resolve. CI now has a dependent Windows package smoke job that builds but does not upload or publish an artifact. |
+| Manual acceptance | Live wallpaper API, physical keyboard/Narrator, Windows 10, and clean-machine tests remain **NOT RUN**. Phase 11 remains **PARTIALLY COMPLETE**. |
+| Release boundary | No version tag, installer, signature, or public release was created. Only `chore/repository-cleanup` is in scope; the main branch is not a target of this work. |
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase
