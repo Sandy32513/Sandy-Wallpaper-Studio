@@ -270,6 +270,10 @@ Windows-rendered screenshots exposed clipping in the Library toolbar/grid, Favor
 
 No installer, signing, release tag, or public distribution was created. Clean Windows 10/11 machine or VM acceptance remains **NOT RUN**. Native wallpaper, physical-input, and Narrator checks remain **NOT RUN** as recorded in [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md).
 
+## Phase 12 packaging follow-up — 2026-10-19
+
+The packaged import and fresh-process persistence checks are in commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`; the evidence/documentation update is commit `30c02804daf5e0a6910f157eeb466f7383c26d46`. Both were pushed to `origin/chore/repository-cleanup`. [GitHub Actions run 39292154877](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39292154877) passed for the exact `30c02804daf5e0a6910f157eeb466f7383c26d46` SHA on Windows/Python 3.12: 406 passed, 1 skipped; entry points, Ruff, mypy, and pytest all passed. `origin/main` remains at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; no Phase 12 changes were pushed there.
+
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase
 

@@ -55,7 +55,7 @@ This follow-up is recorded on `chore/repository-cleanup` from the then-current `
 | Manual acceptance | The actual Windows wallpaper API test was not run. No Narrator/physical-input review, separate Windows 10 run, or clean-machine/VM install was performed. See [Windows Manual Acceptance](WINDOWS_ACCEPTANCE.md). |
 | Release state | Version remains `0.7.0-dev`. The local bundle is ignored build output; no installer, signature, tag, or public download was produced. The follow-up is not pushed to `main`. |
 
-The exact follow-up commit, branch push, and its GitHub Actions result are reported in the task completion record; this document keeps the observed manual/CI gates distinct from local results.
+The Phase 12 follow-up commits, branch push, and exact GitHub Actions result are recorded in [Project Status](PROJECT_STATUS.md); this document keeps manual acceptance gates distinct from local results.
 
 ## Verification command index
 
