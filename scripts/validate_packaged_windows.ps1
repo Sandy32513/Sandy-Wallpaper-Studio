@@ -63,7 +63,6 @@ public static class SwsPackageSmokeNativeMethods {
 }
 
 $process = $null
-$runtimeProcess = $null
 $success = $false
 $databasePath = Join-Path $profilePath "Pictures\SandyWallpaperStudio\wallpapers.db"
 $settingsPath = Join-Path $profilePath "Pictures\SandyWallpaperStudio\settings.json"
@@ -99,6 +98,70 @@ try {
         "QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "QT_QPA_PLATFORM"
     )) {
         $envVars.Remove($name)
+    }
+
+    function Invoke-PackagedSmokeCommand {
+        param(
+            [Parameter(Mandatory = $true)][string]$Arguments,
+            [Parameter(Mandatory = $true)][string]$ExpectedText,
+            [Parameter(Mandatory = $true)][string]$Label
+        )
+
+        $commandStartInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $commandStartInfo.FileName = $executablePath
+        $commandStartInfo.Arguments = $Arguments
+        $commandStartInfo.UseShellExecute = $false
+        $commandStartInfo.CreateNoWindow = $true
+        $commandStartInfo.WorkingDirectory = $BundlePath
+        foreach ($name in $startInfo.EnvironmentVariables.Keys) {
+            $commandStartInfo.EnvironmentVariables[$name] = $startInfo.EnvironmentVariables[$name]
+        }
+        $commandProcess = [Diagnostics.Process]::Start($commandStartInfo)
+        if ($null -eq $commandProcess) {
+            throw "Could not start packaged $Label."
+        }
+        try {
+            $commandDeadline = (Get-Date).AddSeconds(60)
+            $commandDialogHandle = [IntPtr]::Zero
+            $commandText = ""
+            while ((Get-Date) -lt $commandDeadline) {
+                $commandProcess.Refresh()
+                if ($commandProcess.HasExited) {
+                    throw "Packaged $Label exited without presenting its result (code $($commandProcess.ExitCode))."
+                }
+                $commandDialogHandle = $commandProcess.MainWindowHandle
+                if ($commandDialogHandle -ne [IntPtr]::Zero) {
+                    $messageHandle = [SwsPackageSmokeNativeMethods]::GetDlgItem($commandDialogHandle, 0xFFFF)
+                    if ($messageHandle -ne [IntPtr]::Zero) {
+                        $messageBuilder = New-Object Text.StringBuilder 1024
+                        [void][SwsPackageSmokeNativeMethods]::GetWindowText($messageHandle, $messageBuilder, $messageBuilder.Capacity)
+                        $commandText = $messageBuilder.ToString()
+                    }
+                    if (-not [string]::IsNullOrWhiteSpace($commandText)) {
+                        break
+                    }
+                }
+                Start-Sleep -Milliseconds 200
+            }
+            if (-not $commandText.Contains($ExpectedText)) {
+                throw "Packaged $Label did not report '$ExpectedText'."
+            }
+            [void][SwsPackageSmokeNativeMethods]::PostMessage($commandDialogHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
+            if (-not $commandProcess.WaitForExit(10000) -or $commandProcess.ExitCode -ne 0) {
+                throw "Packaged $Label did not close with exit code 0."
+            }
+            return $commandText
+        }
+        finally {
+            $commandProcess.Refresh()
+            if (-not $commandProcess.HasExited -and $commandProcess.MainWindowHandle -ne [IntPtr]::Zero) {
+                [void][SwsPackageSmokeNativeMethods]::PostMessage($commandProcess.MainWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
+                [void]$commandProcess.WaitForExit(5000)
+            }
+            if ($commandProcess.HasExited) {
+                $commandProcess.Dispose()
+            }
+        }
     }
 
     $versionStartInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -159,53 +222,25 @@ try {
         }
     }
 
-    $runtimeStartInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $runtimeStartInfo.FileName = $executablePath
-    $runtimeStartInfo.Arguments = "--validate-runtime"
-    $runtimeStartInfo.UseShellExecute = $false
-    $runtimeStartInfo.CreateNoWindow = $true
-    $runtimeStartInfo.WorkingDirectory = $BundlePath
-    foreach ($name in $startInfo.EnvironmentVariables.Keys) {
-        $runtimeStartInfo.EnvironmentVariables[$name] = $startInfo.EnvironmentVariables[$name]
+    $prepareText = Invoke-PackagedSmokeCommand `
+        -Arguments "--prepare-runtime-check" `
+        -ExpectedText "Prepare check passed" `
+        -Label "runtime preparation"
+    if (-not $prepareText.Contains("supported image import") -or
+        -not $prepareText.Contains("persisted setting")) {
+        throw "Packaged preparation did not report image import and settings persistence."
     }
-    $runtimeProcess = [Diagnostics.Process]::Start($runtimeStartInfo)
-    if ($null -eq $runtimeProcess) {
-        throw "Could not start the packaged runtime validation command."
-    }
-    $runtimeDeadline = (Get-Date).AddSeconds(45)
-    $runtimeDialogHandle = [IntPtr]::Zero
-    $runtimeText = ""
-    while ((Get-Date) -lt $runtimeDeadline) {
-        $runtimeProcess.Refresh()
-        if ($runtimeProcess.HasExited) {
-            throw "Packaged runtime validation exited without presenting its result (code $($runtimeProcess.ExitCode))."
-        }
-        $runtimeDialogHandle = $runtimeProcess.MainWindowHandle
-        if ($runtimeDialogHandle -ne [IntPtr]::Zero) {
-            $runtimeMessageHandle = [SwsPackageSmokeNativeMethods]::GetDlgItem($runtimeDialogHandle, 0xFFFF)
-            if ($runtimeMessageHandle -ne [IntPtr]::Zero) {
-                $runtimeMessageBuilder = New-Object Text.StringBuilder 1024
-                [void][SwsPackageSmokeNativeMethods]::GetWindowText($runtimeMessageHandle, $runtimeMessageBuilder, $runtimeMessageBuilder.Capacity)
-                $runtimeText = $runtimeMessageBuilder.ToString()
-            }
-            if (-not [string]::IsNullOrWhiteSpace($runtimeText)) {
-                break
-            }
-        }
-        Start-Sleep -Milliseconds 200
-    }
-    if (-not $runtimeText.Contains("Runtime check passed") -or
-        -not $runtimeText.Contains("pHash") -or
+
+    $runtimeText = Invoke-PackagedSmokeCommand `
+        -Arguments "--validate-runtime" `
+        -ExpectedText "Runtime check passed after restart" `
+        -Label "runtime validation"
+    if (-not $runtimeText.Contains("pHash") -or
+        -not $runtimeText.Contains("persisted setting") -or
         -not $runtimeText.Contains($appVersion)) {
-        throw "Packaged runtime validation did not report all image/hash/storage checks."
+        throw "Packaged runtime validation did not report all restart, image/hash, and storage checks."
     }
-    [void][SwsPackageSmokeNativeMethods]::PostMessage($runtimeDialogHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
-    if (-not $runtimeProcess.WaitForExit(10000) -or $runtimeProcess.ExitCode -ne 0) {
-        throw "Packaged runtime validation did not close with exit code 0."
-    }
-    $runtimeProcess.Dispose()
-    $runtimeProcess = $null
-    $runtimeCheck = "PNG metadata, SHA-256, pHash, thumbnail, settings schema, SQLite integrity: passed"
+    $runtimeCheck = "ImportService PNG import, metadata, SHA-256, pHash, thumbnail, fresh-process settings persistence, SQLite integrity: passed"
 
     $process = [Diagnostics.Process]::Start($startInfo)
     if ($null -eq $process) {
@@ -251,6 +286,9 @@ try {
     if ($settings.config_schema_version -ne 2) {
         throw "First-run settings did not persist schema version 2."
     }
+    if ($settings.theme -ne "light") {
+        throw "The packaged GUI did not preserve the setting saved before its restart."
+    }
     foreach ($directory in @("Library", "Cache", "Temp", "Logs", "Exports", "Duplicates")) {
         if (-not (Test-Path -LiteralPath (Join-Path (Split-Path $databasePath -Parent) $directory) -PathType Container)) {
             throw "First-run directory '$directory' was not created under the isolated profile."
@@ -272,7 +310,10 @@ database = profile / 'Pictures' / 'SandyWallpaperStudio' / 'wallpapers.db'
 with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
     integrity = connection.execute('PRAGMA integrity_check').fetchone()[0]
     tables = sorted(row[0] for row in connection.execute('SELECT name FROM sqlite_master WHERE type=\'table\''))
-print(json.dumps({'integrity': integrity, 'table_count': len(tables)}))
+    wallpapers = connection.execute('SELECT path, sha256 FROM wallpapers').fetchall()
+imported = profile / 'Pictures' / 'SandyWallpaperStudio' / 'Temp' / 'sws-packaged-import-input' / 'sws-runtime-import.png'
+found = any(Path(path) == imported.resolve() and len(sha256) == 64 for path, sha256 in wallpapers)
+print(json.dumps({'integrity': integrity, 'table_count': len(tables), 'imported_image': found}))
 '@
     $databaseReportText = & $PythonPath -c $sqliteCheck $profilePath
     if ($LASTEXITCODE -ne 0) {
@@ -280,7 +321,7 @@ print(json.dumps({'integrity': integrity, 'table_count': len(tables)}))
     }
     $databaseReport = $databaseReportText | ConvertFrom-Json
     $databaseIntegrity = $databaseReport.integrity
-    if ($databaseIntegrity -ne "ok" -or $databaseReport.table_count -lt 1) {
+    if ($databaseIntegrity -ne "ok" -or $databaseReport.table_count -lt 1 -or -not $databaseReport.imported_image) {
         throw "Packaged first-run SQLite validation failed: $databaseReportText"
     }
     $success = $true
@@ -290,16 +331,6 @@ catch {
     throw
 }
 finally {
-    if ($null -ne $runtimeProcess) {
-        $runtimeProcess.Refresh()
-        if (-not $runtimeProcess.HasExited -and $runtimeProcess.MainWindowHandle -ne [IntPtr]::Zero) {
-            [void][SwsPackageSmokeNativeMethods]::PostMessage($runtimeProcess.MainWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)
-            [void]$runtimeProcess.WaitForExit(5000)
-        }
-        if ($runtimeProcess.HasExited) {
-            $runtimeProcess.Dispose()
-        }
-    }
     if ($null -ne $process) {
         $process.Refresh()
         if (-not $process.HasExited -and $process.MainWindowHandle -ne [IntPtr]::Zero) {

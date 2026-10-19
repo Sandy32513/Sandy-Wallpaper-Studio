@@ -10,7 +10,6 @@ import argparse
 import json
 import logging
 import sys
-import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -91,6 +90,7 @@ def _parse_args() -> argparse.Namespace:
         help="Override the library root directory.",
     )
     parser.add_argument("--validate-runtime", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--prepare-runtime-check", action="store_true", help=argparse.SUPPRESS)
 
     # --- Future CLI commands (Phase 33) ---
     parser.add_argument("--download", action="store_true", help="(Planned) Download wallpapers.")
@@ -104,46 +104,88 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _validate_packaged_runtime(config: Config, db: Any) -> int:
-    """Exercise image processing and persistence dependencies in a frozen build."""
+def _prepare_packaged_runtime_check(config: Config, db: Any) -> int:
+    """Import a generated supported image and persist a test setting in a frozen build."""
     from PIL import Image
 
-    from app.services.metadata_service import MetadataService
-    from app.utils.hashing import compute_phash, compute_sha256
-    from app.utils.image_utils import create_thumbnail
+    from app.services.import_service import FileStatus, ImportService
 
-    image_path: Path | None = None
-    thumbnail_path: Path | None = None
     try:
         config.temp_dir.mkdir(parents=True, exist_ok=True)
-        config.cache_dir.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(
-            dir=config.temp_dir,
-            prefix="sws-runtime-check-",
-            suffix=".png",
-            delete=False,
-        ) as temporary_image:
-            image_path = Path(temporary_image.name)
-
+        image_folder = config.temp_dir / "sws-packaged-import-input"
+        image_folder.mkdir(parents=True, exist_ok=True)
+        image_path = image_folder / "sws-runtime-import.png"
         with Image.new("RGB", (256, 192), (48, 96, 144)) as image:
             image.save(image_path, format="PNG")
+
+        report = ImportService(db, cache_dir=config.cache_dir, config=config).import_folder(image_folder)
+        if report.total_discovered != 1 or report.total_imported != 1:
+            raise RuntimeError(f"Supported image import failed: {report.summary_dict()}")
+        if report.file_results[0].status not in {FileStatus.IMPORTED, FileStatus.NEAR_DUPLICATE_IMPORTED}:
+            raise RuntimeError(f"Supported image import returned {report.file_results[0].status.value}.")
+
+        config.apply_settings({"theme": "light"})
+        db.close()
+        _report_command_message(
+            f"{APP_NAME} {APP_VERSION}\n"
+            "Prepare check passed: supported image import and persisted setting."
+        )
+        return 0
+    except Exception as exc:
+        logger.exception("Packaged runtime preparation failed.")
+        try:
+            db.close()
+        except Exception:
+            logger.exception("Could not close the database after runtime preparation failure.")
+        _report_command_message(
+            f"{APP_NAME} prepare check failed: {type(exc).__name__}: {exc}",
+            error=True,
+        )
+        return 1
+
+
+def _validate_packaged_runtime(config: Config, db: Any) -> int:
+    """Verify imported data and settings persisted across a packaged process restart."""
+    from PIL import Image
+
+    from app.database.wallpaper_repository import WallpaperRepository
+    from app.services.metadata_service import MetadataService
+    from app.utils.hashing import compute_phash, compute_sha256
+    from app.utils.image_utils import thumbnail_cache_path
+
+    try:
+        image_path = config.temp_dir / "sws-packaged-import-input" / "sws-runtime-import.png"
+        wallpaper = WallpaperRepository(db).get_by_path(str(image_path.resolve()))
+        if wallpaper is None or not image_path.is_file():
+            raise RuntimeError("Imported image was not persisted across process restart.")
 
         metadata = MetadataService().extract(image_path)
         sha256 = compute_sha256(image_path)
         phash = compute_phash(image_path)
-        if not metadata.sha256 or len(sha256) != 64 or len(phash) != 16:
-            raise RuntimeError("Image metadata, SHA-256, or pHash validation failed.")
+        if (not metadata.sha256 or len(sha256) != 64 or len(phash) != 16 or
+                wallpaper.sha256 != sha256 or wallpaper.phash != phash):
+            raise RuntimeError("Imported image metadata, SHA-256, or pHash validation failed.")
 
-        thumbnail_path = config.cache_dir / f"sws-runtime-check-{image_path.stem}.jpg"
-        if not create_thumbnail(image_path, thumbnail_path, size=(128, 96)):
-            raise RuntimeError("Thumbnail generation failed.")
-        with Image.open(thumbnail_path) as thumbnail:
-            thumbnail.verify()
+        thumbnail_size = (
+            config.get("thumbnail_width", 400),
+            config.get("thumbnail_height", 225),
+        )
+        thumbnail = thumbnail_cache_path(
+            config.cache_dir / "thumbnails",
+            sha256,
+            thumbnail_size,
+            config.get("thumbnail_quality", 85),
+        )
+        if not thumbnail.is_file():
+            raise RuntimeError("ImportService thumbnail was not persisted.")
+        with Image.open(thumbnail) as image:
+            image.verify()
 
         settings_path = config.config_dir / "settings.json"
         persisted_settings = json.loads(settings_path.read_text(encoding="utf-8"))
-        if persisted_settings.get("config_schema_version") != 2:
-            raise RuntimeError("Persisted settings schema validation failed.")
+        if (persisted_settings.get("config_schema_version") != 2 or
+                persisted_settings.get("theme") != "light" or config.get("theme") != "light"):
+            raise RuntimeError("Persisted settings did not survive a fresh process.")
         integrity = db.execute("PRAGMA integrity_check").fetchone()[0]
         if integrity != "ok":
             raise RuntimeError(f"SQLite integrity validation failed: {integrity}")
@@ -151,8 +193,8 @@ def _validate_packaged_runtime(config: Config, db: Any) -> int:
         db.close()
         _report_command_message(
             f"{APP_NAME} {APP_VERSION}\n"
-            "Runtime check passed: PNG import, metadata, SHA-256, pHash, "
-            "thumbnail, settings, and SQLite integrity."
+            "Runtime check passed after restart: imported image, metadata, SHA-256, "
+            "pHash, thumbnail, persisted setting, and SQLite integrity."
         )
         return 0
     except Exception as exc:
@@ -166,11 +208,6 @@ def _validate_packaged_runtime(config: Config, db: Any) -> int:
             error=True,
         )
         return 1
-    finally:
-        if image_path is not None:
-            image_path.unlink(missing_ok=True)
-        if thumbnail_path is not None:
-            thumbnail_path.unlink(missing_ok=True)
 
 
 def main() -> int:
@@ -227,6 +264,8 @@ def main() -> int:
 
     if getattr(args, "validate_runtime", False):
         return _validate_packaged_runtime(config, db)
+    if getattr(args, "prepare_runtime_check", False):
+        return _prepare_packaged_runtime_check(config, db)
 
     # -------------------------------------------------------
     # Phase 6: Launch PySide6 Desktop GUI

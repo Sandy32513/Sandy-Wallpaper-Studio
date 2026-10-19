@@ -206,7 +206,7 @@ def test_native_wallpaper_api_boundary_is_mocked_for_success_and_failure(
     assert failing._history_stack == []
 
 
-def test_packaged_runtime_check_exercises_image_and_database_services(
+def test_packaged_runtime_check_imports_image_and_persists_settings_across_restart(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -221,8 +221,19 @@ def test_packaged_runtime_check_exercises_image_and_database_services(
     database = Database(config.database_path)
     database.connect()
 
-    assert main_module._validate_packaged_runtime(config, database) == 0
+    assert main_module._prepare_packaged_runtime_check(config, database) == 0
+    assert "Prepare check passed" in capsys.readouterr().out
+
+    # Recreate both objects as a new application process would.
+    restarted_config = Config(profile)
+    restarted_config.load()
+    restarted_database = Database(restarted_config.database_path)
+    restarted_database.connect()
+    imported_path = restarted_config.temp_dir / "sws-packaged-import-input" / "sws-runtime-import.png"
+    assert restarted_config.get("theme") == "light"
+    assert imported_path.is_file()
+
+    assert main_module._validate_packaged_runtime(restarted_config, restarted_database) == 0
     report = capsys.readouterr().out
     assert "Runtime check passed" in report
-    assert list(config.temp_dir.glob("sws-runtime-check-*.png")) == []
-    assert list(config.cache_dir.glob("sws-runtime-check-*.jpg")) == []
+    assert "persisted setting" in report
