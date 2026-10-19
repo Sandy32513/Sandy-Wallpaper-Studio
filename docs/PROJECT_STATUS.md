@@ -285,7 +285,7 @@ The application and package version sources use `V1.0.0` (setuptools normalizes 
 
 ## Current Phase 11/12 audit — 2026-10-19
 
-The audit changes are committed on `chore/repository-cleanup` as `725b7a9b14987ce556406e1f34440fab59fd92da`; this does not modify `main`. The package was rebuilt after that commit from a clean working tree. Remote branch heads and CI status are recorded after the push below.
+The implementation and regression changes are committed on `chore/repository-cleanup` as `725b7a9b14987ce556406e1f34440fab59fd92da`; the validation evidence was added in `fb38f72790e0044b6249019aa430146e873c78cc`. The package was rebuilt from the clean implementation commit. Both commits were pushed to `origin/chore/repository-cleanup`; the post-push check found that branch at `fb38f72` while `origin/main` remained at `e585a874`. [GitHub Actions run 39300209725](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39300209725) passed for exact pushed SHA `fb38f72790e0044b6249019aa430146e873c78cc`, including the Windows/Python 3.12 test/static job and the independent PyInstaller package-smoke job. No change was made to `main`.
 
 | Gate | Current evidence |
 |---|---|
@@ -293,7 +293,7 @@ The audit changes are committed on `chore/repository-cleanup` as `725b7a9b14987c
 | Static and dependency | Ruff passed. Mypy passed across 55 app files. `pip check` found no broken requirements. `pip-audit --local` found no known advisories; the local project package is not on PyPI. |
 | Version | App and console entry points report `V1.0.0`; installed project metadata is `1.0.0`; executable ProductVersion is `V1.0.0`, FileVersion `1.0.0.0`. |
 | Windows package | Python 3.12.10 x64, PyInstaller 6.22.3, Windows 11 Enterprise build 26300. Unsigned onedir EXE: 11,263,131 bytes; bundle: 245,950,451 bytes; SHA-256 and smoke evidence are in [Packaging](PACKAGING.md). The isolated import, persistence, SQLite, Qt startup/shutdown smoke passed. |
-| Documentation and workflow | 79 local Markdown links/fragments resolve. CI now has a dependent Windows package smoke job that builds but does not upload or publish an artifact. |
+| Documentation and workflow | 81 local Markdown links/fragments resolve. CI has a dependent Windows package smoke job; run 39300209725 passed both jobs for pushed commit `fb38f72`, and it does not upload or publish an artifact. |
 | Manual acceptance | Live wallpaper API, physical keyboard/Narrator, Windows 10, and clean-machine tests remain **NOT RUN**. Phase 11 remains **PARTIALLY COMPLETE**. |
 | Release boundary | No version tag, installer, signature, or public release was created. Only `chore/repository-cleanup` is in scope; the main branch is not a target of this work. |
 
