@@ -50,6 +50,16 @@ logs/
 *.db-wal
 *.db-shm
 
+# Runtime files if --library is deliberately pointed at the repository root.
+/settings.json
+/Library/
+/Metadata/
+/Cache/
+/Temp/
+/Logs/
+/Exports/
+/Duplicates/
+
 # Temporary files
 tmp/
 temp/
