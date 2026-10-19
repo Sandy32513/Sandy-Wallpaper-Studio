@@ -4,12 +4,12 @@
 **Status date: 2026-10-19**
 **Latest full test run: 405 passed / 2 skipped / 0 failed (407 collected; exit 0)**
 **Remote main at this follow-up start: `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`**
-**Working branch: chore/repository-cleanup**
+**Working branch: main**
 **Phase 11 starting baseline: 12b755003ae8c462eee3b01b60b8c506e76bb8d5**
 
 This document is the implementation-status reference for the repository. The Phase 11/12 follow-up below supersedes older test counts and the DNS residual finding in the historical Phase 11 record.
 
-Phases 0-10 are complete. Historical Phase 11 results are recorded below. The current finalization follow-up began with `origin/main` and `origin/chore/repository-cleanup` at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; work remains on `chore/repository-cleanup`, not `main`. The application version is now `V0.1.0`; earlier 0.7.0-dev build and acceptance records are historical.
+Phases 0-10 are complete. Historical Phase 11 results are recorded below. The finalization work from `chore/repository-cleanup` has been fast-forwarded onto `main`. The current source version is `V1.0.0`; the most recent locally validated Windows bundle is `V0.1.0`, and has not been rebuilt for the current version. Earlier `0.7.0-dev` build and acceptance records are historical.
 
 ## Phase 0 — Foundation
 **Status: COMPLETE**
@@ -274,9 +274,13 @@ No installer, signing, release tag, or public distribution was created. Clean Wi
 
 The packaged import and fresh-process persistence checks are in commit `7f1ccbc674a66cdbd0d0b9306e50b4253f285197`; the evidence/documentation update is commit `30c02804daf5e0a6910f157eeb466f7383c26d46`. Both were pushed to `origin/chore/repository-cleanup`. [GitHub Actions run 39292154877](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/runs/39292154877) passed for the exact `30c02804daf5e0a6910f157eeb466f7383c26d46` SHA on Windows/Python 3.12: 406 passed, 1 skipped; entry points, Ruff, mypy, and pytest all passed. `origin/main` remains at `b30acc26867c01b7ddbaa846b7cc4caebbe178e8`; no Phase 12 changes were pushed there.
 
-## Version identifier update — 2026-10-19
+## Previous version identifier update — `V0.1.0` — 2026-10-19
 
-The application and package version sources are synchronized to `V0.1.0` (setuptools normalizes the package metadata to `0.1.0`). The Windows bundle was rebuilt from clean source commit `57907841f7d23ec1d97e8d7559584ca429abe7a6`; its isolated smoke passed with ProductVersion `V0.1.0` and FileVersion `0.1.0.0`. Artifact size, SHA-256, and smoke results are recorded in [Packaging](PACKAGING.md). This version change does not create a Git tag or publish a release.
+The application and package version sources were synchronized to `V0.1.0` (setuptools normalizes the package metadata to `0.1.0`). The Windows bundle was rebuilt from clean source commit `57907841f7d23ec1d97e8d7559584ca429abe7a6`; its isolated smoke passed with ProductVersion `V0.1.0` and FileVersion `0.1.0.0`. Artifact size, SHA-256, and smoke results are recorded in [Packaging](PACKAGING.md).
+
+## Version update to `V1.0.0` — 2026-10-19
+
+The application and package version sources now use `V1.0.0` (setuptools normalizes package metadata to `1.0.0`). The previous `V0.1.0` bundle remains the latest local validation artifact; a `V1.0.0` bundle has not been built or smoke-tested. This update creates no Git tag or public release.
 
 ## Development Discipline
 Design → Implement → Test → Audit → Document → Commit → Tag → Next Phase

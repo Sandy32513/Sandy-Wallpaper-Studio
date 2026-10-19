@@ -61,13 +61,13 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Interface | PySide6 / Qt for Python |
 | Local persistence | SQLite |
 | Online wallpaper source | Wikimedia Commons via the MediaWiki API |
-| Project maturity | `V0.1.0` version identifier; local Windows validation build only |
+| Project maturity | `V1.0.0` source version; latest Windows validation build is `V0.1.0` |
 | Latest implemented milestone | Phase 12 - isolated PyInstaller bundle validation (no public release) |
 | Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 hardening pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification, but desktop and accessibility acceptance gates remain open. The current application version is `V0.1.0`. Phase 12 has a local Windows `onedir` build; its isolated smoke imports a supported PNG, checks its database record and saved settings in a fresh process, then starts and closes the GUI. The build is unsigned and is not a public release. Windows 10 and clean-machine acceptance are unverified. This follow-up is on `chore/repository-cleanup`; it does not change `main`. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
+Phases 0-10 are complete. Phase 11 hardening pins direct HTTPS downloads to vetted public DNS answers while preserving TLS hostname verification, but desktop and accessibility acceptance gates remain open. The current source version is `V1.0.0`; the latest local Windows `onedir` validation build is `V0.1.0` and has not yet been rebuilt for this version. Its isolated smoke imports a supported PNG, checks its database record and saved settings in a fresh process, then starts and closes the GUI. The build is unsigned and is not a public release. Windows 10 and clean-machine acceptance are unverified. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md). Discover, Categories, and Downloads remain placeholder destinations.
 
 | Area | Current status | Notes |
 |---|---|---|

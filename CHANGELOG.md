@@ -35,13 +35,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Packaging and interactive Windows acceptance procedures in `docs/PACKAGING.md` and `docs/WINDOWS_ACCEPTANCE.md`.
 
 #### Scope
-- The initial local bundle used `0.7.0-dev`; the current version identifier is `V0.1.0`. No installer, signing, release tag, or public download is produced. Clean-machine and Windows 10 acceptance remain open.
+- The initial local bundle used `0.7.0-dev`; the latest validation build is `V0.1.0`. The current source version is `V1.0.0`; no matching bundle, installer, signing, release tag, or public download has been produced. Clean-machine and Windows 10 acceptance remain open.
 
-### Version identifier update
+### Previous version identifier update (`V0.1.0`)
 - Synchronized the application version string and Python project metadata to `V0.1.0`.
 - Setuptools normalizes distribution metadata to `0.1.0`; Windows file-version metadata uses `0.1.0.0`, while the product version retains the requested `V` prefix.
 - Rebuilt and smoke-tested the unsigned Windows bundle at `V0.1.0`; artifact details are in `docs/PACKAGING.md`.
 - This version change does not create a Git tag or publish a release.
+
+### Version identifier update (`V1.0.0`)
+- Synchronized the application version string and Python project metadata to `V1.0.0`.
+- Setuptools normalizes distribution metadata to `1.0.0`; the Windows build script derives file-version metadata `1.0.0.0` and preserves the `V` product-version prefix.
+- The `V0.1.0` Windows validation bundle remains the latest built artifact; a `V1.0.0` bundle has not been built or smoke-tested.
+- This source version update does not create a Git tag or publish a release.
 
 ### Phase 10 - Settings & Operational Features
 

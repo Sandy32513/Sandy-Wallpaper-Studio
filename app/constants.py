@@ -9,7 +9,7 @@ Central location for all application-wide constants.
 # Application Identity
 # ============================================================
 APP_NAME = "Sandy Wallpaper Studio"
-APP_VERSION = "V0.1.0"
+APP_VERSION = "V1.0.0"
 APP_AUTHOR = "Sandy"
 APP_DESCRIPTION = "Professional 4K/5K/8K Wallpaper Management for Windows"
 
