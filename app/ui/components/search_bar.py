@@ -239,11 +239,22 @@ class SearchFilterBar(QFrame):
 
     def update_categories(self, categories: list[str]) -> None:
         """Refresh category options."""
+        selected = self._cat_combo.currentData() or ""
         self._cat_combo.blockSignals(True)
         self._cat_combo.clear()
         self._cat_combo.addItem("All Categories", userData="")
         for c in categories:
             self._cat_combo.addItem(c, userData=c)
+        selected_index = self._cat_combo.findData(selected)
+        if selected_index >= 0:
+            self._cat_combo.setCurrentIndex(selected_index)
+        self._cat_combo.blockSignals(False)
+
+    def set_category_filter(self, category: str) -> None:
+        """Select a category without emitting a filter change during navigation."""
+        index = self._cat_combo.findData(category)
+        self._cat_combo.blockSignals(True)
+        self._cat_combo.setCurrentIndex(max(0, index))
         self._cat_combo.blockSignals(False)
 
     @property

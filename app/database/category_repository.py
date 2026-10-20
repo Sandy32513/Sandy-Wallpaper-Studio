@@ -80,6 +80,27 @@ class CategoryRepository:
         )
         return [_row_to_category(row) for row in cursor.fetchall()]
 
+    def get_all_with_wallpaper_counts(self) -> list[tuple[Category, int]]:
+        """Fetch categories and their wallpaper counts in one grouped query."""
+        cursor = self._db.execute(
+            "SELECT c.*, COUNT(w.id) AS wallpaper_count "
+            "FROM categories AS c "
+            "LEFT JOIN wallpapers AS w ON w.category = c.name "
+            "GROUP BY c.id "
+            "ORDER BY c.sort_order ASC, c.name ASC"
+        )
+        return [
+            (_row_to_category(row), int(row["wallpaper_count"]))
+            for row in cursor.fetchall()
+        ]
+
+    def count_wallpapers(self, category_name: str) -> int:
+        """Count wallpaper rows carrying a category label."""
+        row = self._db.execute(
+            "SELECT COUNT(*) FROM wallpapers WHERE category = ?", (category_name,)
+        ).fetchone()
+        return int(row[0]) if row else 0
+
     def get_by_name(self, name: str) -> Optional[Category]:
         """Fetch a category by name."""
         cursor = self._db.execute(
@@ -119,12 +140,27 @@ class CategoryRepository:
     # UPDATE
     # ----------------------------------------------------------
     def rename(self, category_id: int, new_name: str) -> bool:
-        """Rename a category. Returns True if successful."""
-        cursor = self._db.execute(
-            "UPDATE categories SET name = ? WHERE id = ?",
-            (new_name, category_id),
-        )
-        self._db.commit()
+        """Rename a category and retag its wallpapers atomically."""
+        try:
+            with self._db.connection:
+                current = self._db.execute(
+                    "SELECT name FROM categories WHERE id = ?", (category_id,)
+                ).fetchone()
+                if current is None:
+                    return False
+                old_name = str(current["name"])
+                cursor = self._db.execute(
+                    "UPDATE categories SET name = ? WHERE id = ?",
+                    (new_name, category_id),
+                )
+                if cursor.rowcount:
+                    self._db.execute(
+                        "UPDATE wallpapers SET category = ? WHERE category = ?",
+                        (new_name, old_name),
+                    )
+        except Exception:
+            self._db.rollback()
+            raise
         return cursor.rowcount > 0
 
     def update_sort_order(self, category_id: int, sort_order: int) -> bool:
@@ -136,6 +172,18 @@ class CategoryRepository:
         self._db.commit()
         return cursor.rowcount > 0
 
+    def set_sort_order(self, ordered_ids: list[int]) -> None:
+        """Persist the complete category order in one transaction."""
+        try:
+            with self._db.connection:
+                self._db.executemany(
+                    "UPDATE categories SET sort_order = ? WHERE id = ?",
+                    [(order, category_id) for order, category_id in enumerate(ordered_ids)],
+                )
+        except Exception:
+            self._db.rollback()
+            raise
+
     # ----------------------------------------------------------
     # DELETE
     # ----------------------------------------------------------
@@ -145,10 +193,14 @@ class CategoryRepository:
         NOTE: Wallpapers in this category keep their category string —
         they just become "uncategorized" from the UI's perspective.
         """
-        cursor = self._db.execute(
-            "DELETE FROM categories WHERE id = ?", (category_id,)
-        )
-        self._db.commit()
+        try:
+            with self._db.connection:
+                cursor = self._db.execute(
+                    "DELETE FROM categories WHERE id = ?", (category_id,)
+                )
+        except Exception:
+            self._db.rollback()
+            raise
         deleted = cursor.rowcount > 0
         if deleted:
             logger.info("Deleted category id=%d.", category_id)

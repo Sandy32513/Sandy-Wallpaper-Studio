@@ -220,6 +220,17 @@ class LibraryView(QWidget):
         self._current_page = 0
         self._load_page(reset=True)
 
+    def refresh(self) -> None:
+        """Reload library data and category filter options."""
+        self._search_bar.update_categories([category.name for category in self._cat_repo.get_all()])
+        self._refresh()
+
+    def set_category_filter(self, category: str) -> None:
+        """Set the category selection for navigation from Categories."""
+        self._search_bar.update_categories([item.name for item in self._cat_repo.get_all()])
+        self._search_bar.set_category_filter(category)
+        self._current_filters = self._search_bar.current_filters
+
     def _load_page(self, reset: bool = False) -> None:
         if self._config:
             self._thumbnail_size = (

@@ -26,11 +26,13 @@ from app.database.category_repository import CategoryRepository
 from app.database.database import Database
 from app.database.history_repository import HistoryRepository
 from app.database.wallpaper_repository import WallpaperRepository
+from app.services.category_service import CategoryService
 from app.services.history_service import HistoryService
 from app.services.rotation_scheduler import RotationScheduler
 from app.services.rotation_service import RotationResult
 from app.services.wallpaper_service import WindowsWallpaperService
 from app.ui import design_system as ds
+from app.ui.categories_view import CategoriesView
 from app.ui.components.sidebar import Sidebar
 from app.ui.dashboard_view import DashboardView
 from app.ui.duplicate_manager_view import DuplicateManagerView
@@ -82,6 +84,7 @@ class MainWindow(QMainWindow):
         # Services
         self._wp_repo = WallpaperRepository(db)
         self._cat_repo = CategoryRepository(db)
+        self._category_service = CategoryService(self._cat_repo, config)
         self._history_repo = HistoryRepository(db)
         self._wp_service = WindowsWallpaperService(
             db=db,
@@ -186,6 +189,12 @@ class MainWindow(QMainWindow):
         library.wallpaper_applied.connect(self._on_wallpaper_applied)
         self._add_view("library", library)
 
+        categories = CategoriesView(service=self._category_service)
+        categories.open_library_requested.connect(self._set_library_category_filter)
+        categories.navigate_to.connect(self._navigate_to)
+        categories.status_message.connect(self._show_status)
+        self._add_view("categories", categories)
+
         # Favorites (Phase 7)
         favorites = FavoritesView(
             db=self._db,
@@ -230,7 +239,6 @@ class MainWindow(QMainWindow):
         # Placeholder views for future phases
         placeholders = {
             "discover":   "Discover",
-            "categories": "Categories",
             "downloads":  "Downloads",
         }
         for key, label in placeholders.items():
@@ -254,6 +262,11 @@ class MainWindow(QMainWindow):
             self._stack.setCurrentWidget(view)
             self._sidebar.navigate_to(key)
             self._show_status(f"Navigated to: {key.capitalize()}")
+
+    def _set_library_category_filter(self, category: str) -> None:
+        library = self._views.get("library")
+        if isinstance(library, LibraryView):
+            library.set_category_filter(category)
 
     # ------------------------------------------------------------------
     # Slots
