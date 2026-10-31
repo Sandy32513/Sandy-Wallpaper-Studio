@@ -12,7 +12,7 @@ from PIL import Image
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QMessageBox, QLineEdit, QListWidget, QPushButton
+from PySide6.QtWidgets import QLineEdit, QListWidget, QMessageBox, QPushButton
 
 from app.config import Config
 from app.database.category_repository import CategoryRepository
