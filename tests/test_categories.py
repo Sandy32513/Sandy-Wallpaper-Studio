@@ -12,7 +12,7 @@ from PIL import Image
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QMessageBox, QLineEdit, QListWidget, QPushButton
+from PySide6.QtWidgets import QLineEdit, QListWidget, QMessageBox, QPushButton
 
 from app.config import Config
 from app.database.category_repository import CategoryRepository
@@ -246,6 +246,9 @@ def test_categories_view_crud_cancel_error_and_accessibility(qapp, category_setu
     assert view._error_label.isVisible()
     assert "database unavailable" in view._error_label.text()
     assert view._retry_button.isVisible()
+    view.close()
+    view.deleteLater()
+    qapp.processEvents()
 
 
 def test_category_delete_confirmation_explains_preservation_and_defaults_to_cancel(
@@ -328,6 +331,7 @@ def test_categories_view_layout_captures_and_library_wiring(qapp, tmp_path: Path
     assert library._search_bar.current_filters["category"] == "Nature"
     assert window._stack.currentWidget() is library
     window.close()
+    window.deleteLater()
     qapp.processEvents()
 
 

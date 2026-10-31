@@ -2,27 +2,39 @@
 
 > **Find it. Organize it. Make it your desktop.**
 >
-> A Windows desktop wallpaper library built with Python and PySide6, combining local collection management, image validation, duplicate detection, Wikimedia Commons metadata, and native desktop wallpaper controls.
+> A Windows desktop wallpaper manager built with Python and PySide6 — combining local collection management, image validation, perceptual duplicate detection, Wikimedia Commons metadata, and native desktop wallpaper controls.
 
 <p align="center">
-  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio"><img src="https://img.shields.io/badge/target-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Target platform: Windows 10 and Windows 11; validation so far used Windows 11"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or later"></a>
-  <a href="https://www.qt.io/qt-for-python"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt&logoColor=white" alt="GUI framework: PySide6"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
-  <a href="./docs/PROJECT_STATUS.md"><img src="https://img.shields.io/badge/status-Phase%2012%20packaging%20validation-6f42c1" alt="Phase 12 packaging validation and remaining Phase 11 acceptance gates are documented"></a>
-  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml"><img src="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml/badge.svg?branch=main" alt="GitHub Actions tests on main"></a>
+  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/releases"><img src="https://img.shields.io/badge/version-V1.0.0-blue" alt="Version V1.0.0"></a>
+  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml"><img src="https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml/badge.svg?branch=main" alt="CI status on main"></a>
+  <a href="https://github.com/Sandy32513/Sandy-Wallpaper-Studio"><img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white" alt="Target platform: Windows 10 and Windows 11"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or later"></a>
+  <a href="https://www.qt.io/qt-for-python"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?logo=qt&logoColor=white" alt="GUI: PySide6"></a>
 </p>
 
 <p align="center">
   <a href="#overview">Overview</a> ·
   <a href="#features">Features</a> ·
-  <a href="#quick-start">Quick start</a> ·
-  <a href="#using-the-application">Usage</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#usage">Usage</a> ·
   <a href="#architecture">Architecture</a> ·
-  <a href="#testing">Testing</a> ·
+  <a href="#development">Development</a> ·
   <a href="#roadmap">Roadmap</a> ·
   <a href="#contributing">Contributing</a>
 </p>
+
+---
+
+<!-- HERO IMAGE PLACEHOLDER
+     Replace this comment block with a real screenshot once captured.
+     Suggested capture: 1280×800 showing the Library or Dashboard view on Windows 11.
+     Save as docs/assets/hero.png and uncomment the line below.
+
+![Sandy Wallpaper Studio — Library view at 1280×800](docs/assets/hero.png)
+-->
+
+> **Screenshot placeholder** — see [Needs human action](#needs-human-action) for capture instructions.
 
 ---
 
@@ -31,28 +43,28 @@
 - [Overview](#overview)
 - [Project status](#project-status)
 - [Features](#features)
-- [Technology stack](#technology-stack)
 - [Screenshots](#screenshots)
+- [Technology stack](#technology-stack)
 - [Quick start](#quick-start)
-- [Windows executable validation build](#windows-executable-validation-build)
 - [Packaging a Windows validation bundle](#packaging-a-windows-validation-bundle)
-- [Using the application](#using-the-application)
-- [Architecture](#architecture)
+- [Usage](#usage)
 - [Configuration and local data](#configuration-and-local-data)
-- [Network, privacy, and licensing](#network-privacy-and-licensing)
-- [Testing](#testing)
+- [Network, privacy, and content licensing](#network-privacy-and-content-licensing)
+- [Architecture](#architecture)
+- [Development](#development)
 - [Roadmap](#roadmap)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [Security](#security)
 - [License and credits](#license-and-credits)
+
+---
 
 ## Overview
 
-Sandy Wallpaper Studio is a **local-first wallpaper manager for Windows 10 and Windows 11**. It is designed to help users build a searchable collection of high-resolution images, bring existing folders into one library, identify duplicate or visually similar images, and apply selected wallpapers to the Windows desktop.
+Sandy Wallpaper Studio is a **local-first wallpaper manager for Windows 10 and 11**. It helps you build a searchable, deduplicated collection of high-resolution images from your existing folders, discover and download Creative Commons imagery from Wikimedia Commons, and apply selected wallpapers to the Windows desktop — all without cloud accounts or analytics.
 
-The project pairs a PySide6 desktop interface with a Python service layer and SQLite persistence. Wikimedia Commons is the implemented online source; the application captures available source and licensing metadata alongside image details.
-
-It is aimed at Windows users who want a more organized desktop-image library and developers interested in a modular Python desktop application.
+The project pairs a PySide6 desktop interface with a Python service layer and SQLite persistence. It targets users who want a more organized desktop-image library, and developers interested in a modular Python desktop application.
 
 ### At a glance
 
@@ -61,164 +73,159 @@ It is aimed at Windows users who want a more organized desktop-image library and
 | Target platform | Windows 10 / Windows 11; validation to date ran on Windows 11 |
 | Python | 3.12 or later |
 | Interface | PySide6 / Qt for Python |
-| Local persistence | SQLite |
-| Online wallpaper source | Wikimedia Commons via the MediaWiki API |
+| Local persistence | SQLite (WAL mode, foreign-key enforcement, schema migrations) |
+| Online wallpaper source | Wikimedia Commons via the MediaWiki API (backend implemented; Discover/Downloads GUI screens are placeholders) |
 | Version | `V1.0.0` |
 | Windows build | Unsigned local validation bundle; no public download or installer |
-| Latest implemented milestone | Phase 12 - isolated PyInstaller bundle validation (no public release) |
-| Latest test result | See the current test and QA record in [Project Status](docs/PROJECT_STATUS.md) |
+| Latest implemented milestone | Phase 12 — isolated PyInstaller bundle validation (no public release) |
+
+---
 
 ## Project status
 
-Phases 0-10 are complete. Phase 11 release hardening remains **partially complete** because physical keyboard/Narrator review, Windows 10 acceptance, and clean-machine acceptance remain open. The native Windows wallpaper API apply/restore test passed on Windows 11 on 2026-10-20; see [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md) for its scope and limits. The current application and package source version is `V1.0.0`. A matching unsigned Windows x64 `onedir` bundle was built and smoke-tested locally on Windows 11 from clean commit `725b7a9`; it is internal validation output, not a public release. Discover, Categories, and Downloads remain placeholder destinations. See [Project Status](docs/PROJECT_STATUS.md), the [Phase 11 acceptance matrix](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md).
+Phases 0–10 are complete. Phase 11 release hardening is **partially complete**: the native Windows wallpaper API apply/restore test passed on Windows 11 on 2026-10-20, but physical keyboard/Narrator review, Windows 10 acceptance, and clean-machine acceptance remain open. The current version is `V1.0.0`. A matching unsigned Windows x64 `onedir` bundle was built and smoke-tested locally on Windows 11 from commit `725b7a9`; it is internal validation output only.
 
-| Area | Current status | Notes |
+| Area | Status | Notes |
 |---|---|---|
-| Startup, configuration, logging | Implemented | `python -m app` initializes the app and attempts to launch the GUI |
-| SQLite library and categories | Implemented | Database migrations, repositories, search and statistics |
-| Wikimedia Commons search metadata and downloads | Implemented in backend | Online search/download is available through services; the GUI Discover/Downloads destinations are placeholders |
-| Image validation and duplicate analysis | Implemented | SHA-256 and pHash are recomputed from current files during a read-only scan |
-| Local-folder import and library search | Implemented | Library UI includes search/filter and import workflows |
-| Native wallpaper setting and monitor detection | Implemented in service layer | Uses Windows APIs; monitor behavior depends on Windows and display setup |
-| Desktop GUI | Implemented | Dashboard, Library, Favorites and History views are present |
-| Favorites and history | Implemented | Includes applied, viewed, and recently added/imported history workflows |
-| Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume and rotation event history |
-| Duplicate Manager | Complete | Exact/near review, comparison, revalidated cleanup preview, and explicit Windows Recycle Bin workflow |
-| Settings and attribution export | Complete | Operational preferences and stored-metadata CSV export |
-| Release hardening | Partially complete | DNS pinning and native wallpaper API apply/restore are verified; physical-input/Narrator, Windows 10, and clean-machine acceptance remain open |
-| Windows packaging | Local validation passed | Unsigned `V1.0.0` Phase 12 `onedir` bundle passed isolated smoke; clean-machine validation is open and it is not published |
-| Installer | Planned | Phase 13; no installer is available |
+| Startup, configuration, logging | Complete | `python -m app` initialises the app and launches the GUI |
+| SQLite library and categories | Complete | Migrations, repositories, search, statistics |
+| Wikimedia Commons backend | Complete (backend) | Online search/download available via services; Discover/Downloads GUI screens are placeholders |
+| Image validation and duplicate analysis | Complete | SHA-256 and pHash recomputed from current files during read-only scan |
+| Local-folder import and library search | Complete | Library UI includes search/filter and import workflows |
+| Native wallpaper setting and monitor detection | Complete (service layer) | Uses Windows APIs; per-monitor behaviour depends on display configuration |
+| Desktop GUI — Dashboard, Library, Favorites, History | Complete | Core views implemented |
+| Categories management screen | Complete | Dedicated Categories view implemented (Phase 13A) |
+| Automatic wallpaper rotation | Complete | In-process Qt scheduling, configurable filters, pause/resume |
+| Duplicate Manager | Complete | Exact/near review, side-by-side comparison, Windows Recycle Bin cleanup |
+| Settings and attribution export | Complete | Preferences and CSV export |
+| Release hardening | Partially complete | DNS pinning and native wallpaper API verified; physical-input/Narrator, Windows 10, clean-machine remain open |
+| Windows packaging | Local validation passed | Unsigned `V1.0.0` onedir bundle smoke-tested; clean-machine/Windows 10 not yet run |
+| Installer | Planned | Phase 13; no installer available |
+| Discover screen | Placeholder | Backend exists; GUI not yet wired |
+| Downloads screen | Placeholder | Backend exists; GUI not yet wired |
 
-For detailed milestone acceptance notes, see [Project Status](docs/PROJECT_STATUS.md) and [Roadmap](docs/ROADMAP.md). Historical test counts in those documents are not a guarantee of the current machine's result.
+For full milestone evidence see [Project Status](docs/PROJECT_STATUS.md), [Phase 11 Acceptance](docs/PHASE11_ACCEPTANCE.md), [Packaging](docs/PACKAGING.md), and [Windows Manual Acceptance](docs/WINDOWS_ACCEPTANCE.md).
+
+---
 
 ## Features
 
 ### Wallpaper library
 
 - Import existing image folders using recursive or flat discovery.
-- Index local files with image metadata, dimensions, resolution labels and aspect ratio.
-- Search and filter indexed wallpapers using available metadata, including title, category, resolution, aspect ratio, source and license.
+- Index local files with dimensions, resolution labels, aspect ratio, format, and source metadata.
+- Search and filter indexed wallpapers by title, category, resolution, aspect ratio, source, and license.
 - Browse a paginated library and review collection statistics.
-- Maintain categories using the database/repository layer. A dedicated Categories UI is not yet implemented.
+- Maintain categories (create, rename, delete) through a dedicated Categories view.
 
 ### Image intelligence
 
 - Validate image formats and decode image content before indexing.
-- Recognize supported formats in the current import/processing paths, including JPEG, PNG and WebP; additional format support should be confirmed against the relevant processing path before relying on it.
+- Supported import formats: JPEG, PNG, WebP.
 - Calculate SHA-256 hashes for exact duplicate matching.
-- Use perceptual hashes (pHash, dHash and aHash) to identify potentially similar images.
-- Classify common resolution tiers and aspect ratios.
+- Use perceptual hashes (pHash, dHash, aHash) to identify visually similar images.
+- Classify standard resolution tiers (FHD, QHD, 4K, 5K, 8K, Ultrawide) and aspect ratios.
 - Generate and cache thumbnails.
 - Run non-destructive library integrity checks for missing files and stale thumbnails.
-- Enforce a 40-megapixel source-image ceiling before image decode, hashing, or Qt previews; this accepts 8K UHD and DCI dimensions while rejecting larger inputs.
+- Enforce a 40-megapixel source-image ceiling before decode, hashing, or Qt previews; 8K UHD/DCI images (≤ 33 MP) remain fully supported.
 
 ### Duplicate Manager
 
-- Scan the indexed library in the background. The scan reads the database in read-only mode and recomputes hashes from current files.
-- Exact groups require matching SHA-256 and a byte-for-byte comparison. Their redundant-byte estimate counts exact copies only.
-- Near groups use a configurable inclusive 64-bit pHash Hamming-distance threshold. The displayed percentage is `(64 - distance) / 64 × 100`; it is a direct image-hash comparison, not a probability or proof that two images are interchangeable. Connected groups can contain chains, and each displayed score describes a direct pair.
-- Search and sort groups, page through large groups, choose a retained file, and compare two to four candidates side by side.
-- On Windows, select individual cleanup targets and review their full paths, sizes, retained files, count, estimate, and method in a confirmation dialog. Each target and retained file is revalidated immediately before the operation.
-- Cleanup requests the Windows Recycle Bin through `IFileOperation` with `FOFX_RECYCLEONDELETE`. There is no permanent-delete fallback. A failure stops the remaining targets and reports each file outcome.
-- Cleanup is unavailable on non-Windows systems. Files outside the configured library, symbolic links/reparse points, hard-linked files, changed files, and files that cannot be opened exclusively are rejected.
-- The SQLite wallpaper, favorites, history, and view rows remain in place after a file is recycled. A later scan reports a missing path until the item is restored or reimported.
+- Scan the indexed library in the background; the scan is read-only and recomputes hashes from current files.
+- Exact groups require matching SHA-256 plus byte-for-byte comparison.
+- Near groups use a configurable 64-bit pHash Hamming-distance threshold (default ≤ 10).
+- Search, sort, page through groups, and compare two to four candidates side by side.
+- On Windows, select individual cleanup targets; each target is revalidated immediately before the operation.
+- Cleanup sends files to the Windows Recycle Bin through `IFileOperation` with `FOFX_RECYCLEONDELETE`. There is no permanent-deletion fallback.
+- Files outside the configured library, symbolic links, hard links, changed files, and locked files are rejected.
 
-### Discover and download
+### Discover and download (backend only)
 
-The provider layer integrates with the official Wikimedia Commons MediaWiki API and supports:
+The provider layer integrates with the official Wikimedia Commons MediaWiki API:
 
-- Text/category-assisted source search and minimum-dimension filters.
-- Image dimensions, download/source URLs, author, license name and license URL when supplied by the provider.
-- Streaming downloads with a configurable size limit, content-type checks, retry/backoff and cancellation hooks. Image downloads require direct HTTPS on port 443, reject credentials and redirects, and check dimensions before decoding.
+- Text/category-assisted search with minimum-dimension filters.
+- Image dimensions, download/source URLs, author, license name, and license URL when supplied.
+- Streaming downloads with configurable size limit, content-type checks, retry/backoff, and cancellation.
 - Temporary-file handling before a completed download is moved to its destination.
-- Filename sanitization and prevention of silent overwrites.
 
-**UI limitation:** the current sidebar's Discover, Downloads and Categories destinations are placeholders. The provider and download services exist in the codebase, but those destinations should not be mistaken for completed browse/download screens.
+> **UI limitation:** the Discover and Downloads sidebar destinations are placeholders. The backend services exist; the GUI screens that wire them to the interface are not yet implemented.
 
 ### Desktop management
 
-The Windows wallpaper service includes:
-
-- Applying a selected wallpaper using the Windows `SystemParametersInfoW` API.
-- Wallpaper styles: `Center`, `Tile`, `Stretch`, `Fit`, `Fill` and `Span`.
-- Monitor enumeration and display bounds information.
-- Random wallpaper selection with supported category, favorite and minimum-resolution filters, plus repeat avoidance.
+- Apply a selected wallpaper using the Windows `SystemParametersInfoW` API.
+- Wallpaper styles: Center, Tile, Stretch, Fit, Fill, and Span.
+- Monitor enumeration and display-bounds information.
+- Random wallpaper selection with category, favorite, and minimum-resolution filters plus repeat avoidance.
 - Previous-wallpaper restoration using history records.
-- Preview rendering for the supported layout styles.
-
-Multi-monitor detection is implemented; do not assume independent per-monitor wallpaper assignment unless that is explicitly verified for your Windows/display configuration.
+- Preview rendering for each layout style.
 
 ### Favorites and history
 
 - Add or remove wallpapers from Favorites.
-- Filter favorites by category and sort by added date, title, resolution or usage.
-- Apply a random favorite.
-- Review desktop-applied history and reapply an entry.
+- Filter favorites by category; sort by added date, title, resolution, or usage.
+- Apply a random favorite with one click.
+- Review desktop-applied history and reapply any entry.
 - Restore the previous wallpaper.
-- Browse recently viewed and recently downloaded/imported wallpaper entries.
-
-The clear-favorites action removes favorite status; it does not delete image files.
+- Browse recently viewed and recently downloaded/imported entries.
 
 ### Automatic rotation
 
-- Open **Settings** in the sidebar to configure local wallpaper rotation.
-- Choose an interval from 1 minute to 7 days, random selection or library-order cycling, optional categories, and minimum width/height.
-- Choose **Apply Settings** to enable or disable the schedule. The first wallpaper change occurs after one full interval; application startup never applies a wallpaper immediately.
-- Use **Pause**, **Resume**, and **Stop** to control the in-process schedule. Pause is runtime-only; an enabled schedule resumes after a full interval when the application starts again.
-- Rotation considers only indexed local library items and validates image files before applying them. Category and minimum-resolution filters remain strict; an empty match reports a status instead of relaxing the filters.
-- Automatic success and failed application attempts appear in **History → Rotation Events**. Successful applications also appear in **Desktop Applied** with their source identified.
-
-Rotation runs only while the application is open. It does not install a Windows service or scheduled task, access online sources, move files, or delete files.
+- Configure interval (1 minute to 7 days), selection mode (random or library-order), category filter, and minimum dimensions in **Settings**.
+- Rotation runs only while the application is open. It does not install a Windows service or scheduled task.
+- Pause, Resume, and Stop controls available at runtime.
+- Successful and failed rotation attempts appear in **History → Rotation Events**.
 
 ### Settings and attribution
 
-- Change the configured library cleanup boundary and default recursive import behavior. Existing files and the database are not moved or reindexed.
-- Enable Wikimedia Commons and adjust request limits, minimum resolution, and timeout.
-- Set download folder, image-size limit, request timeout, retry count/backoff, and concurrent-operation limit.
-- Tune the 64-bit pHash Hamming-distance threshold (0–64). Exact matches continue to require SHA-256 plus byte comparison.
-- Configure thumbnail dimensions, quality, cache enablement, and budget. Cache rebuild runs in the background and can be cancelled.
-- Configure log level, file output, rotation size, and retention. Console logging remains available if file output fails.
+- Configure library root, import behavior, Wikimedia access, download safeguards, duplicate threshold, thumbnail cache, and logging.
 - Export stored creator, source, license, and image details to UTF-8 CSV with formula-injection protection and overwrite confirmation.
-- Select the saved desktop wallpaper style and continue to manage automatic local rotation.
+- All settings persist to a validated JSON file using atomic same-directory replacement.
 
-See [Configuration](docs/CONFIGURATION.md) for the setting schema, validation rules, defaults, and application behavior.
+See [Configuration](docs/CONFIGURATION.md) for the full schema, validation rules, and defaults.
+
+---
+
+## Screenshots
+
+Settings captures were taken from a running Windows Qt application with synthetic data at 125% display scaling.
+
+![Sandy Wallpaper Studio Settings at 1280×800](docs/images/phase10/settings-1280x800.png)
+
+Additional captures: [1024×768](docs/images/phase10/settings-1024x768.png), [800×600](docs/images/phase10/settings-800x600.png), [1440×900](docs/images/phase10/settings-1440x900.png).
+
+> **Library, Dashboard, Categories, Favorites, and History screenshots** — see [Needs human action](#needs-human-action).
+
+---
 
 ## Technology stack
 
 | Technology | Role |
 |---|---|
 | Python 3.12+ | Application language and runtime |
-| PySide6 | Native desktop GUI using Qt for Python |
-| SQLite | Local metadata, categories, history and repository persistence |
-| Pillow | Image opening, validation support, resizing and preview/thumbnail processing |
-| ImageHash | Perceptual image hashes used for similarity checks |
+| PySide6 | Native desktop GUI (Qt for Python) |
+| SQLite | Local metadata, categories, history, and repository persistence |
+| Pillow | Image validation, resizing, and thumbnail/preview processing |
+| ImageHash | Perceptual image hashes for similarity detection |
 | Requests | HTTP/API communication and image downloads |
 | Windows APIs via `ctypes` | Native wallpaper application and monitor enumeration |
-| pytest | Automated test suite |
-| Ruff / mypy / pytest-cov | Configured development tools in `pyproject.toml`; run separately when installed |
-| setuptools | Python packaging/build backend configuration |
+| pytest | Automated test suite (21 test files, phases 0–12) |
+| Ruff / mypy | Linting and static type checking |
+| setuptools | Python packaging build backend |
+| PyInstaller 6.22.3 | Unsigned Windows x64 onedir bundle (packaging extra) |
 
-Runtime dependencies are declared in [pyproject.toml](pyproject.toml) and [requirements.txt](requirements.txt). The `dev` optional-dependency group is defined in `pyproject.toml`; this project does not currently include a separate `requirements-dev.txt` file.
+Runtime dependencies: [pyproject.toml](pyproject.toml), [requirements.txt](requirements.txt).
 
-## Screenshots
-
-Settings captures from the running Windows Qt application use synthetic data. Requested logical window sizes were 1280x800, 1024x768, 800x600, and 1440x900. Windows display scaling rendered the saved PNGs at 125% physical dimensions. The compact 800x600 view keeps the settings controls and action row visible; longer pages scroll within their tab.
-
-![Sandy Wallpaper Studio Settings at 1280 by 800, showing the library root, recursive import, and integrity controls](docs/images/phase10/settings-1280x800.png)
-
-Additional inspected captures: [1024x768](docs/images/phase10/settings-1024x768.png), [800x600](docs/images/phase10/settings-800x600.png), and [1440x900](docs/images/phase10/settings-1440x900.png).
+---
 
 ## Quick start
 
 ### Prerequisites
 
 - Windows 10 or Windows 11.
-- Python 3.12 available through the Windows Python launcher (`py -3.12`).
+- Python 3.12 (available via the Windows Python launcher: `py -3.12`).
 - Git.
-- Internet access for Wikimedia Commons search and downloads.
-- Sufficient disk space for images and the local library.
 
-### 1. Clone the repository
+### 1. Clone
 
 Open PowerShell:
 
@@ -227,73 +234,56 @@ git clone https://github.com/Sandy32513/Sandy-Wallpaper-Studio.git
 Set-Location Sandy-Wallpaper-Studio
 ```
 
-### 2. Create the environment and install the project
+### 2. Create environment and install
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+### 3. Verify
+
+```powershell
 .\.venv\Scripts\python.exe -m app --version
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-This installs the package and development tools declared by `pyproject.toml`, including pytest. The commands invoke the environment directly and avoid changing PowerShell's execution policy. To install only runtime dependencies without editable packaging:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-### 3. Launch the desktop application
+### 4. Run the application
 
 ```powershell
 .\.venv\Scripts\python.exe -m app
 ```
 
-The entry point initializes configuration and SQLite, then attempts to open the PySide6 GUI. If GUI initialization fails, the code falls back to a console status report. This fallback is a diagnostic/startup path, not a substitute for the desktop interface.
+The entry point initialises configuration and SQLite, then opens the PySide6 GUI. If GUI initialisation fails, the code falls back to a console status report for diagnostics.
 
-The project also declares a console script for installed environments:
+The installed console script is also available:
 
 ```powershell
 .\.venv\Scripts\sandy-wallpaper-studio.exe
 ```
 
-Alternatively, run `.\.venv\Scripts\python.exe -m app` from the repository root.
-
 ### First-run data location
 
-By default, application data is rooted at:
+By default, application data lives at:
 
 ```text
 %USERPROFILE%\Pictures\SandyWallpaperStudio
 ```
 
-The exact folder names and paths are managed in the application configuration. You can override the library/configuration root on startup:
+Override on startup:
 
 ```powershell
 .\.venv\Scripts\python.exe -m app --library "D:\WallpaperStudioData"
 ```
 
-The `--library` option changes the application's data root; make sure the selected directory is writable and backed up if it contains important files.
-
-## Windows executable validation build
-
-There is no public executable download or installer. The latest local validation build is an unsigned `V1.0.0` onedir bundle. It is generated locally, is not committed to Git, and is not available from a download link. After building it with the steps below, its executable is:
-
-```text
-build\phase 12\dist\SandyWallpaperStudio\SandyWallpaperStudio.exe
-```
-
-Launch it from PowerShell with:
-
-```powershell
-& ".\build\phase 12\dist\SandyWallpaperStudio\SandyWallpaperStudio.exe"
-```
-
-Keep the executable beside its `_internal` directory; copying out only the EXE will not run the bundled application. The bundle has been smoke-tested in an isolated temporary profile on Windows 11. It has not been tested on a clean machine or Windows 10 and is not signed or published as a release.
+---
 
 ## Packaging a Windows validation bundle
 
-To build the unsigned Windows x64 `onedir` validation bundle from a fresh checkout, use Windows x64 with Python 3.12 and run:
+> There is no public download or installer. The procedure below produces an unsigned internal validation bundle only.
+
+On Windows x64 with Python 3.12:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -301,107 +291,200 @@ py -3.12 -m venv .venv
 .\scripts\build_windows.ps1
 ```
 
-The script checks the app and installed package versions, runs the tests and static checks, builds the executable, verifies its Windows version resources and SHA-256, then performs an isolated GUI/import/persistence smoke test. Build output goes to the ignored `build\phase 12` directory. A prior output folder created by this script is kept in a timestamped sibling before rebuilding. Keep the EXE with its `_internal` directory. The bundle is unsigned internal validation output; this procedure does not create an installer or publish a release. See [Packaging](docs/PACKAGING.md) for the full contract and manual acceptance limits.
+The script runs Ruff, mypy, and pytest; builds the onedir bundle; verifies version resources; and performs an isolated GUI smoke test. Output goes to `build\phase 12\dist\SandyWallpaperStudio\`.
 
-## Using the application
+Launch the bundle:
 
-The instructions below reflect views and controls found in the current source. Commands use the project virtual environment directly; online discovery/download GUI screens and several other sidebar destinations remain placeholders.
+```powershell
+& ".\build\phase 12\dist\SandyWallpaperStudio\SandyWallpaperStudio.exe"
+```
 
-### Dashboard and library
+Keep the EXE beside its `_internal` directory. The bundle is unsigned, has not been tested on Windows 10 or a clean machine, and is not a public release. See [Packaging](docs/PACKAGING.md) for the full contract.
 
-1. Run `.\.venv\Scripts\python.exe -m app`.
-2. The Dashboard presents library statistics and monitor information.
+---
+
+## Usage
+
+The instructions below reflect views and controls present in the current source.
+
+### Dashboard and Library
+
+1. Run `.\\.venv\Scripts\python.exe -m app`.
+2. **Dashboard** shows library statistics and monitor information.
 3. Open **Library** to browse indexed wallpapers.
-4. Use the library search/filter controls to narrow results with available metadata filters.
-5. Use the import workflow to select an existing folder and follow its progress/completion report.
+4. Use the search/filter toolbar to narrow results by title, category, resolution, or aspect ratio.
+5. Use the import workflow (**Import Folder**) to select an existing folder and track its progress.
 
 ### Inspect an image
 
-Open a wallpaper card's detail view to inspect available metadata and use the actions exposed by that dialog. Inspecting a wallpaper contributes to the Recently Viewed history workflow.
+Open a wallpaper card's detail view to inspect metadata and use available actions (apply, favorite, export). Inspecting a wallpaper adds it to **Recently Viewed** history.
+
+### Categories
+
+Open **Categories** in the sidebar to create, rename, or delete categories. Category names are free text; deleting a category does not delete any wallpaper files or database records.
 
 ### Favorites
 
-1. In Library, use the wallpaper card's favorite control to add or remove it.
-2. Open **Favorites** to view saved wallpapers.
-3. Filter by category or select a sort order.
-4. Use **Random Favorite** to apply a random saved wallpaper.
-5. **Clear Favorites** asks for confirmation and removes favorite status, not the image files.
+1. Add or remove a wallpaper using the star control on any card.
+2. Open **Favorites** to view saved wallpapers, filter by category, and sort.
+3. Use **Random Favorite** to apply a random saved wallpaper.
+4. **Clear Favorites** removes favorite status only; it does not delete image files.
 
 ### Apply and restore a wallpaper
 
-Use a wallpaper card/detail action to apply a selected wallpaper. Applying a wallpaper is an operating-system action and may be affected by Windows settings or restrictions. Open **History** to inspect the applied timeline and use the available reapply/restore actions.
+Use a wallpaper card or detail dialog to apply a wallpaper. Open **History** to review the applied timeline and reapply or restore entries.
 
 ### History
 
-The History view has separate workflows for desktop-applied entries, recently viewed wallpapers, and recently downloaded/imported wallpapers. Use the available details or reapply actions to revisit an entry.
+- **Desktop Applied** — chronological log with thumbnails, timestamps, and a reapply button.
+- **Recently Viewed** — wallpapers you have inspected in the current session.
+- **Recently Downloaded / Imported** — recently added wallpapers ordered by import date.
 
-### Not available as complete UI workflows yet
+### Automatic rotation
 
-- Searching/browsing Wikimedia Commons from the Discover screen.
-- Triggering downloads from the Downloads screen.
-- Dedicated Categories management screen.
-- Discover and Downloads remain placeholders; Settings configures the backend services but does not add source browsing or download initiation screens.
+1. Open **Settings** and configure the rotation interval, selection mode, category, and minimum resolution.
+2. Click **Apply Settings** to enable.
+3. Use **Pause**, **Resume**, and **Stop** from the sidebar or Settings to control the schedule.
 
-Backend capabilities do not imply that each workflow is wired into a finished GUI.
+### Duplicate Manager
+
+1. Open **Duplicates** in the sidebar to start a background scan.
+2. Review exact and near-match groups; select files to keep and files to remove.
+3. On Windows, confirm targets in the cleanup dialog; each file is revalidated before it is sent to the Recycle Bin.
+
+### Not yet available
+
+- Searching or browsing Wikimedia Commons from the **Discover** screen.
+- Initiating downloads from the **Downloads** screen.
+
+---
+
+## Configuration and local data
+
+Settings are stored as JSON at `settings.json` in the application data root. Writes use atomic same-directory replacement. Invalid settings are rejected individually; valid values in the same file survive.
+
+| Data | Default location |
+|---|---|
+| Application data root | `%USERPROFILE%\Pictures\SandyWallpaperStudio` |
+| Settings | `settings.json` in the data root |
+| SQLite database | `wallpapers.db` in the data root |
+| Library | `Library` (configurable existing folder) |
+| Thumbnail cache | `Cache\thumbnails` |
+| Temporary files | `Temp` |
+| Logs | `Logs\app.log` |
+| Attribution exports | `Exports` |
+
+The `--library` argument at startup changes the application data root. Changing the library-root setting in the UI does not move images, reindex database rows, or change the database path — it updates the safety boundary used by the Duplicate Manager cleanup.
+
+### Download and security safeguards
+
+- Downloads check response metadata and stream size against a configurable limit (default 100 MB).
+- HTTP status, content type, image format, and decode integrity are verified before a completed download is published.
+- Source images above 40,000,000 pixels are rejected before decode.
+- Downloads require direct HTTPS on port 443, reject credentials and redirects, check DNS for non-global answers, and disable proxies.
+- Settings values are validated individually and saved atomically.
+- Attribution CSV export is atomic, escapes formula-like cells, and confirms before overwriting an existing file.
+- Duplicate cleanup revalidates each target immediately before the Recycle Bin operation.
+
+See [Configuration](docs/CONFIGURATION.md) for all defaults, ranges, and service behavior documentation.
+
+---
+
+## Network, privacy, and content licensing
+
+The current online wallpaper source is Wikimedia Commons, accessed through the official MediaWiki API. The codebase does not implement user accounts, cloud library storage, analytics, or advertising telemetry. Read [PRIVACY.md](PRIVACY.md) for the project's privacy statement.
+
+Wikimedia Commons items can carry different licenses and attribution requirements. The application records available author, source URL, license name, and license URL metadata when supplied by the provider. Before redistributing or reusing a downloaded image, open its source page and comply with the license and any attribution or share-alike terms.
+
+**The MIT license covers the project code only — not any wallpaper downloaded through it.**
+
+---
 
 ## Architecture
 
-The project separates presentation, application services, data access, providers, and shared image utilities. Phase 8 adds local rotation scheduling; Phase 9 adds duplicate scanning, comparison, and guarded cleanup; Phase 10 adds validated JSON settings, safe attribution CSV export, configurable source/download construction, and background library/cache maintenance; Phase 11 adds image-dimension and download URL checks, responsive layouts, and hardened previews. The tree below highlights core modules; later-phase modules are listed after it.
+Sandy Wallpaper Studio separates presentation, application services, data access, providers, and image utilities into strict unidirectional layers. Presentation never queries the database directly; all interaction flows through domain services.
+
+### Project structure
 
 ```text
 app/
-├── __main__.py                 # python -m app entry point
-├── main.py                     # Startup, CLI arguments, GUI launch/fallback
-├── config.py                   # JSON settings and app-data directories
-├── constants.py                # Shared formats, styles, defaults
+├── __main__.py                     # python -m app entry point
+├── main.py                         # CLI arguments, startup, GUI launch/fallback
+├── config.py                       # Validated JSON settings, app-data paths
+├── constants.py                    # Formats, resolution classes, defaults
 ├── database/
-│   ├── database.py             # SQLite connection, WAL, foreign keys, migrations
-│   ├── migrations.py           # Schema migration sequence
-│   ├── models.py               # Domain/data models
-│   ├── wallpaper_repository.py # Wallpaper persistence and queries
-│   ├── category_repository.py  # Category persistence
-│   ├── history_repository.py   # Applied wallpaper history
-│   └── view_repository.py      # Recently-viewed records
+│   ├── database.py                 # SQLite connection, WAL, foreign keys, migrations
+│   ├── migrations.py               # Ordered migration sequence
+│   ├── models.py                   # Domain dataclasses
+│   ├── wallpaper_repository.py     # Wallpaper CRUD, search, pagination
+│   ├── category_repository.py      # Category management
+│   ├── history_repository.py       # Desktop-applied history
+│   └── view_repository.py          # Recently-inspected records
 ├── sources/
-│   ├── base.py                 # Source contract and result model
-│   └── wikimedia.py            # Wikimedia Commons MediaWiki API provider
+│   ├── base.py                     # WallpaperSource abstract base class
+│   └── wikimedia.py                # Wikimedia Commons / MediaWiki API provider
 ├── services/
-│   ├── source_service.py       # Source coordination
-│   ├── download_service.py     # Streaming downloads and validation
-│   ├── metadata_service.py     # Image/metadata extraction
-│   ├── duplicate_service.py    # Hash-based duplicate analysis
-│   ├── import_service.py       # Existing-folder import pipeline
-│   ├── library_service.py      # Library queries, stats and integrity checks
-│   ├── wallpaper_service.py    # Windows wallpaper operations and previews
-│   └── history_service.py      # Favorites and history business logic
+│   ├── source_service.py           # Provider coordination
+│   ├── download_service.py         # Streaming downloads and validation
+│   ├── metadata_service.py         # Image/metadata extraction
+│   ├── import_service.py           # Local folder import pipeline
+│   ├── library_service.py          # Library queries, stats, integrity checks
+│   ├── wallpaper_service.py        # Windows wallpaper API and previews
+│   ├── history_service.py          # Favorites and history orchestration
+│   ├── category_service.py         # Category business logic
+│   ├── duplicate_service.py        # Hash-based duplicate analysis
+│   ├── duplicate_scan_service.py   # Background scan coordination
+│   ├── duplicate_scan_worker.py    # QThread-based scanner
+│   ├── duplicate_cleanup_service.py# Recycle Bin cleanup with revalidation
+│   ├── rotation_service.py         # Rotation selection logic
+│   ├── rotation_scheduler.py       # In-process Qt rotation timer
+│   └── attribution_export_service.py # Attribution CSV export
 ├── ui/
-│   ├── main_window.py          # Main window, navigation and view wiring
-│   ├── dashboard_view.py       # Dashboard
-│   ├── library_view.py         # Library grid/search/import
-│   ├── favorites_view.py       # Favorites view
-│   ├── history_view.py         # History view
-│   └── components/             # Sidebar, cards, search and dialogs
+│   ├── main_window.py              # Root window, sidebar, view stack, status bar
+│   ├── design_system.py            # Obsidian dark theme, typography, spacing tokens
+│   ├── dashboard_view.py           # Dashboard statistics and quick actions
+│   ├── library_view.py             # Library grid, search, import
+│   ├── categories_view.py          # Categories management screen
+│   ├── favorites_view.py           # Favorites showcase with sorting
+│   ├── history_view.py             # Desktop-applied, recently viewed, recently added
+│   ├── rotation_view.py            # Rotation configuration and schedule controls
+│   ├── duplicate_manager_view.py   # Exact/near review and guarded cleanup
+│   ├── settings_view.py            # All preferences tabs
+│   └── components/
+│       ├── sidebar.py              # Animated navigation sidebar
+│       ├── search_bar.py           # Debounced search and filter toolbar
+│       ├── wallpaper_card.py       # Async thumbnail card widget
+│       ├── detail_dialog.py        # High-resolution preview and metadata dialog
+│       ├── import_dialog.py        # Import progress dialog
+│       ├── comparison_dialog.py    # Side-by-side duplicate comparison
+│       └── cleanup_confirmation_dialog.py  # Recycle Bin cleanup confirmation
 └── utils/
-    ├── hashing.py              # SHA-256 and perceptual hashing helpers
-    ├── image_utils.py          # Image validation and resolution helpers
-    ├── filename.py             # Filename sanitization
-    └── logging_config.py       # Logging configuration
+    ├── hashing.py                  # SHA-256 and perceptual hash helpers
+    ├── image_utils.py              # Validation, decode, resolution helpers
+    ├── filename.py                 # Windows-safe filename sanitisation
+    └── logging_config.py           # Rotating file and console logging
 
-tests/                          # Phase-based automated tests
+tests/                              # 21 test files, phases 0–12
 docs/
-├── PHASE11_ACCEPTANCE.md       # Release-hardening acceptance matrix
-├── PHASE11_PERFORMANCE.md     # Synthetic scan benchmark record
-├── PROJECT_STATUS.md          # Phase status and exit-gate notes
-└── ROADMAP.md                 # Planned phase deliverables
+├── ARCHITECTURE.md                 # Layer diagrams and component detail
+├── CONFIGURATION.md                # Settings schema, defaults, validation rules
+├── DEVELOPMENT.md                  # Developer setup and workflow guide
+├── PACKAGING.md                    # Windows PyInstaller packaging procedures
+├── ROADMAP.md                      # Phase deliverables and status
+├── PROJECT_STATUS.md               # Detailed milestone evidence
+├── PHASE11_ACCEPTANCE.md           # Release-hardening acceptance matrix
+├── PHASE11_PERFORMANCE.md          # Synthetic scan benchmark results
+└── WINDOWS_ACCEPTANCE.md           # Manual acceptance procedures and gates
+packaging/
+└── SandyWallpaperStudio.spec       # PyInstaller spec file
+scripts/
+├── build_windows.ps1               # Reproducible build and smoke test
+├── validate_packaged_windows.ps1   # Post-build validation
+├── phase11_benchmark.py            # Synthetic duplicate-scan benchmark
+└── manual_wallpaper_acceptance.py  # Manual wallpaper API acceptance helper
 ```
 
-Additional Phase 8–10 modules include:
-
-- `app/services/`: `rotation_service.py`, `rotation_scheduler.py`, `duplicate_scan_service.py`, `duplicate_scan_worker.py`, `duplicate_cleanup_service.py`, and `attribution_export_service.py`.
-- `app/ui/`: `rotation_view.py`, `duplicate_manager_view.py`, and `settings_view.py`.
-- `app/ui/components/`: `comparison_dialog.py` and `cleanup_confirmation_dialog.py`.
-
-### Request and data flow
+### Data flow
 
 ```mermaid
 flowchart TD
@@ -414,78 +497,38 @@ flowchart TD
     SVC --> WIN[Windows wallpaper APIs]
 ```
 
-The diagram is a logical overview: not every provider/service workflow is currently reachable from a dedicated GUI screen.
+The diagram is a logical overview. Not every service workflow is reachable from a completed GUI screen.
 
-## Configuration and local data
+---
 
-Settings are stored as JSON at `settings.json` in the application data root. Writes use a same-directory temporary file and atomic replacement. Invalid settings are rejected individually so valid values in the same file survive; unknown keys are ignored. Existing rotation interval settings are migrated into the current minute-based setting. Phase 11 adds no settings-schema or SQLite migration.
+## Development
 
-| Data | Default location |
-|---|---|
-| Application data/configuration root | `%USERPROFILE%\Pictures\SandyWallpaperStudio` |
-| Settings | `settings.json` in the application data root |
-| SQLite database | `wallpapers.db` in the application data root |
-| Library and downloads | `Library` by default; configurable existing folder |
-| Thumbnail cache | `Cache\thumbnails` |
-| Temporary files | `Temp` under the application data root |
-| Logs | `Logs\app.log` |
-| Attribution exports | `Exports` (chosen destination can be changed per export) |
-
-The startup `--library` argument changes the application data root. The Settings page's library-root value sets the boundary used by guarded duplicate cleanup; changing it does not move images, reindex database rows, or change the database path. See [Configuration](docs/CONFIGURATION.md) for all defaults, ranges, and service behavior. Avoid deleting the database or library directory as a troubleshooting shortcut.
-
-### Implemented safeguards
-
-- Download size is checked using response metadata and again while streaming (default limit: 100 MB in the download service).
-- HTTP status, content type, supported image format, and decoded image integrity are checked before a completed download is published.
-- Source images above 40,000,000 pixels are rejected before Pillow or Qt decodes them. This includes detail, card, and comparison previews; 8K images within the pixel budget remain supported.
-- Downloads accept direct HTTPS URLs using the standard port, reject user information, local/non-global DNS answers, and do not follow redirects. DNS answers are checked and pinned to the socket destination per request while TLS SNI and certificate checks retain the requested hostname. Proxy use is disabled for this download boundary.
-- Downloads use temporary files and exclusive finalization; partial or invalid files are not treated as completed downloads.
-- Existing target filenames are not silently overwritten by the download service.
-- Destination filenames and subdirectory names are sanitized.
-- Settings values are validated individually and saved through same-directory atomic replacement.
-- Attribution CSV export is atomic, escapes formula-like cells, and confirms before replacing an existing file.
-- SQLite enables write-ahead logging and foreign-key enforcement and runs schema migrations at connection time.
-- Duplicate detection and integrity checks are designed to identify issues rather than silently delete user images.
-
-These safeguards reduce common failure risks but are not a security certification or guarantee that every malformed external file is harmless.
-
-## Network, privacy, and licensing
-
-The current online wallpaper source is Wikimedia Commons, accessed through the official MediaWiki API. Network use can include user-entered search terms, requests for image metadata, and selected image downloads. The codebase does not implement user accounts, a cloud library backend, analytics or advertising telemetry according to the project privacy documentation.
-
-Read [PRIVACY.md](PRIVACY.md) for the project's privacy statement. The actual behavior may change as source integrations evolve, so review that policy when upgrading to new versions.
-
-Wikimedia Commons items can carry different licenses and attribution requirements. The application records available author, source URL, license name and license URL metadata, but metadata availability can vary by item. Before redistributing or reusing an image, open its source page and comply with the license and any attribution/share-alike terms that apply. The application's MIT license covers the project code, **not** every wallpaper downloaded through it.
-
-## Testing
-
-The test suite contains phase-based coverage through Phase 12 packaging support. The current verified result is recorded in [Project Status](docs/PROJECT_STATUS.md), and the reproducible large-library results are in [Phase 11 Performance](docs/PHASE11_PERFORMANCE.md).
-
-The latest local full run and its skip reasons are recorded in [Project Status](docs/PROJECT_STATUS.md). The checked-in workflow runs the Windows/Python 3.12 regression and static checks, then builds and smoke-tests an internal package on a separate Windows job. The package is not uploaded or published by CI. Neither Qt screenshots nor QTest event delivery certify physical keyboard or Narrator behavior.
-
-From the repository root, with development dependencies installed in `.venv`:
+### Run the full quality gate
 
 ```powershell
+.\.venv\Scripts\python.exe -m ruff check app tests scripts
+.\.venv\Scripts\python.exe -m mypy app
 .\.venv\Scripts\python.exe -m pytest -v
 ```
 
-Run a focused phase suite:
+### Run a specific phase suite
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/test_phase7.py -v
-.\.venv\Scripts\python.exe -m pytest tests/test_phase8.py -v
 .\.venv\Scripts\python.exe -m pytest tests/test_phase9.py tests/test_phase9_cleanup.py tests/test_phase9_workflow.py -v
 .\.venv\Scripts\python.exe -m pytest tests/test_phase10.py -v
 .\.venv\Scripts\python.exe -m pytest tests/test_phase11.py tests/test_phase11_ui.py -v
 ```
 
-Run the isolated synthetic duplicate-scan benchmark (100, 500, 1,000 and 5,000 records):
+### Run tests in headless mode (CI simulation)
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/phase11_benchmark.py --sizes 100 500 1000 5000
+$env:QT_QPA_PLATFORM = "offscreen"
+.\.venv\Scripts\python.exe -m pytest -v
+Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-For Windows-rendered UI captures, run the UI test with Qt's Windows platform plugin:
+### Run Windows-rendered UI captures
 
 ```powershell
 $env:QT_QPA_PLATFORM = "windows"
@@ -493,131 +536,183 @@ $env:QT_QPA_PLATFORM = "windows"
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-For GUI tests on a headless CI environment, Qt may need the offscreen platform plugin. If needed and supported in the environment, run:
+### Run the synthetic duplicate-scan benchmark
 
 ```powershell
-$env:QT_QPA_PLATFORM = "offscreen"
-.\.venv\Scripts\python.exe -m pytest tests/test_phase6.py -v
+.\.venv\Scripts\python.exe scripts/phase11_benchmark.py --sizes 100 500 1000 5000
 ```
 
-Reset the environment variable after use with:
+### Build the Windows validation bundle
 
 ```powershell
-Remove-Item Env:QT_QPA_PLATFORM
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,packaging]"
+.\scripts\build_windows.ps1
 ```
 
-The Phase 11 QA record uses isolated temporary images/databases and mocked network boundaries. Qt captures use `QWidget.grab()` on Windows; they verify rendered widgets but do not constitute physical-input or screen-reader certification. No production library or desktop wallpaper was used.
+### CI
 
-Optional quality tools are configured in `pyproject.toml`:
+The [GitHub Actions workflow](.github/workflows/tests.yml) runs on `windows-latest` with Python 3.12. It installs `.[dev]`, verifies both entry points, runs Ruff, mypy, and the full pytest suite (offscreen Qt), then builds and smoke-tests the internal bundle in a dependent job. No artifact is uploaded. Review results in [GitHub Actions](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml).
 
-```powershell
-.\.venv\Scripts\python.exe -m ruff check .
-.\.venv\Scripts\python.exe -m mypy app
-```
+For more detail, see [Development Guide](docs/DEVELOPMENT.md), [Architecture](docs/ARCHITECTURE.md), and [Packaging](docs/PACKAGING.md).
 
-The latest Phase 11 checks and exact commit CI status are recorded in [Project Status](docs/PROJECT_STATUS.md). Install the development extras before rerunning them in a new environment.
-
-The [GitHub Actions Tests workflow](.github/workflows/tests.yml) runs on Windows with Python 3.12. Its test job installs `.[dev]`, checks both application version entry points, runs Ruff across `app`, `tests`, and `scripts`, runs mypy on `app`, and executes the full pytest suite with Qt's offscreen platform. A dependent packaging job uses the pinned PyInstaller extra and existing build/smoke scripts; it does not upload an artifact. Review branch results in [GitHub Actions](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/actions/workflows/tests.yml).
+---
 
 ## Roadmap
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Foundation, startup, configuration and logging | Complete |
-| 1 | SQLite models, migrations, repositories and categories | Complete |
-| 2 | Wikimedia source integration and download service | Complete in backend |
-| 3 | Image validation, hashing, duplicate detection and thumbnails | Complete in backend |
-| 4 | Local import, search, filters, statistics and integrity checks | Complete |
-| 5 | Windows wallpaper engine, style preview, monitor detection and restore | Complete in service layer |
-| 6 | PySide6 desktop interface | Complete; some destinations remain placeholders |
+| 0 | Foundation, startup, configuration, logging | Complete |
+| 1 | SQLite models, migrations, repositories, categories | Complete |
+| 2 | Wikimedia source integration and download service | Complete (backend) |
+| 3 | Image validation, hashing, duplicate detection, thumbnails | Complete (backend) |
+| 4 | Local import, search, filters, statistics, integrity checks | Complete |
+| 5 | Windows wallpaper engine, styles, monitor detection, restore | Complete (service layer) |
+| 6 | PySide6 desktop interface | Complete |
 | 7 | Favorites and history workflows | Complete |
 | 8 | Automatic wallpaper rotation | Complete |
-| 9 | Dedicated Duplicate Manager UI | Complete; confirmed Windows Recycle Bin cleanup |
-| 10 | Settings, attribution export and operational features | Complete |
-| 11 | QA, compatibility and release hardening | Partially complete; see evidence and limitations |
-| 12 | PyInstaller packaging | Local `onedir` bundle and fresh-process import/settings smoke passed; clean-machine/Windows 10 acceptance remains open |
+| 9 | Duplicate Manager UI | Complete |
+| 10 | Settings, attribution export, operational features | Complete |
+| 11 | QA, compatibility, and release hardening | Partially complete — physical-input/Narrator, Windows 10, clean-machine remain open |
+| 12 | PyInstaller packaging | Local onedir bundle validated on Windows 11; clean-machine/Windows 10 not yet run |
 | 13 | Windows installer | Planned |
 
-The local Windows build is internal validation output, not a downloadable product. To reproduce it on Windows x64 with Python 3.12, install `.[dev,packaging]` and run `./scripts/build_windows.ps1`; see [Packaging](docs/PACKAGING.md). Installer delivery and public distribution remain future work. See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for phase records.
+Planned improvements (tracked gaps from this audit):
+
+- [ ] Build the Windows installer (NSIS/WiX or Inno Setup) with per-user install, upgrade path, and safe uninstall
+- [ ] Wire the Discover screen to the Wikimedia Commons backend
+- [ ] Wire the Downloads screen to the DownloadService queue
+- [ ] Complete Windows 10 and clean-machine acceptance testing
+- [ ] Obtain code signing certificate and sign the installer and bundle
+- [ ] Add a GitHub release with signed installer and checksums
+- [ ] Capture and commit hero/dashboard/library/categories screenshots to docs/
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) for milestone evidence.
+
+---
 
 ## Troubleshooting
 
 ### Python version is unsupported
 
-Check that the Python launcher can find Python 3.12:
-
 ```powershell
 py -3.12 --version
 ```
 
-Use Python 3.12 or later, as declared by `pyproject.toml`. If the launcher cannot find it, install Python 3.12 and enable the Python launcher during setup.
+Requires Python 3.12 or later. If the launcher cannot find it, install Python 3.12 and enable the launcher during setup.
 
 ### PowerShell blocks virtual-environment activation
 
-You can avoid changing the execution policy by invoking the venv interpreter directly:
+Invoke the environment interpreter directly without activating:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m app
 ```
 
-Alternatively, follow your organization's approved PowerShell policy. Do not weaken machine-wide execution controls merely to run this project.
+### Missing dependencies or pytest not found
 
-### Missing dependencies or `pytest`
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
 
-Install the development dependencies with `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"`. For runtime dependencies only, use `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`; tests require the development extras.
+For runtime dependencies only (no tests):
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
 ### Qt GUI does not open
 
-Run `.\.venv\Scripts\python.exe -m app --debug` and inspect the log files under the app data root's `Logs` directory. Check that PySide6 is installed in the same Python environment used to run the app. The current entry point can fall back to a console status report after a GUI launch exception; use the log to diagnose the actual error.
+Run with `--debug` and inspect the log:
+
+```powershell
+.\.venv\Scripts\python.exe -m app --debug
+```
+
+Log location: `%USERPROFILE%\Pictures\SandyWallpaperStudio\Logs\app.log`
+
+Check that PySide6 is installed in the same environment used to run the application.
 
 ### Wikimedia search or downloads fail
 
-Check network connectivity to Wikimedia Commons and retry later if the API or remote file server is unavailable. HTTP errors, rate limits, timeouts and failed downloads may be logged. Keep in mind that network-dependent operations require internet access; do not interpret an empty search result alone as proof that no matching image exists.
+Check network connectivity to Wikimedia Commons and retry later if the API or file server is unavailable. HTTP errors, rate limits, timeouts, and failed downloads are logged. An empty search result alone does not confirm that no matching image exists.
 
 ### A local image cannot be imported
 
-Confirm that the file is readable and supported by the processing path, and that its contents are a valid image rather than just a file with an image extension. Check the import result/log for the specific file-level error. Do not delete or overwrite the original file as a diagnostic step.
+Confirm the file is readable and its contents are a valid image (not just a file with an image extension). Check the import log for the file-level error. Supported formats are JPEG, PNG, and WebP.
 
 ### Wallpaper was not applied or monitor details look wrong
 
-Native application depends on Windows APIs and the current desktop/display environment. Check that the image path exists and that Windows has access to it. Confirm multi-monitor layout in Windows Display Settings. A preview rendered by Pillow is a simulated layout preview and is not a guarantee of identical rendering by Windows.
+Native application depends on Windows APIs. Confirm the image path is accessible and that Windows display settings are as expected. Multi-monitor layout may affect which monitor receives the wallpaper.
 
 ### Database or library issue
 
-Close the application cleanly and preserve a backup of the app data root before attempting recovery. Run a non-destructive library integrity check where available. Do not delete the SQLite database, WAL files, library images or configuration as a first-line fix.
+Close the application cleanly and back up the app data root before attempting recovery. Run a non-destructive library integrity check from the UI. Do not delete the SQLite database, WAL files, library images, or configuration as a first-line fix.
+
+---
 
 ## Contributing
 
-Contributions are welcome, including focused bug reports, reproducible test cases, UI accessibility improvements and documentation fixes.
+Contributions are welcome — focused bug reports, reproducible test cases, UI accessibility improvements, and documentation fixes.
 
-1. Search existing [issues](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/issues) before opening a new one.
-2. Include your Windows version, Python version, exact steps to reproduce, expected behavior, actual behavior and relevant sanitized logs.
-3. For a change, create a focused branch and keep the pull request limited to one concern.
-4. Add or update tests when behavior changes, and run the relevant suite before opening a pull request.
-5. Update documentation when commands, configuration, user workflows or supported behavior change.
+1. Search [existing issues](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/issues) before opening a new one.
+2. Include your Windows version, Python version, exact reproduction steps, expected and actual behavior, and sanitised log excerpts.
+3. Create a focused branch; keep pull requests limited to one concern.
+4. Add or update tests when behavior changes; run the quality gate before opening a PR.
+5. Update documentation when commands, configuration, workflows, or supported behavior change.
 
-Do not attach private wallpaper collections, credentials, access tokens or logs containing personal file paths unless you have reviewed and sanitized them. See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contributor setup, coding guidelines, and pull request checklist.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding guidelines, and the PR checklist.
+Do not attach private wallpaper collections, credentials, or logs containing personal file paths.
+
+---
+
+## Security
+
+Do not open a public GitHub issue for a security vulnerability. See [SECURITY.md](SECURITY.md) for the responsible disclosure process.
+
+---
+
+## Needs human action
+
+The following items require a human on a real Windows machine:
+
+| Item | Instructions |
+|---|---|
+| Hero screenshot | Run the app at 1280×800, take a screenshot of the Dashboard or Library view, save as `docs/assets/hero.png`, and update the `![…]` reference in README |
+| Library / Dashboard / Categories / Favorites screenshots | Capture at 1280×800 and 1440×900, save under `docs/images/`, and add to the Screenshots section |
+| Windows 10 acceptance | Follow [docs/WINDOWS_ACCEPTANCE.md](docs/WINDOWS_ACCEPTANCE.md) on a Windows 10 machine |
+| Clean-machine install test | Fresh VM or machine — follow the Quick Start section end-to-end |
+| Physical keyboard / Narrator review | Follow [docs/WINDOWS_ACCEPTANCE.md](docs/WINDOWS_ACCEPTANCE.md) |
+| License confirmation | Owner should confirm MIT license applies to the project code |
+| GitHub repo settings | Set description, topics (python, pyside6, wallpaper, windows, desktop), and social preview image |
+| Branch protection | Enable required reviews and status checks on `main` |
+
+---
 
 ## License and credits
 
 The project code is distributed under the [MIT License](LICENSE). Copyright © 2026 Sandy.
 
-Sandy Wallpaper Studio uses Python, PySide6, Pillow, ImageHash, Requests and SQLite. See the dependency declarations for version constraints and upstream license details.
+Sandy Wallpaper Studio uses Python, PySide6, Pillow, ImageHash, Requests, and SQLite. See [pyproject.toml](pyproject.toml) for version constraints and upstream license details.
 
-Wallpaper files are third-party content. Their individual licenses may differ; preserve available author, source and license details and check the source page before reusing or redistributing an image.
+Wallpaper files are third-party content. Their individual licenses may differ from the project license. Preserve available author, source, and license details, and check the source page before reusing or redistributing any image.
+
+---
 
 ## Project links
 
 - **Repository:** [Sandy32513/Sandy-Wallpaper-Studio](https://github.com/Sandy32513/Sandy-Wallpaper-Studio)
-- **Issues and bug reports:** [GitHub Issues](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/issues)
+- **Issues:** [GitHub Issues](https://github.com/Sandy32513/Sandy-Wallpaper-Studio/issues)
 - **Project status:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)
 - **Roadmap:** [docs/ROADMAP.md](docs/ROADMAP.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Development guide:** [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- **Windows packaging validation:** [docs/PACKAGING.md](docs/PACKAGING.md)
-- **Manual Windows acceptance:** [docs/WINDOWS_ACCEPTANCE.md](docs/WINDOWS_ACCEPTANCE.md)
+- **Configuration:** [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
+- **Packaging:** [docs/PACKAGING.md](docs/PACKAGING.md)
+- **Windows acceptance:** [docs/WINDOWS_ACCEPTANCE.md](docs/WINDOWS_ACCEPTANCE.md)
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Code of Conduct:** [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- **Security:** [SECURITY.md](SECURITY.md)
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 - **Privacy:** [PRIVACY.md](PRIVACY.md)
 - **License:** [LICENSE](LICENSE)

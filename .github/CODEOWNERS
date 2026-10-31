@@ -1,0 +1,24 @@
+# CODEOWNERS
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Each line maps a file pattern to one or more owners.
+# Owners are automatically requested for review on matching pull requests.
+
+# Global default: Sandy reviews everything
+*                   @Sandy32513
+
+# Core application
+app/                @Sandy32513
+
+# CI and project config
+.github/            @Sandy32513
+pyproject.toml      @Sandy32513
+requirements.txt    @Sandy32513
+
+# Documentation
+docs/               @Sandy32513
+README.md           @Sandy32513
+CHANGELOG.md        @Sandy32513
+
+# Security-sensitive areas
+SECURITY.md         @Sandy32513

@@ -5,7 +5,31 @@ All notable changes to Sandy Wallpaper Studio are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-10-19
+## [Unreleased] — Repository polish (`chore/repo-polish`)
+
+### Added
+- `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1 adapted for this project.
+- `SECURITY.md` — responsible disclosure policy, scope, and response timeline.
+- `.github/ISSUE_TEMPLATE/bug_report.md` — structured bug-report template.
+- `.github/ISSUE_TEMPLATE/feature_request.md` — feature-request template.
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR checklist and description template.
+- `.github/CODEOWNERS` — code-ownership file mapping all paths to `@Sandy32513`.
+- `.github/dependabot.yml` — weekly Dependabot updates for pip and GitHub Actions; PyInstaller excluded from minor/major upgrades.
+- `docs/assets/README.md` — placeholder and instructions for the hero screenshot.
+
+### Changed
+- `README.md` — full rewrite: three-reader structure (user/developer/recruiter), verified-only features, accurate placeholder status (Categories is implemented; Discover and Downloads remain placeholders), hero image placeholder, `Needs human action` section, full project-structure tree, CoC/Security links.
+- `.github/workflows/tests.yml` — push trigger updated from `[main, chore/repository-cleanup]` to `main` + `chore/**` to cover all chore branches.
+- `.gitignore` — added `/*.spec` (root-level auto-generated specs), `.ipynb_checkpoints/`, and `*.ipynb`.
+- `CONTRIBUTING.md` — added links to `CODE_OF_CONDUCT.md` and `SECURITY.md`; added security reporting note.
+
+### Verified
+- No tracked build outputs, `.env` files, or secret patterns found in the working tree or index.
+- Categories screen confirmed implemented (`app/ui/categories_view.py`); Discover and Downloads confirmed as `PlaceholderView`.
+- Version `V1.0.0` confirmed consistent across `app/constants.py` and `pyproject.toml`.
+
+
+## [1.0.0-rc] — 2026-10-19
 
 ### Phase 11 - Release Hardening (QA recorded)
 

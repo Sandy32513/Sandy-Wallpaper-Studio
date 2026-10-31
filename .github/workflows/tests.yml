@@ -2,7 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main, chore/repository-cleanup]
+    branches:
+      - main
+      - "chore/**"
   pull_request:
     branches: [main]
 
