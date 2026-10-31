@@ -23,6 +23,13 @@ dist/
 # PyInstaller
 *.spec.local
 *.manifest
+# Build spec outputs produced by scripts (packaging/SandyWallpaperStudio.spec is committed intentionally)
+# but any spec auto-generated in root is noise:
+/*.spec
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
 
 # Environment / Secrets
 .env

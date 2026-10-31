@@ -6,9 +6,12 @@ Thank you for your interest in contributing to **Sandy Wallpaper Studio**! This 
 
 ## 1. Code of Conduct and Principles
 
+All contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). By participating you agree to abide by its terms.
+
 - **Respect and Professionalism**: Treat all collaborators and community members with courtesy.
 - **Data Safety First**: The core design principle of Sandy Wallpaper Studio is non-destructive operation. Code must never silently delete user files, overwrite user collections, or destroy databases.
 - **Privacy by Design**: Never commit private wallpaper files, machine-specific paths, credentials, access tokens, or sensitive user environment data.
+- **Security issues**: Do not open a public issue for vulnerabilities. Follow the [Security Policy](SECURITY.md) instead.
 
 ---
 
